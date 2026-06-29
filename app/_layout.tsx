@@ -4,6 +4,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 import { Ionicons } from '@expo/vector-icons';
+import { LanguageProvider } from '../lib/LanguageContext';
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
@@ -23,6 +24,7 @@ export default function RootLayout() {
   }
 
   return (
+    <LanguageProvider>
     <SafeAreaProvider>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <StatusBar barStyle="dark-content" backgroundColor="#ffffff" translucent={false} />
@@ -34,5 +36,6 @@ export default function RootLayout() {
         </SafeAreaView>
       </GestureHandlerRootView>
     </SafeAreaProvider>
+    </LanguageProvider>
   );
 }

@@ -6,6 +6,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useFocusEffect } from 'expo-router';
+import { useLanguage } from '../../lib/LanguageContext';
 
 const BACKEND = 'https://foodup-order-alerts-backend.onrender.com';
 const PRIMARY = '#8B38CB';
@@ -105,6 +106,7 @@ function PrinterStatusCard() {
 }
 
 export default function Settings() {
+  const { t, language, setLanguage } = useLanguage();
   const [restaurantCode, setRestaurantCode] = useState('');
   const [restaurantName, setRestaurantName] = useState('');
   const [loading, setLoading] = useState(true);
@@ -179,7 +181,7 @@ export default function Settings() {
 
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Settings</Text>
+          <Text style={styles.headerTitle}>{t.settings}</Text>
         </View>
 
         <View style={styles.contentInner}>
@@ -191,7 +193,7 @@ export default function Settings() {
               <View style={styles.infoRow}>
                 <Ionicons name="storefront-outline" size={18} color={PRIMARY} />
                 <View style={styles.infoText}>
-                  <Text style={styles.infoLabel}>Restaurant Code</Text>
+                  <Text style={styles.infoLabel}>{t.restaurantCode}</Text>
                   <Text style={styles.infoValue}>{restaurantCode}</Text>
                 </View>
               </View>
@@ -214,7 +216,7 @@ export default function Settings() {
                   style={{ backgroundColor: PRIMARY, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 7 }}
                   onPress={() => setPinModal(true)}
                 >
-                  <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>Change PIN</Text>
+                  <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>{t.changePin}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -235,7 +237,7 @@ export default function Settings() {
                   <Ionicons name="refresh-circle-outline" size={20} color="#16a34a" />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 15, fontWeight: '600', color: '#111' }}>Reopen Day</Text>
+                  <Text style={{ fontSize: 15, fontWeight: '600', color: '#111' }}>{t.reopenDay}</Text>
                   <Text style={{ fontSize: 12, color: '#888', marginTop: 2 }}>Remove day close status</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={16} color="#ccc" />
@@ -244,11 +246,33 @@ export default function Settings() {
           </View>
           <PrinterStatusCard />
 
+          {/* Language */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>{t.language}</Text>
+            <View style={styles.card}>
+              <View style={{ flexDirection: 'row', padding: 14, gap: 10 }}>
+                {(['de', 'en'] as const).map(lang => {
+                  return (
+                    <TouchableOpacity
+                      key={lang}
+                      style={{ flex: 1, padding: 10, borderRadius: 10, backgroundColor: language === lang ? PRIMARY : '#f5f5f5', alignItems: 'center' }}
+                      onPress={() => setLanguage(lang)}
+                    >
+                      <Text style={{ fontSize: 14, fontWeight: '700', color: language === lang ? '#fff' : '#555' }}>
+                        {lang === 'de' ? '🇩🇪 Deutsch' : '🇬🇧 English'}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          </View>
+
           {/* Logout */}
           <View style={styles.section}>
             <TouchableOpacity style={styles.logoutBtn} onPress={() => setLogoutModal(true)}>
               <Ionicons name="log-out-outline" size={18} color="#e74c3c" />
-              <Text style={styles.logoutText}>Logout</Text>
+              <Text style={styles.logoutText}>{t.logout}</Text>
             </TouchableOpacity>
           </View>
 
@@ -264,7 +288,7 @@ export default function Settings() {
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setReopenModal(false)}>
           <TouchableOpacity style={styles.modalBox} activeOpacity={1} onPress={e => e.stopPropagation()}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Day Reopened</Text>
+              <Text style={styles.modalTitle}>{t.reopenDay}</Text>
               <TouchableOpacity onPress={() => setReopenModal(false)} style={styles.modalCloseBtn}>
                 <Ionicons name="close" size={18} color="#666" />
               </TouchableOpacity>
@@ -283,25 +307,25 @@ export default function Settings() {
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setLogoutModal(false)}>
           <TouchableOpacity style={styles.modalBox} activeOpacity={1} onPress={e => e.stopPropagation()}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Logout</Text>
+              <Text style={styles.modalTitle}>{t.logout}</Text>
               <TouchableOpacity onPress={() => setLogoutModal(false)} style={styles.modalCloseBtn}>
                 <Ionicons name="close" size={18} color="#666" />
               </TouchableOpacity>
             </View>
             <View style={styles.modalBody}>
-              <Text style={{ fontSize: 15, color: '#555', marginBottom: 20 }}>Are you sure you want to logout?</Text>
+              <Text style={{ fontSize: 15, color: '#555', marginBottom: 20 }}>{t.logoutConfirm}</Text>
               <View style={{ flexDirection: 'row', gap: 10 }}>
                 <TouchableOpacity
                   style={[styles.saveBtn, { flex: 1, backgroundColor: '#f5f5f5', marginTop: 0 }]}
                   onPress={() => setLogoutModal(false)}
                 >
-                  <Text style={[styles.saveBtnText, { color: '#555' }]}>Cancel</Text>
+                  <Text style={[styles.saveBtnText, { color: '#555' }]}>{t.cancel}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.saveBtn, { flex: 1, backgroundColor: '#e74c3c', marginTop: 0 }]}
                   onPress={confirmLogout}
                 >
-                  <Text style={styles.saveBtnText}>Logout</Text>
+                  <Text style={styles.saveBtnText}>{t.logout}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -314,20 +338,20 @@ export default function Settings() {
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => { setPinModal(false); setCurrentPin(''); setNewPin(''); setConfirmPin(''); }}>
           <TouchableOpacity style={styles.modalBox} activeOpacity={1} onPress={e => e.stopPropagation()}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Change PIN</Text>
+              <Text style={styles.modalTitle}>{t.changePin}</Text>
               <TouchableOpacity onPress={() => { setPinModal(false); setCurrentPin(''); setNewPin(''); setConfirmPin(''); }} style={styles.modalCloseBtn}>
                 <Ionicons name="close" size={18} color="#666" />
               </TouchableOpacity>
             </View>
             <View style={styles.modalBody}>
-              <Text style={styles.fieldLabel}>Current PIN</Text>
-              <TextInput style={styles.pinInput} placeholder="Current PIN" placeholderTextColor="#bbb" value={currentPin} onChangeText={setCurrentPin} secureTextEntry keyboardType="number-pad" />
-              <Text style={styles.fieldLabel}>New PIN</Text>
-              <TextInput style={styles.pinInput} placeholder="New PIN" placeholderTextColor="#bbb" value={newPin} onChangeText={setNewPin} secureTextEntry keyboardType="number-pad" />
-              <Text style={styles.fieldLabel}>Confirm PIN</Text>
-              <TextInput style={styles.pinInput} placeholder="Confirm PIN" placeholderTextColor="#bbb" value={confirmPin} onChangeText={setConfirmPin} secureTextEntry keyboardType="number-pad" />
+              <Text style={styles.fieldLabel}>{t.currentPin}</Text>
+              <TextInput style={styles.pinInput} placeholder={t.currentPin} placeholderTextColor="#bbb" value={currentPin} onChangeText={setCurrentPin} secureTextEntry keyboardType="number-pad" />
+              <Text style={styles.fieldLabel}>{t.newPin}</Text>
+              <TextInput style={styles.pinInput} placeholder={t.newPin} placeholderTextColor="#bbb" value={newPin} onChangeText={setNewPin} secureTextEntry keyboardType="number-pad" />
+              <Text style={styles.fieldLabel}>{t.confirmPin}</Text>
+              <TextInput style={styles.pinInput} placeholder={t.confirmPin} placeholderTextColor="#bbb" value={confirmPin} onChangeText={setConfirmPin} secureTextEntry keyboardType="number-pad" />
               <TouchableOpacity style={[styles.saveBtn, changingPin && styles.saveBtnDisabled]} onPress={handleChangePin} disabled={changingPin}>
-                {changingPin ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveBtnText}>Save New PIN</Text>}
+                {changingPin ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveBtnText}>{t.newPin}</Text>}
               </TouchableOpacity>
             </View>
           </TouchableOpacity>

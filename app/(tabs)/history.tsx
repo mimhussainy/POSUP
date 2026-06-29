@@ -14,6 +14,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useFocusEffect } from 'expo-router';
+import { useLanguage } from '../../lib/LanguageContext';
 
 const BACKEND = 'https://foodup-order-alerts-backend.onrender.com';
 const PRIMARY = '#8B38CB';
@@ -48,6 +49,7 @@ const getNumColumns = (leftWidth: number) => {
 };
 
 export default function HistoryScreen() {
+  const { t } = useLanguage();
   const [restaurantCode, setRestaurantCode] = useState('');
   const [orders, setOrders] = useState<POSOrder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -272,7 +274,7 @@ export default function HistoryScreen() {
         {topProducts.length === 0 ? (
           <View style={styles.noProductsBox}>
             <Ionicons name="bar-chart-outline" size={36} color="#ddd" />
-            <Text style={styles.noProductsText}>No orders yet</Text>
+            <Text style={styles.noProductsText}>{t.noOrders}</Text>
           </View>
         ) : (
           topProducts.map(([name, data], index) => {
@@ -310,17 +312,17 @@ export default function HistoryScreen() {
         <Text style={styles.sidePanelTitle}>Summary</Text>
 
         <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>Average order</Text>
+          <Text style={styles.summaryLabel}>{t.orders} Ø</Text>
           <Text style={styles.summaryValue}>CHF {avgOrder.toFixed(2)}</Text>
         </View>
 
         <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>Total orders</Text>
+          <Text style={styles.summaryLabel}>{t.orders}</Text>
           <Text style={styles.summaryValue}>{filteredOrders.length}</Text>
         </View>
 
         <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>Total revenue</Text>
+          <Text style={styles.summaryLabel}>{t.revenue}</Text>
           <Text style={[styles.summaryValue, styles.summaryValuePrimary]}>
             CHF {revenue.toFixed(2)}
           </Text>
@@ -365,7 +367,7 @@ export default function HistoryScreen() {
             ]}
           >
             <Text style={styles.payBadgeText}>
-              {paymentType === 'cash' ? 'Cash' : 'Card'}
+              {paymentType === 'cash' ? t.cash : t.card}
             </Text>
           </View>
         </View>
@@ -387,7 +389,7 @@ export default function HistoryScreen() {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color={PRIMARY} />
-        <Text style={styles.loadingText}>Loading orders...</Text>
+        <Text style={styles.loadingText}>{t.orders}...</Text>
       </View>
     );
   }
@@ -395,7 +397,7 @@ export default function HistoryScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Orders</Text>
+        <Text style={styles.headerTitle}>{t.orders}</Text>
         <View style={styles.headerRight}>
           <TouchableOpacity
             style={[styles.zReportBtn, dayClosed && styles.zReportBtnClosed]}
@@ -403,7 +405,7 @@ export default function HistoryScreen() {
           >
             <Ionicons name="lock-closed-outline" size={14} color={dayClosed ? '#999' : '#fff'} />
             <Text style={[styles.zReportBtnText, dayClosed && { color: '#999' }]}>
-              {dayClosed ? 'Day Closed' : 'Z-Report'}
+              {dayClosed ? t.dayClosed : t.zReport}
             </Text>
           </TouchableOpacity>
         </View>
@@ -413,7 +415,7 @@ export default function HistoryScreen() {
         <View style={styles.dayClosedBanner}>
           <Ionicons name="lock-closed" size={16} color="#fff" />
           <Text style={styles.dayClosedText}>
-            Day closed — reopens automatically tomorrow
+            {t.dayClosed} — reopens automatically tomorrow
           </Text>
         </View>
       )}
@@ -423,28 +425,28 @@ export default function HistoryScreen() {
           <View style={[styles.statsRow, isCompact && styles.statsRowCompact]}>
             <View style={styles.statCard}>
               <Text style={styles.statValue}>{filteredOrders.length}</Text>
-              <Text style={styles.statLabel}>Orders</Text>
+              <Text style={styles.statLabel}>{t.orders}</Text>
             </View>
 
             <View style={styles.statCard}>
               <Text style={[styles.statValue, styles.statValuePrimary]}>
                 CHF {revenue.toFixed(2)}
               </Text>
-              <Text style={styles.statLabel}>Revenue</Text>
+              <Text style={styles.statLabel}>{t.revenue}</Text>
             </View>
 
             <View style={styles.statCard}>
               <Text style={[styles.statValue, styles.statValueCash]}>
                 CHF {cashRev.toFixed(2)}
               </Text>
-              <Text style={styles.statLabel}>Cash</Text>
+              <Text style={styles.statLabel}>{t.cash}</Text>
             </View>
 
             <View style={styles.statCard}>
               <Text style={[styles.statValue, styles.statValueCard]}>
                 CHF {cardRev.toFixed(2)}
               </Text>
-              <Text style={styles.statLabel}>Card</Text>
+              <Text style={styles.statLabel}>{t.card}</Text>
             </View>
           </View>
 
@@ -456,10 +458,10 @@ export default function HistoryScreen() {
             >
               {(
                 [
-                  { key: 'today', label: `Today (${todayOrders.length})` },
+                  { key: 'today', label: `${t.today} (${todayOrders.length})` },
                   { key: 'week', label: '7 days' },
                   { key: 'month', label: '30 days' },
-                  { key: 'all', label: `All (${orders.length})` },
+                  { key: 'all', label: `${t.all} (${orders.length})` },
                 ] as const
               ).map(item => (
                 <TouchableOpacity
@@ -508,7 +510,7 @@ export default function HistoryScreen() {
             ListEmptyComponent={
               <View style={styles.emptyCard}>
                 <Ionicons name="receipt-outline" size={42} color="#ddd" />
-                <Text style={styles.emptyTitle}>No orders</Text>
+                <Text style={styles.emptyTitle}>{t.noOrders}</Text>
               </View>
             }
             ListFooterComponent={!showSidePanel ? renderTopProductsPanel(true) : null}
@@ -547,8 +549,8 @@ export default function HistoryScreen() {
                       {formatTime(selectedOrder.created_at)} ·{' '}
                       {formatDate(selectedOrder.created_at)} ·{' '}
                       {getPaymentType(selectedOrder.payment_method) === 'cash'
-                        ? 'Cash'
-                        : 'Card'}
+                        ? t.cash
+                        : t.card}
                     </Text>
                   </View>
 
@@ -603,7 +605,7 @@ export default function HistoryScreen() {
                   {parseAmount(selectedOrder.discount) > 0 && (
                     <>
                       <View style={styles.totalRow}>
-                        <Text style={styles.totalLabel}>Subtotal</Text>
+                        <Text style={styles.totalLabel}>{t.subtotal}</Text>
                         <Text style={styles.totalValue}>
                           CHF{' '}
                           {parseAmount(
@@ -614,7 +616,7 @@ export default function HistoryScreen() {
 
                       <View style={styles.totalRow}>
                         <Text style={[styles.totalLabel, styles.discountText]}>
-                          Discount
+                          {t.discount}
                         </Text>
                         <Text style={[styles.totalValue, styles.discountText]}>
                           - CHF {parseAmount(selectedOrder.discount).toFixed(2)}
@@ -624,7 +626,7 @@ export default function HistoryScreen() {
                   )}
 
                   <View style={styles.totalRow}>
-                    <Text style={styles.finalTotalLabel}>Total</Text>
+                    <Text style={styles.finalTotalLabel}>{t.total}</Text>
                     <Text style={styles.finalTotalValue}>
                       CHF {parseAmount(selectedOrder.total).toFixed(2)}
                     </Text>
@@ -635,7 +637,7 @@ export default function HistoryScreen() {
                     onPress={() => {}}
                   >
                     <Ionicons name="print-outline" size={15} color={PRIMARY} />
-                    <Text style={styles.reprintBtnText}>Reprint Receipt</Text>
+                    <Text style={styles.reprintBtnText}>{t.reprint}</Text>
                   </TouchableOpacity>
                 </ScrollView>
               </>
@@ -661,7 +663,7 @@ export default function HistoryScreen() {
             onPress={e => e.stopPropagation()}
           >
             <View style={styles.modalHeader}>
-              <Text style={styles.modalOrderNumber}>Day Close</Text>
+              <Text style={styles.modalOrderNumber}>{t.dayClose}</Text>
 
               <TouchableOpacity
                 onPress={() => setZReportModal(false)}
@@ -672,10 +674,10 @@ export default function HistoryScreen() {
             </View>
 
             <View style={styles.zModalContent}>
-              <Text style={styles.zModalTitle}>Close the day and print Z-Report?</Text>
+              <Text style={styles.zModalTitle}>{t.dayClose} — {t.zReport}?</Text>
 
               <Text style={styles.zModalSummary}>
-                Today: {todayOrders.length} orders · CHF{' '}
+                {t.today}: {todayOrders.length} {t.orders} · CHF{' '}
                 {todayOrders
                   .reduce((sum, order) => sum + parseAmount(order.total), 0)
                   .toFixed(2)}
@@ -690,11 +692,11 @@ export default function HistoryScreen() {
                   style={styles.cancelBtn}
                   onPress={() => setZReportModal(false)}
                 >
-                  <Text style={styles.cancelBtnText}>Cancel</Text>
+                  <Text style={styles.cancelBtnText}>{t.cancel}</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity style={styles.closeDayBtn} onPress={confirmDayClose}>
-                  <Text style={styles.closeDayBtnText}>Close Day</Text>
+                  <Text style={styles.closeDayBtnText}>{t.dayClose}</Text>
                 </TouchableOpacity>
               </View>
             </View>

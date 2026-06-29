@@ -9,6 +9,7 @@ import { Image } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { fetchRestaurantData } from '../../lib/api';
 import { printOrder } from '../../lib/printer';
+import { useLanguage } from '../../lib/LanguageContext';
 
 const getLayout = (width: number) => {
   const isSmall = width < 900;
@@ -45,6 +46,7 @@ interface CartItem {
 }
 
 export default function NewOrderScreen() {
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
@@ -302,7 +304,7 @@ export default function NewOrderScreen() {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color={PRIMARY} />
-        <Text style={{ marginTop: 12, color: '#666', fontSize: 14 }}>Loading menu...</Text>
+        <Text style={{ marginTop: 12, color: '#666', fontSize: 14 }}>{t.loadingMenu}</Text>
       </View>
     );
   }
@@ -348,7 +350,7 @@ export default function NewOrderScreen() {
             <Ionicons name="search-outline" size={16} color="#aaa" />
             <TextInput
               style={styles.searchInput}
-              placeholder="Search products..."
+              placeholder={t.searchProducts}
               placeholderTextColor="#999"
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -393,7 +395,7 @@ export default function NewOrderScreen() {
           ListEmptyComponent={
             <View style={styles.emptyWrap}>
               <Ionicons name="search-outline" size={36} color="#ddd" />
-              <Text style={styles.emptyText}>No products found</Text>
+              <Text style={styles.emptyText}>{t.searchProducts}</Text>
             </View>
           }
         />
@@ -402,11 +404,11 @@ export default function NewOrderScreen() {
       {/* ── ORDER PANEL ── */}
       <View style={[styles.orderPanel, { width: layout.orderPanel }]}>
         <View style={styles.orderHeader}>
-          <Text style={styles.orderTitle}>Order</Text>
+          <Text style={styles.orderTitle}>{t.order}</Text>
           {cart.length > 0 && (
             <TouchableOpacity onPress={clearOrder} style={styles.clearBtn}>
               <Ionicons name="trash-outline" size={13} color="#ff6b6b" />
-              <Text style={styles.clearBtnText}>Clear</Text>
+              <Text style={styles.clearBtnText}>{t.clear}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -415,7 +417,7 @@ export default function NewOrderScreen() {
         <TouchableOpacity style={styles.tableSelector} onPress={() => setTableModal(true)}>
           <Ionicons name="grid-outline" size={14} color={selectedTable ? PRIMARY : '#666'} />
           <Text style={[styles.tableSelectorText, (selectedTable || orderType) && { color: PRIMARY }]}>
-            {selectedTable ? `Table ${selectedTable}` : orderType === 'walkIn' ? '🚶 Walk-in' : 'Walk-in / Table'}
+            {selectedTable ? `${t.table} ${selectedTable}` : orderType === 'walkIn' ? `🚶 ${t.walkIn}` : `${t.walkIn} / ${t.table}`}
           </Text>
           <Ionicons name="chevron-down" size={14} color="#999" />
         </TouchableOpacity>
@@ -423,7 +425,7 @@ export default function NewOrderScreen() {
         {cart.length === 0 ? (
           <View style={styles.emptyOrder}>
             <Ionicons name="cart-outline" size={44} color="#333" />
-            <Text style={styles.emptyText}>Add items to start</Text>
+            <Text style={styles.emptyText}>{t.addItemsToStart}</Text>
           </View>
         ) : (
           <ScrollView style={styles.itemsList} showsVerticalScrollIndicator={false}>
@@ -469,7 +471,7 @@ export default function NewOrderScreen() {
 
         <TextInput
           style={styles.noteInput}
-          placeholder="Order note..."
+          placeholder={t.orderNote}
           placeholderTextColor="#888"
           value={note}
           onChangeText={setNote}
@@ -479,29 +481,29 @@ export default function NewOrderScreen() {
         <View style={styles.payRow}>
           <TouchableOpacity style={[styles.payBtn, paymentMethod === 'cash' && styles.payBtnActive]} onPress={() => setPaymentMethod('cash')}>
             <Text style={styles.payEmoji}>💵</Text>
-            <Text style={[styles.payBtnText, paymentMethod === 'cash' && styles.payBtnTextActive]}>Cash</Text>
+            <Text style={[styles.payBtnText, paymentMethod === 'cash' && styles.payBtnTextActive]}>{t.cash}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.payBtn, paymentMethod === 'card' && styles.payBtnActive]} onPress={() => setPaymentMethod('card')}>
             <Text style={styles.payEmoji}>💳</Text>
-            <Text style={[styles.payBtnText, paymentMethod === 'card' && styles.payBtnTextActive]}>Card</Text>
+            <Text style={[styles.payBtnText, paymentMethod === 'card' && styles.payBtnTextActive]}>{t.card}</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.totalsBox}>
           <View style={styles.totalRow}>
-            <Text style={styles.totalRowLabel}>Subtotal</Text>
+            <Text style={styles.totalRowLabel}>{t.subtotal}</Text>
             <Text style={styles.totalRowVal}>CHF {subtotal.toFixed(2)}</Text>
           </View>
           {discountAmount() > 0 && (
             <View style={styles.totalRow}>
               <Text style={[styles.totalRowLabel, { color: '#22c55e' }]}>
-                Discount {discountType === 'percent' ? `(${discount}%)` : '(Fixed)'}
+                {t.discount} {discountType === 'percent' ? `(${discount}%)` : '(Fixed)'}
               </Text>
               <Text style={[styles.totalRowVal, { color: '#22c55e' }]}>- CHF {discountAmount().toFixed(2)}</Text>
             </View>
           )}
           <View style={[styles.totalRow, { marginTop: 6 }]}>
-            <Text style={styles.grandTotalLabel}>Total</Text>
+            <Text style={styles.grandTotalLabel}>{t.total}</Text>
             <Text style={styles.grandTotalAmt}>CHF {orderTotal.toFixed(2)}</Text>
           </View>
         </View>
@@ -510,7 +512,7 @@ export default function NewOrderScreen() {
           <TouchableOpacity style={styles.discountBtn} onPress={() => setDiscountModal(true)}>
             <Ionicons name="pricetag-outline" size={14} color="#f59e0b" />
             <Text style={styles.discountBtnText}>
-              {discount ? `${discount}${discountType === 'percent' ? '%' : ' CHF'}` : 'Discount'}
+              {discount ? `${discount}${discountType === 'percent' ? '%' : ' CHF'}` : t.discount}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -518,7 +520,7 @@ export default function NewOrderScreen() {
             onPress={placeOrder}
             disabled={cart.length === 0 || placingOrder}
           >
-            {placingOrder ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.placeBtnText}>Place Order</Text>}
+            {placingOrder ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.placeBtnText}>{t.placeOrder}</Text>}
           </TouchableOpacity>
         </View>
       </View>
@@ -527,22 +529,22 @@ export default function NewOrderScreen() {
         <View style={styles.modalOverlay}>
           <View style={[styles.discountModalBox, { width: 340 }]}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Clear Order</Text>
+              <Text style={styles.modalTitle}>{t.clearOrder}</Text>
               <TouchableOpacity onPress={() => setClearModal(false)} style={styles.modalCloseBtn}>
                 <Ionicons name="close" size={18} color="#666" />
               </TouchableOpacity>
             </View>
             <View style={styles.discountBody}>
-              <Text style={{ fontSize: 14, color: '#555', marginBottom: 20 }}>Remove all items from the current order?</Text>
+              <Text style={{ fontSize: 14, color: '#555', marginBottom: 20 }}>{t.clearOrderConfirm}</Text>
               <View style={styles.discountActions}>
                 <TouchableOpacity style={styles.discountClearBtn} onPress={() => setClearModal(false)}>
-                  <Text style={styles.discountClearBtnText}>Cancel</Text>
+                  <Text style={styles.discountClearBtnText}>{t.cancel}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.discountApplyBtn}
                   onPress={() => { setCart([]); setNote(''); setDiscount(''); setClearModal(false); }}
                 >
-                  <Text style={styles.discountApplyBtnText}>Clear</Text>
+                  <Text style={styles.discountApplyBtnText}>{t.clear}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -555,42 +557,42 @@ export default function NewOrderScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.addonModalBox}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Order Type</Text>
+              <Text style={styles.modalTitle}>{t.orderType}</Text>
               <TouchableOpacity onPress={() => setTableModal(false)} style={styles.modalCloseBtn}>
                 <Ionicons name="close" size={18} color="#666" />
               </TouchableOpacity>
             </View>
             <ScrollView style={{ padding: 16 }}>
-              <Text style={styles.addonSectionTitle}>Order Type</Text>
+              <Text style={styles.addonSectionTitle}>{t.orderType}</Text>
               <View style={{ flexDirection: 'row', gap: 10, marginBottom: 20 }}>
                 <TouchableOpacity
                   style={[styles.tableTypeBtn, orderType === 'walkIn' && styles.tableTypeBtnActive]}
                   onPress={() => { setOrderType('walkIn'); setSelectedTable(null); setTableModal(false); }}
                 >
                   <Ionicons name="walk-outline" size={20} color={orderType === 'walkIn' ? '#fff' : '#666'} />
-                  <Text style={[styles.tableTypeBtnText, orderType === 'walkIn' && { color: '#fff' }]}>Walk-in</Text>
+                  <Text style={[styles.tableTypeBtnText, orderType === 'walkIn' && { color: '#fff' }]}>{t.walkIn}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.tableTypeBtn, orderType === 'table' && styles.tableTypeBtnActive]}
                   onPress={() => setOrderType('table')}
                 >
                   <Ionicons name="grid-outline" size={20} color={orderType === 'table' ? '#fff' : '#666'} />
-                  <Text style={[styles.tableTypeBtnText, orderType === 'table' && { color: '#fff' }]}>Table</Text>
+                  <Text style={[styles.tableTypeBtnText, orderType === 'table' && { color: '#fff' }]}>{t.table}</Text>
                 </TouchableOpacity>
               </View>
 
               {orderType === 'table' && (
                 <>
-                  <Text style={styles.addonSectionTitle}>Select Table</Text>
+                  <Text style={styles.addonSectionTitle}>{t.selectTable}</Text>
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-                    {Array.from({ length: 12 }, (_, i) => String(i + 1)).map(t => (
+                    {Array.from({ length: 12 }, (_, i) => String(i + 1)).map(tNum => (
                       <TouchableOpacity
-                        key={t}
-                        style={[styles.tableCard, selectedTable === t && styles.tableCardActive]}
-                        onPress={() => { setSelectedTable(t); setTableModal(false); }}
+                        key={tNum}
+                        style={[styles.tableCard, selectedTable === tNum && styles.tableCardActive]}
+                        onPress={() => { setSelectedTable(tNum); setTableModal(false); }}
                       >
-                        <Text style={[styles.tableCardNum, selectedTable === t && { color: '#fff' }]}>{t}</Text>
-                        <Text style={[styles.tableCardText, selectedTable === t && { color: '#fff' }]}>Table</Text>
+                        <Text style={[styles.tableCardNum, selectedTable === tNum && { color: '#fff' }]}>{tNum}</Text>
+                        <Text style={[styles.tableCardText, selectedTable === tNum && { color: '#fff' }]}>{t.table}</Text>
                       </TouchableOpacity>
                     ))}
                   </View>
@@ -606,7 +608,7 @@ export default function NewOrderScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.discountModalBox}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Apply Discount</Text>
+              <Text style={styles.modalTitle}>{t.applyDiscount}</Text>
               <TouchableOpacity onPress={() => setDiscountModal(false)} style={styles.modalCloseBtn}>
                 <Ionicons name="close" size={18} color="#666" />
               </TouchableOpacity>
@@ -618,13 +620,13 @@ export default function NewOrderScreen() {
                   style={[styles.discountTypeBtn, discountType === 'percent' && styles.discountTypeBtnActive]}
                   onPress={() => { setDiscountType('percent'); setDiscount(''); }}
                 >
-                  <Text style={[styles.discountTypeBtnText, discountType === 'percent' && styles.discountTypeBtnTextActive]}>% Percentage</Text>
+                  <Text style={[styles.discountTypeBtnText, discountType === 'percent' && styles.discountTypeBtnTextActive]}>{t.percentage}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.discountTypeBtn, discountType === 'fixed' && styles.discountTypeBtnActive]}
                   onPress={() => { setDiscountType('fixed'); setDiscount(''); }}
                 >
-                  <Text style={[styles.discountTypeBtnText, discountType === 'fixed' && styles.discountTypeBtnTextActive]}>CHF Fixed</Text>
+                  <Text style={[styles.discountTypeBtnText, discountType === 'fixed' && styles.discountTypeBtnTextActive]}>{t.fixedChf}</Text>
                 </TouchableOpacity>
               </View>
 
@@ -655,7 +657,7 @@ export default function NewOrderScreen() {
               {/* Custom input */}
               <TextInput
                 style={styles.discountInput}
-                placeholder={discountType === 'percent' ? 'Custom percentage...' : 'Custom amount (CHF)...'}
+                placeholder={discountType === 'percent' ? 'Custom %...' : 'Custom CHF...'}
                 placeholderTextColor="#bbb"
                 value={discount}
                 onChangeText={v => {
@@ -671,18 +673,18 @@ export default function NewOrderScreen() {
               {/* Preview */}
               {discount ? (
                 <View style={styles.discountPreview}>
-                  <Text style={styles.discountPreviewLabel}>Discount amount</Text>
+                  <Text style={styles.discountPreviewLabel}>{t.discountAmount}</Text>
                   <Text style={styles.discountPreviewAmt}>- CHF {discountAmount().toFixed(2)}</Text>
-                  <Text style={styles.discountPreviewTotal}>New total: CHF {orderTotal.toFixed(2)}</Text>
+                  <Text style={styles.discountPreviewTotal}>{t.newTotal}: CHF {orderTotal.toFixed(2)}</Text>
                 </View>
               ) : null}
 
               <View style={styles.discountActions}>
                 <TouchableOpacity style={styles.discountClearBtn} onPress={() => { setDiscount(''); setDiscountModal(false); }}>
-                  <Text style={styles.discountClearBtnText}>Remove</Text>
+                  <Text style={styles.discountClearBtnText}>{t.removeDiscount}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.discountApplyBtn} onPress={() => setDiscountModal(false)}>
-                  <Text style={styles.discountApplyBtnText}>Apply</Text>
+                  <Text style={styles.discountApplyBtnText}>{t.apply}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -761,7 +763,7 @@ export default function NewOrderScreen() {
             ) : null}
 
             <TouchableOpacity style={styles.addToOrderBtn} onPress={addToCart}>
-              <Text style={styles.addToOrderBtnText}>Add to Order</Text>
+              <Text style={styles.addToOrderBtnText}>{t.addToOrder}</Text>
             </TouchableOpacity>
           </View>
         </View>

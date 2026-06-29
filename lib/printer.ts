@@ -23,7 +23,12 @@ function buildReceiptHTML(order: any, restaurantName: string, logoUrl?: string, 
       categoryHeader = `<tr><td colspan="3" class="cat-header">${item.category}</td></tr>`;
     }
     const addonsRows = item.addons && item.addons.length > 0
-      ? item.addons.map((a: any) => `<tr><td class="qty"></td><td class="name sub" style="padding-top:2px;padding-bottom:2px;">+ ${a.label || a.name}</td></tr>`).join('')
+      ? item.addons.map((a: any) => `
+        <tr>
+          <td class="qty"></td>
+          <td class="name sub" style="padding-top:2px;padding-bottom:2px;">+ ${a.label || a.name}</td>
+        </tr>
+      `).join('')
       : '';
     return `
       ${categoryHeader}
@@ -38,46 +43,58 @@ function buildReceiptHTML(order: any, restaurantName: string, logoUrl?: string, 
   }).join('');
 
   const discountHTML = order.discount && parseFloat(order.discount) > 0 ? `
-    <tr class="subtotal"><td colspan="2">${tr.subtotal}</td><td>CHF ${parseFloat(order.subtotal).toFixed(2)}</td></tr>
-    <tr class="discount"><td colspan="2">${tr.discount}</td><td>- CHF ${parseFloat(order.discount).toFixed(2)}</td></tr>
+    <tr class="subtotal">
+      <td colspan="2">${tr.subtotal}</td>
+      <td>CHF ${parseFloat(order.subtotal).toFixed(2)}</td>
+    </tr>
+    <tr class="discount">
+      <td colspan="2">${tr.discount}</td>
+      <td>- CHF ${parseFloat(order.discount).toFixed(2)}</td>
+    </tr>
   ` : '';
 
   const logoHTML = logoUrl ? `<img src="${logoUrl}" style="max-height:60px;max-width:160px;margin-bottom:8px;" />` : '';
 
-  return `<!DOCTYPE html>
-    <html><head><meta charset="utf-8">
-    <style>
-      @page { margin: 0; size: 80mm auto; }
-      * { margin: 0; padding: 0; box-sizing: border-box; }
-      body { font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif; font-size: 12px; width: 80mm; margin: 0 auto; padding: 8px; color: #000; }
-      .header { text-align: center; margin-bottom: 10px; }
-      .restaurant { font-size: 23px; font-weight: 900; letter-spacing: 1px; }
-      .order-num { font-size: 18px; font-weight: 800; margin: 4px 0; }
-      .meta { font-size: 14px; margin-top: 2px; }
-      .divider { border-top: 1px dashed #000; margin: 8px 0; }
-      table { width: 100%; border-collapse: collapse; }
-      td { padding: 4px 2px; vertical-align: top; }
-      .qty { width: 25px; font-weight: 800; font-size: 15px; }
-      .name { flex: 1; font-weight: 600; font-size: 15px; }
-      .price { text-align: right; white-space: nowrap; font-weight: 700; font-size: 15px; }
-      .sub { font-size: 15px; font-weight: 400; }
-      .subtotal td, .discount td { font-size: 14px; }
-      .discount td { font-weight: 600; }
-      .total-row td { font-size: 16px; font-weight: 900; padding-top: 8px; }
-      .total-row td:last-child { text-align: right; }
-      .payment td { font-size: 18px; padding-top: 4px; font-weight: 700; }
-      .payment td:last-child { text-align: right; }
-      .footer { text-align: center; margin-top: 10px; font-size: 13px; font-weight: 600; }
-      .note-box { padding: 6px; margin: 6px 0; font-size: 13px; border: 1px solid #000; border-radius: 4px; }
-      .cat-header { font-size: 12px; font-style: italic; padding-top: 14px; padding-bottom: 2px; }
-      .item-divider { border-bottom: 2px solid #000; padding: 0; height: 1px; }
-    </style></head>
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        @page { margin: 0; size: 80mm auto; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif; font-size: 12px; width: 80mm; margin: 0 auto; padding: 8px; color: #000; }
+        .header { text-align: center; margin-bottom: 10px; }
+        .logo { margin-bottom: 6px; }
+        .restaurant { font-size: 23px; font-weight: 900; letter-spacing: 1px; color: #000; }
+        .order-num { font-size: 18px; font-weight: 800; margin: 4px 0; color: #000; }
+        .meta { font-size: 14px; color: #000; margin-top: 2px; }
+        .divider { border-top: 1px dashed #000; margin: 8px 0; }
+        table { width: 100%; border-collapse: collapse; }
+        td { padding: 4px 2px; vertical-align: top; }
+        .qty { width: 25px; font-weight: 800; color: #000; font-size: 15px; }
+        .name { flex: 1; font-weight: 600; font-size: 15px; }
+        .price { text-align: right; white-space: nowrap; font-weight: 700; font-size: 15px; }
+        .sub { font-size: 15px; color: #000; font-weight: 400; }
+        .subtotal td, .discount td { font-size: 14px; color: #000; }
+        .discount td { font-weight: 600; }
+        .total-row td { font-size: 16px; font-weight: 900; padding-top: 8px; color: #000; }
+        .total-row td:last-child { text-align: right; }
+        .payment td { font-size: 18px; color: #000; padding-top: 4px; font-weight: 700; }
+        .payment td:last-child { text-align: right; }
+        .footer { text-align: center; margin-top: 10px; font-size: 13px; color: #000; font-weight: 600; }
+        .note-box { padding: 6px; margin: 6px 0; font-size: 13px; border-radius: 4px; border: 1px solid #000; }
+        .cat-header { font-size: 12px; font-style: italic; color: #000; padding-top: 14px; padding-bottom: 2px; }
+        .item-divider { border-bottom: 2px solid #000; padding: 0; height: 1px; }
+      </style>
+    </head>
     <body>
       <div class="header">
-        ${logoHTML ? `<div>${logoHTML}</div>` : `<div class="restaurant">${restaurantName.toUpperCase()}</div>`}
+        ${logoHTML ? `<div class="logo">${logoHTML}</div>` : `<div class="restaurant">${restaurantName.toUpperCase()}</div>`}
         <div class="order-num">${order.order_number || order.order_id || ''}</div>
         <div class="meta">${dateStr} ${timeStr}</div>
         ${order.table && order.table !== 'Walk-in' ? `<div class="meta">${tr.table}: ${order.table}</div>` : ''}
+        ${order.customer_name && order.customer_name !== 'Walk-in Customer' ? `<div class="meta">${order.customer_name}</div>` : ''}
       </div>
       <div class="divider"></div>
       <table>${itemsHTML}</table>
@@ -91,8 +108,11 @@ function buildReceiptHTML(order: any, restaurantName: string, logoUrl?: string, 
       <div class="footer">${tr.thank}</div>
       <div class="divider"></div>
       <div class="footer" style="font-size:10px;font-weight:400;">Powered by: FoodUp.ch</div>
-    </body></html>`;
+    </body>
+    </html>
+  `;
 }
+  
 
 async function printViaTCP(order: any, restaurantName: string, logoUrl: string, language: string): Promise<void> {
   const printerIp = await AsyncStorage.getItem('printer_ip');
