@@ -13,28 +13,15 @@ const PRIMARY = '#8B38CB';
 
 import TcpSocket from 'react-native-tcp-socket';
 
-function PrinterStatusCard({ t }: { t: any }) {
+function PrinterStatusCard({ t, printerIp, printerPort, printerModel }: { t: any, printerIp: string, printerPort: string, printerModel: string }) {
   const printerModelLabel = t?.printerModel || 'Modell';
   const printerNotConfiguredLabel = t?.printerNotConfigured || 'Nicht konfiguriert';
   const printerSetIpLabel = t?.printerSetIp || 'Drucker-IP im WordPress-Plugin setzen';
-  const [printerIp, setPrinterIp] = useState('');
-  const [printerPort, setPrinterPort] = useState('');
-  const [printerModel, setPrinterModel] = useState('');
   const [status, setStatus] = useState<'checking' | 'online' | 'offline' | 'unknown'>('unknown');
 
   useEffect(() => {
-    loadPrinterInfo();
-  }, []);
-
-  const loadPrinterInfo = async () => {
-    const ip = await AsyncStorage.getItem('printer_ip') || '';
-    const port = await AsyncStorage.getItem('printer_port') || '9100';
-    const model = await AsyncStorage.getItem('printer_model') || '';
-    setPrinterIp(ip);
-    setPrinterPort(port);
-    setPrinterModel(model);
-    if (ip) checkStatus(ip, parseInt(port));
-  };
+    if (printerIp) checkStatus(printerIp, parseInt(printerPort || '9100'));
+  }, [printerIp]);
 
   const checkStatus = (ip: string, port: number) => {
     if (Platform.OS === 'web') { setStatus('unknown'); return; }
@@ -122,6 +109,9 @@ export default function Settings() {
   const [logoutModal, setLogoutModal] = useState(false);
   const [reopenModal, setReopenModal] = useState(false);
   const [aboutModal, setAboutModal] = useState(false);
+  const [printerIp, setPrinterIp] = useState('');
+  const [printerPort, setPrinterPort] = useState('');
+  const [printerModel, setPrinterModel] = useState('');
 
   useEffect(() => { loadData(); }, []);
   useFocusEffect(useCallback(() => { loadData(); }, []));
@@ -132,6 +122,13 @@ export default function Settings() {
       const name = await AsyncStorage.getItem('restaurant_name') || '';
       setRestaurantCode(code);
       setRestaurantName(name);
+      if (code) {
+        const { fetchAndSaveProfile } = await import('../../lib/api');
+        const profile = await fetchAndSaveProfile(code);
+        if (profile.printer_ip) setPrinterIp(profile.printer_ip);
+        if (profile.printer_port) setPrinterPort(profile.printer_port);
+        if (profile.printer_model) setPrinterModel(profile.printer_model);
+      }
     } catch (e) {} finally {
       setLoading(false);
     }
@@ -248,7 +245,7 @@ export default function Settings() {
               </TouchableOpacity>
             </View>
           </View>
-          <PrinterStatusCard t={t} />
+          <PrinterStatusCard t={t} printerIp={printerIp} printerPort={printerPort} printerModel={printerModel} />
 
           {/* Language */}
           <View style={styles.section}>
