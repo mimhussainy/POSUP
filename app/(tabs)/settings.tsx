@@ -398,7 +398,7 @@ const styles = StyleSheet.create({
   content: { paddingBottom: 40, alignItems: 'center' },
   contentInner: { width: '45%', alignSelf: 'center', minWidth: 320 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: { width: '100%', paddingTop: 18, paddingBottom: 14, paddingHorizontal: 24, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#eeeeee', marginBottom: 16 },
+  header: { width: '100%', height: 58, paddingHorizontal: 24, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#eeeeee', marginBottom: 16, justifyContent: 'center' },
   headerTitle: { fontSize: 20, fontWeight: '700', color: '#111', fontFamily: appFont },
   headerSub: { fontSize: 12, color: '#999', marginTop: 2, fontWeight: '400', fontFamily: appFont },
   section: { paddingHorizontal: 16, marginBottom: 16, width: '100%' },

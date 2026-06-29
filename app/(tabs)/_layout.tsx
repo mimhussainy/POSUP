@@ -1,6 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Tabs } from 'expo-router';
 import { useLanguage } from '../../lib/LanguageContext';
+import { appFont } from '../../lib/fonts';
 
 export default function TabsLayout() {
   const { t } = useLanguage();
@@ -21,6 +22,8 @@ export default function TabsLayout() {
         tabBarLabelStyle: {
           fontSize: 13,
           fontWeight: '600',
+          fontFamily: appFont,
+          textAlign: 'center',
         },
       }}
     >

@@ -798,8 +798,8 @@ const styles = StyleSheet.create({
   catItem: { alignItems: 'center', paddingVertical: 10, paddingHorizontal: 6, position: 'relative' },
   catItemActive: { backgroundColor: '#f5eeff' },
   catBadge: { width: 38, height: 38, borderRadius: 19, justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
-  catBadgeLetter: { fontSize: 16, fontWeight: '600', fontFamily: appFont },
-  catItemText: { fontSize: 11, fontWeight: '500', color: '#888', textAlign: 'center', lineHeight: 15, fontFamily: appFont },
+  catBadgeLetter: { fontSize: 18, fontWeight: '600', fontFamily: appFont },
+  catItemText: { fontSize: 13, fontWeight: '500', color: '#888', textAlign: 'center', lineHeight: 17, fontFamily: appFont },
   catItemTextActive: { color: PRIMARY, fontWeight: '600' },
   catActiveBar: { position: 'absolute', left: 0, top: 8, bottom: 8, width: 3, backgroundColor: PRIMARY, borderRadius: 2 },
 
@@ -812,7 +812,7 @@ const styles = StyleSheet.create({
   grid: { padding: 15, paddingTop: 8 },
   gridRow: { gap: '1%' as any, marginBottom: 10, justifyContent: 'flex-start' },
   productCard: { backgroundColor: '#fff', borderRadius: 14, padding: 14, minHeight: 100, justifyContent: 'space-between', borderWidth: 1, borderColor: '#efefef' },
-  productName: { fontSize: 13, fontWeight: '600', color: '#222', lineHeight: 19, marginBottom: 6, fontFamily: appFont },
+  productName: { fontSize: 13, fontWeight: '700', color: '#111', lineHeight: 19, marginBottom: 6, fontFamily: appFont },
   productPrice: { fontSize: 15, fontWeight: '700', color: PRIMARY, fontFamily: appFont },
   productAddBtn: { position: 'absolute', bottom: 10, right: 10, width: 28, height: 28, borderRadius: 14, backgroundColor: PRIMARY, justifyContent: 'center', alignItems: 'center' },
 

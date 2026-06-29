@@ -749,7 +749,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
-    height: 54,
+    height: 58,
   },
 
   headerTitle: {
