@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, ScrollView,
-  StyleSheet, ActivityIndicator, TextInput, Platform
+  StyleSheet, ActivityIndicator, TextInput, Platform, Image, Linking
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -9,6 +9,100 @@ import { router, useFocusEffect } from 'expo-router';
 
 const BACKEND = 'https://foodup-order-alerts-backend.onrender.com';
 const PRIMARY = '#8B38CB';
+
+import TcpSocket from 'react-native-tcp-socket';
+
+function PrinterStatusCard() {
+  const [printerIp, setPrinterIp] = useState('');
+  const [printerPort, setPrinterPort] = useState('');
+  const [printerModel, setPrinterModel] = useState('');
+  const [status, setStatus] = useState<'checking' | 'online' | 'offline' | 'unknown'>('unknown');
+
+  useEffect(() => {
+    loadPrinterInfo();
+  }, []);
+
+  const loadPrinterInfo = async () => {
+    const ip = await AsyncStorage.getItem('printer_ip') || '';
+    const port = await AsyncStorage.getItem('printer_port') || '9100';
+    const model = await AsyncStorage.getItem('printer_model') || '';
+    setPrinterIp(ip);
+    setPrinterPort(port);
+    setPrinterModel(model);
+    if (ip) checkStatus(ip, parseInt(port));
+  };
+
+  const checkStatus = (ip: string, port: number) => {
+    if (Platform.OS === 'web') { setStatus('unknown'); return; }
+    setStatus('checking');
+    try {
+      const client = TcpSocket.createConnection({ host: ip, port }, () => {
+        setStatus('online');
+        client.destroy();
+      });
+      client.on('error', () => { setStatus('offline'); client.destroy(); });
+      setTimeout(() => {
+        try { client.destroy(); } catch {}
+        setStatus(s => s === 'checking' ? 'offline' : s);
+      }, 3000);
+    } catch {
+      setStatus('offline');
+    }
+  };
+
+  const modelLabel = (m: string) => {
+    if (m === 'sunmi') return 'SUNMI Built-in';
+    if (m === 'epson') return 'Epson TM (Windows TCP)';
+    if (m === 'generic') return 'Generic ESC/POS';
+    return m || 'Not configured';
+  };
+
+  const statusColor = status === 'online' ? '#16a34a' : status === 'offline' ? '#e74c3c' : status === 'checking' ? '#f59e0b' : '#999';
+  const statusLabel = status === 'online' ? 'Online' : status === 'offline' ? 'Offline' : status === 'checking' ? 'Checking...' : 'Unknown';
+  const statusBg = status === 'online' ? '#e8fdf2' : status === 'offline' ? '#fef2f2' : status === 'checking' ? '#fffbeb' : '#f5f5f5';
+
+  return (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>PRINTER</Text>
+      <View style={styles.card}>
+        <View style={styles.infoRow}>
+          <Ionicons name="print-outline" size={18} color={PRIMARY} />
+          <View style={styles.infoText}>
+            <Text style={styles.infoLabel}>Model</Text>
+            <Text style={styles.infoValue}>{modelLabel(printerModel)}</Text>
+          </View>
+        </View>
+        {printerIp ? (
+          <View style={styles.infoRow}>
+            <Ionicons name="wifi-outline" size={18} color={PRIMARY} />
+            <View style={styles.infoText}>
+              <Text style={styles.infoLabel}>Address</Text>
+              <Text style={styles.infoValue}>{printerIp}:{printerPort}</Text>
+            </View>
+            <TouchableOpacity
+              style={{ backgroundColor: statusBg, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, flexDirection: 'row', alignItems: 'center', gap: 5 }}
+              onPress={() => checkStatus(printerIp, parseInt(printerPort))}
+            >
+              {status === 'checking'
+                ? <ActivityIndicator size="small" color={statusColor} />
+                : <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: statusColor }} />
+              }
+              <Text style={{ fontSize: 12, fontWeight: '700', color: statusColor }}>{statusLabel}</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={styles.infoRow}>
+            <Ionicons name="alert-circle-outline" size={18} color="#999" />
+            <View style={styles.infoText}>
+              <Text style={styles.infoLabel}>Not configured</Text>
+              <Text style={{ fontSize: 12, color: '#aaa' }}>Set printer IP in WordPress plugin</Text>
+            </View>
+          </View>
+        )}
+      </View>
+    </View>
+  );
+}
 
 export default function Settings() {
   const [restaurantCode, setRestaurantCode] = useState('');
@@ -21,6 +115,7 @@ export default function Settings() {
   const [changingPin, setChangingPin] = useState(false);
   const [logoutModal, setLogoutModal] = useState(false);
   const [reopenModal, setReopenModal] = useState(false);
+  const [aboutModal, setAboutModal] = useState(false);
 
   useEffect(() => { loadData(); }, []);
   useFocusEffect(useCallback(() => { loadData(); }, []));
@@ -147,18 +242,7 @@ export default function Settings() {
               </TouchableOpacity>
             </View>
           </View>
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>PRINTER</Text>
-            <View style={styles.card}>
-              <View style={styles.infoRow}>
-                <Ionicons name="print-outline" size={18} color={PRIMARY} />
-                <View style={styles.infoText}>
-                  <Text style={styles.infoLabel}>Coming soon</Text>
-                  <Text style={styles.infoValue}>TCP/ESC-POS silent printing</Text>
-                </View>
-              </View>
-            </View>
-          </View>
+          <PrinterStatusCard />
 
           {/* Logout */}
           <View style={styles.section}>
@@ -168,9 +252,10 @@ export default function Settings() {
             </TouchableOpacity>
           </View>
 
-          <View style={styles.footer}>
+          <TouchableOpacity style={styles.footer} onPress={() => setAboutModal(true)}>
+            <Ionicons name="hand-left-outline" size={14} color="#bbb" />
             <Text style={styles.footerText}>Powered by FoodUp.ch</Text>
-          </View>
+          </TouchableOpacity>
 
         </View>
       </ScrollView>
@@ -248,6 +333,35 @@ export default function Settings() {
           </TouchableOpacity>
         </TouchableOpacity>
       )}
+
+      {/* About FoodUp Modal */}
+      {aboutModal && (
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setAboutModal(false)}>
+          <TouchableOpacity style={styles.modalBox} activeOpacity={1} onPress={e => e.stopPropagation()}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>FoodUp</Text>
+              <TouchableOpacity onPress={() => setAboutModal(false)} style={styles.modalCloseBtn}>
+                <Ionicons name="close" size={18} color="#666" />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.modalBody}>
+              <Image source={require('../../assets/FoodupPOS-logo.png')} style={{ width: 160, height: 60, alignSelf: 'center', marginBottom: 20 }} resizeMode="contain" />
+              <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f5f5f5' }} onPress={() => Linking.openURL('mailto:info@foodup.ch')}>
+                <Ionicons name="mail-outline" size={20} color={PRIMARY} />
+                <Text style={{ fontSize: 14, color: '#333', fontWeight: '600' }}>info@foodup.ch</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f5f5f5' }} onPress={() => Linking.openURL('https://wa.me/41783222292')}>
+                <Ionicons name="logo-whatsapp" size={20} color="#25D366" />
+                <Text style={{ fontSize: 14, color: '#333', fontWeight: '600' }}>+41 78 322 22 92</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 }} onPress={() => Linking.openURL('https://foodup.ch')}>
+                <Ionicons name="globe-outline" size={20} color={PRIMARY} />
+                <Text style={{ fontSize: 14, color: '#333', fontWeight: '600' }}>foodup.ch</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -268,7 +382,7 @@ const styles = StyleSheet.create({
   infoValue: { fontSize: 15, color: '#111', fontWeight: '600' },
   logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', borderRadius: 12, padding: 16, gap: 10, borderWidth: 1, borderColor: '#fde8e8' },
   logoutText: { fontSize: 15, fontWeight: '700', color: '#e74c3c' },
-  footer: { alignItems: 'center', marginTop: 8, paddingHorizontal: 16 },
+  footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 8, paddingHorizontal: 16 },
   footerText: { fontSize: 13, color: '#999' },
   modalOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
   modalBox: { backgroundColor: '#fff', borderRadius: 16, width: 380, overflow: 'hidden' },

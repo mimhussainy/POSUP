@@ -8,6 +8,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { fetchRestaurantData } from '../../lib/api';
+import { printOrder } from '../../lib/printer';
 
 const getLayout = (width: number) => {
   const isSmall = width < 900;
@@ -278,8 +279,14 @@ export default function NewOrderScreen() {
       });
       const data = await res.json();
       if (data.success) {
+        const placedOrder = { ...order, order_number: data.order_id, order_id: data.order_id };
         setCart([]); setNote(''); setDiscount('');
         showToast(`✓ Order ${data.order_id} placed`);
+        try {
+          await printOrder(placedOrder, restaurantCode);
+        } catch (printErr: any) {
+          console.log('Print failed:', printErr?.message);
+        }
       } else {
         showToast('Failed to place order', 'error');
       }

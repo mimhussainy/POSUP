@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
-  StyleSheet, ActivityIndicator, Alert
+  StyleSheet, ActivityIndicator, Alert, Image
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
@@ -68,7 +68,7 @@ export default function LoginScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.box}>
-        <Text style={styles.logo}>POSUP</Text>
+        <Image source={require('../assets/FoodupPOS-logo.png')} style={{ width: 180, height: 80, marginBottom: 8 }} resizeMode="contain" />
         <Text style={styles.sub}>Restaurant Point of Sale</Text>
 
         <Text style={styles.label}>Restaurant Code</Text>
