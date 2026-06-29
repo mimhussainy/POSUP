@@ -283,6 +283,10 @@ export default function NewOrderScreen() {
         setCart([]); setNote(''); setDiscount('');
         showToast(`✓ Order ${data.order_id} placed`);
         try {
+          const ip = await AsyncStorage.getItem('printer_ip');
+          const port = await AsyncStorage.getItem('printer_port');
+          const model = await AsyncStorage.getItem('printer_model');
+          console.log('PRINT DEBUG:', { ip, port, model });
           await printOrder(placedOrder, restaurantCode);
         } catch (printErr: any) {
           console.log('Print failed:', printErr?.message);
