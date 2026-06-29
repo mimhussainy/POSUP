@@ -184,6 +184,7 @@ export default function Settings() {
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>{t.settings}</Text>
+          <Text style={styles.headerSub}>{restaurantName}</Text>
         </View>
 
         <View style={styles.contentInner}>
@@ -397,28 +398,29 @@ const styles = StyleSheet.create({
   content: { paddingBottom: 40, alignItems: 'center' },
   contentInner: { width: '45%', alignSelf: 'center', minWidth: 320 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: { width: '100%', paddingTop: 14, paddingBottom: 10, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#eee', marginBottom: 16, alignItems: 'center' },
-  headerTitle: { fontSize: 22, fontWeight: '800', color: '#111', marginTop: 1, fontFamily: appFont },
+  header: { width: '100%', paddingTop: 18, paddingBottom: 14, paddingHorizontal: 24, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#eeeeee', marginBottom: 16 },
+  headerTitle: { fontSize: 20, fontWeight: '700', color: '#111', fontFamily: appFont },
+  headerSub: { fontSize: 12, color: '#999', marginTop: 2, fontWeight: '400', fontFamily: appFont },
   section: { paddingHorizontal: 16, marginBottom: 16, width: '100%' },
-  sectionTitle: { fontSize: 12, fontWeight: '700', color: '#666', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8, marginLeft: 4, fontFamily: appFont },
-  card: { backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: '#eee', overflow: 'hidden' },
+  sectionTitle: { fontSize: 11, fontWeight: '600', color: '#999', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 8, marginLeft: 4, fontFamily: appFont },
+  card: { backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: '#eee' },
   infoRow: { flexDirection: 'row', alignItems: 'center', padding: 14, gap: 12, borderBottomWidth: 1, borderBottomColor: '#f5f5f5' },
-  infoText: { flex: 1, marginLeft: 12 },
-  infoLabel: { fontSize: 12, color: '#666', fontWeight: '600', marginBottom: 2, fontFamily: appFont },
-  infoValue: { fontSize: 15, color: '#111', fontWeight: '600', fontFamily: appFont },
-  logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', borderRadius: 12, padding: 16, gap: 10, borderWidth: 1, borderColor: '#fde8e8' },
-  logoutText: { fontSize: 15, fontWeight: '700', color: '#e74c3c', fontFamily: appFont },
+  infoText: { flex: 1, marginLeft: 4 },
+  infoLabel: { fontSize: 11, color: '#aaa', fontWeight: '500', marginBottom: 2, fontFamily: appFont },
+  infoValue: { fontSize: 14, color: '#222', fontWeight: '600', fontFamily: appFont },
+  logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', borderRadius: 12, padding: 14, gap: 10, borderWidth: 1, borderColor: '#fde8e8' },
+  logoutText: { fontSize: 14, fontWeight: '600', color: '#e74c3c', fontFamily: appFont },
   footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 8, paddingHorizontal: 16 },
-  footerText: { fontSize: 13, color: '#999', fontFamily: appFont },
+  footerText: { fontSize: 12, color: '#bbb', fontFamily: appFont },
   modalOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
   modalBox: { backgroundColor: '#fff', borderRadius: 16, width: 380, overflow: 'hidden' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  modalTitle: { fontSize: 17, fontWeight: '800', color: '#111', fontFamily: appFont },
+  modalTitle: { fontSize: 16, fontWeight: '600', color: '#111', fontFamily: appFont },
   modalCloseBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#f5f5f5', justifyContent: 'center', alignItems: 'center' },
   modalBody: { padding: 16 },
-  fieldLabel: { fontSize: 13, fontWeight: '600', color: '#444', marginBottom: 6, marginTop: 12, fontFamily: appFont },
+  fieldLabel: { fontSize: 12, fontWeight: '500', color: '#666', marginBottom: 6, marginTop: 12, fontFamily: appFont },
   pinInput: { borderWidth: 1, borderColor: '#e0e0e0', borderRadius: 10, padding: 12, fontSize: 15, color: '#111', backgroundColor: '#fafafa', fontFamily: appFont },
   saveBtn: { backgroundColor: PRIMARY, borderRadius: 10, padding: 14, alignItems: 'center', marginTop: 20 },
   saveBtnDisabled: { backgroundColor: '#ccc' },
-  saveBtnText: { color: '#fff', fontSize: 15, fontWeight: '800', fontFamily: appFont },
+  saveBtnText: { color: '#fff', fontSize: 14, fontWeight: '600', fontFamily: appFont },
 });
