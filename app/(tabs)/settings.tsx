@@ -7,6 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useFocusEffect } from 'expo-router';
 import { useLanguage } from '../../lib/LanguageContext';
+import { appFont } from '../../lib/fonts';
 
 const BACKEND = 'https://foodup-order-alerts-backend.onrender.com';
 const PRIMARY = '#8B38CB';
@@ -397,27 +398,27 @@ const styles = StyleSheet.create({
   contentInner: { width: '45%', alignSelf: 'center', minWidth: 320 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: { width: '100%', paddingTop: 14, paddingBottom: 10, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#eee', marginBottom: 16, alignItems: 'center' },
-  headerTitle: { fontSize: 22, fontWeight: '800', color: '#111', marginTop: 1 },
+  headerTitle: { fontSize: 22, fontWeight: '800', color: '#111', marginTop: 1, fontFamily: appFont },
   section: { paddingHorizontal: 16, marginBottom: 16, width: '100%' },
-  sectionTitle: { fontSize: 12, fontWeight: '700', color: '#666', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8, marginLeft: 4 },
+  sectionTitle: { fontSize: 12, fontWeight: '700', color: '#666', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8, marginLeft: 4, fontFamily: appFont },
   card: { backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: '#eee', overflow: 'hidden' },
   infoRow: { flexDirection: 'row', alignItems: 'center', padding: 14, gap: 12, borderBottomWidth: 1, borderBottomColor: '#f5f5f5' },
   infoText: { flex: 1, marginLeft: 12 },
-  infoLabel: { fontSize: 12, color: '#666', fontWeight: '600', marginBottom: 2 },
-  infoValue: { fontSize: 15, color: '#111', fontWeight: '600' },
+  infoLabel: { fontSize: 12, color: '#666', fontWeight: '600', marginBottom: 2, fontFamily: appFont },
+  infoValue: { fontSize: 15, color: '#111', fontWeight: '600', fontFamily: appFont },
   logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', borderRadius: 12, padding: 16, gap: 10, borderWidth: 1, borderColor: '#fde8e8' },
-  logoutText: { fontSize: 15, fontWeight: '700', color: '#e74c3c' },
+  logoutText: { fontSize: 15, fontWeight: '700', color: '#e74c3c', fontFamily: appFont },
   footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 8, paddingHorizontal: 16 },
-  footerText: { fontSize: 13, color: '#999' },
+  footerText: { fontSize: 13, color: '#999', fontFamily: appFont },
   modalOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
   modalBox: { backgroundColor: '#fff', borderRadius: 16, width: 380, overflow: 'hidden' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  modalTitle: { fontSize: 17, fontWeight: '800', color: '#111' },
+  modalTitle: { fontSize: 17, fontWeight: '800', color: '#111', fontFamily: appFont },
   modalCloseBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#f5f5f5', justifyContent: 'center', alignItems: 'center' },
   modalBody: { padding: 16 },
-  fieldLabel: { fontSize: 13, fontWeight: '600', color: '#444', marginBottom: 6, marginTop: 12 },
-  pinInput: { borderWidth: 1, borderColor: '#e0e0e0', borderRadius: 10, padding: 12, fontSize: 15, color: '#111', backgroundColor: '#fafafa' },
+  fieldLabel: { fontSize: 13, fontWeight: '600', color: '#444', marginBottom: 6, marginTop: 12, fontFamily: appFont },
+  pinInput: { borderWidth: 1, borderColor: '#e0e0e0', borderRadius: 10, padding: 12, fontSize: 15, color: '#111', backgroundColor: '#fafafa', fontFamily: appFont },
   saveBtn: { backgroundColor: PRIMARY, borderRadius: 10, padding: 14, alignItems: 'center', marginTop: 20 },
   saveBtnDisabled: { backgroundColor: '#ccc' },
-  saveBtnText: { color: '#fff', fontSize: 15, fontWeight: '800' },
+  saveBtnText: { color: '#fff', fontSize: 15, fontWeight: '800', fontFamily: appFont },
 });

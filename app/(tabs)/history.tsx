@@ -15,6 +15,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useFocusEffect } from 'expo-router';
 import { useLanguage } from '../../lib/LanguageContext';
+import { appFont } from '../../lib/fonts';
 
 const BACKEND = 'https://foodup-order-alerts-backend.onrender.com';
 const PRIMARY = '#8B38CB';
@@ -736,6 +737,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     color: '#666',
     fontSize: 14,
+    fontFamily: appFont,
   },
 
   header: {
@@ -759,6 +761,7 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '800',
     color: '#111',
+    fontFamily: appFont,
   },
 
   headerRight: {
@@ -780,7 +783,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
 
-    statCard: {
+  statCard: {
     flex: 1,
     height: 60,
     backgroundColor: '#fff',
@@ -798,6 +801,7 @@ const styles = StyleSheet.create({
     color: '#111',
     marginBottom: 4,
     lineHeight: 20,
+    fontFamily: appFont,
   },
 
   statLabel: {
@@ -805,13 +809,12 @@ const styles = StyleSheet.create({
     color: '#555',
     fontWeight: '700',
     lineHeight: 15,
+    fontFamily: appFont,
   },
 
   statValuePrimary: {
     color: PRIMARY,
   },
-
-  
 
   statValueCash: {
     color: '#16a34a',
@@ -820,8 +823,6 @@ const styles = StyleSheet.create({
   statValueCard: {
     color: '#2563eb',
   },
-
-  
 
   filtersLine: {
     minHeight: 38,
@@ -859,17 +860,16 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: '#666',
+    fontFamily: appFont,
   },
 
   filterTabTextActive: {
     color: '#fff',
   },
 
-
-
   zReportBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: PRIMARY, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 7 },
   zReportBtnClosed: { backgroundColor: '#f5f5f5' },
-  zReportBtnText: { fontSize: 13, fontWeight: '700', color: '#fff' },
+  zReportBtnText: { fontSize: 13, fontWeight: '700', color: '#fff', fontFamily: appFont },
 
   dayClosedBanner: {
     backgroundColor: '#1a1a2e',
@@ -884,6 +884,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 13,
     fontWeight: '700',
+    fontFamily: appFont,
   },
 
   listContent: {
@@ -908,6 +909,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '800',
     color: '#999',
+    fontFamily: appFont,
   },
 
   orderCard: {
@@ -943,12 +945,14 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '900',
     color: PRIMARY,
+    fontFamily: appFont,
   },
 
   orderTotal: {
     fontSize: 14,
     fontWeight: '900',
     color: '#111',
+    fontFamily: appFont,
   },
 
   orderInfoRow: {
@@ -963,6 +967,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#666',
     fontWeight: '700',
+    fontFamily: appFont,
   },
 
   payBadge: {
@@ -983,6 +988,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '800',
     color: '#333',
+    fontFamily: appFont,
   },
 
   orderBottomRow: {
@@ -997,12 +1003,14 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#999',
     fontWeight: '600',
+    fontFamily: appFont,
   },
 
   orderItemCount: {
     fontSize: 11,
     color: '#666',
     fontWeight: '800',
+    fontFamily: appFont,
   },
 
   sidePanel: {
@@ -1025,6 +1033,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: '#111',
     marginBottom: 14,
+    fontFamily: appFont,
   },
 
   noProductsBox: {
@@ -1038,6 +1047,7 @@ const styles = StyleSheet.create({
     color: '#bbb',
     fontSize: 13,
     fontWeight: '700',
+    fontFamily: appFont,
   },
 
   topProductRow: {
@@ -1060,6 +1070,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '900',
     color: '#999',
+    fontFamily: appFont,
   },
 
   topProductMiddle: {
@@ -1072,6 +1083,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#111',
     marginBottom: 5,
+    fontFamily: appFont,
   },
 
   barTrack: {
@@ -1096,6 +1108,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '900',
     color: PRIMARY,
+    fontFamily: appFont,
   },
 
   topProductRevenue: {
@@ -1103,6 +1116,7 @@ const styles = StyleSheet.create({
     color: '#999',
     fontWeight: '700',
     marginTop: 2,
+    fontFamily: appFont,
   },
 
   divider: {
@@ -1123,12 +1137,14 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#777',
     fontWeight: '700',
+    fontFamily: appFont,
   },
 
   summaryValue: {
     fontSize: 12,
     fontWeight: '900',
     color: '#111',
+    fontFamily: appFont,
   },
 
   summaryValuePrimary: {
@@ -1169,12 +1185,14 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '900',
     color: PRIMARY,
+    fontFamily: appFont,
   },
 
   modalMeta: {
     fontSize: 13,
     color: '#666',
     marginTop: 2,
+    fontFamily: appFont,
   },
 
   modalCloseBtn: {
@@ -1210,6 +1228,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '900',
     color: PRIMARY,
+    fontFamily: appFont,
   },
 
   itemInfo: {
@@ -1220,18 +1239,21 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '800',
     color: '#111',
+    fontFamily: appFont,
   },
 
   itemSub: {
     fontSize: 12,
     color: '#888',
     marginTop: 1,
+    fontFamily: appFont,
   },
 
   itemTotal: {
     fontSize: 13,
     fontWeight: '800',
     color: '#333',
+    fontFamily: appFont,
   },
 
   noteBox: {
@@ -1251,6 +1273,7 @@ const styles = StyleSheet.create({
     color: '#92400E',
     flex: 1,
     fontWeight: '600',
+    fontFamily: appFont,
   },
 
   totalRow: {
@@ -1264,12 +1287,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     fontWeight: '700',
+    fontFamily: appFont,
   },
 
   totalValue: {
     fontSize: 16,
     fontWeight: '800',
     color: '#111',
+    fontFamily: appFont,
   },
 
   discountText: {
@@ -1280,12 +1305,14 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '900',
     color: '#111',
+    fontFamily: appFont,
   },
 
   finalTotalValue: {
     fontSize: 20,
     fontWeight: '900',
     color: PRIMARY,
+    fontFamily: appFont,
   },
 
   zModalContent: {
@@ -1297,6 +1324,7 @@ const styles = StyleSheet.create({
     color: '#333',
     marginBottom: 6,
     fontWeight: '800',
+    fontFamily: appFont,
   },
 
   zModalSummary: {
@@ -1304,6 +1332,7 @@ const styles = StyleSheet.create({
     color: '#888',
     marginBottom: 8,
     fontWeight: '700',
+    fontFamily: appFont,
   },
 
   zModalNote: {
@@ -1311,6 +1340,7 @@ const styles = StyleSheet.create({
     color: '#aaa',
     marginBottom: 20,
     fontWeight: '600',
+    fontFamily: appFont,
   },
 
   zModalActions: {
@@ -1329,6 +1359,7 @@ const styles = StyleSheet.create({
   cancelBtnText: {
     fontWeight: '800',
     color: '#555',
+    fontFamily: appFont,
   },
 
   closeDayBtn: {
@@ -1342,6 +1373,7 @@ const styles = StyleSheet.create({
   closeDayBtnText: {
     fontWeight: '800',
     color: '#fff',
+    fontFamily: appFont,
   },
 
   reprintBtn: {
@@ -1355,9 +1387,11 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     marginTop: 16,
   },
+
   reprintBtnText: {
     fontSize: 14,
     fontWeight: '700',
     color: PRIMARY,
+    fontFamily: appFont,
   },
 });
