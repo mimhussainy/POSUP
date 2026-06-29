@@ -13,8 +13,7 @@ const PRIMARY = '#8B38CB';
 
 import TcpSocket from 'react-native-tcp-socket';
 
-function PrinterStatusCard() {
-  const { t } = useLanguage();
+function PrinterStatusCard({ t }: { t: any }) {
   const [printerIp, setPrinterIp] = useState('');
   const [printerPort, setPrinterPort] = useState('');
   const [printerModel, setPrinterModel] = useState('');
@@ -245,7 +244,7 @@ export default function Settings() {
               </TouchableOpacity>
             </View>
           </View>
-          <PrinterStatusCard />
+          <PrinterStatusCard t={t} />
 
           {/* Language */}
           <View style={styles.section}>

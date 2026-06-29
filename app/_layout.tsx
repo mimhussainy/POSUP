@@ -11,6 +11,18 @@ export default function RootLayout() {
     ...Ionicons.font,
   });
 
+  if (Platform.OS === 'web') {
+    const style = document.createElement('style');
+    style.textContent = `
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+      * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important; }
+    `;
+    if (!document.head.querySelector('style[data-inter]')) {
+      style.setAttribute('data-inter', '1');
+      document.head.appendChild(style);
+    }
+  }
+
   if (!fontsLoaded && !fontError) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#ffffff' }}>
