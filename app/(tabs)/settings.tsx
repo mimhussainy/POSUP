@@ -54,8 +54,9 @@ function PrinterStatusCard({ t }: { t: any }) {
   const modelLabel = (m: string) => {
     if (m === 'sunmi') return 'SUNMI Built-in';
     if (m === 'epson') return 'Epson TM (Windows TCP)';
+    if (m === 'wifi') return 'WiFi Network Printer';
     if (m === 'generic') return 'Generic ESC/POS';
-    return m || 'Not configured';
+    return m || t.printerNotConfigured;
   };
 
   const statusColor = status === 'online' ? '#16a34a' : status === 'offline' ? '#e74c3c' : status === 'checking' ? '#f59e0b' : '#999';
@@ -96,7 +97,7 @@ function PrinterStatusCard({ t }: { t: any }) {
             <Ionicons name="alert-circle-outline" size={18} color="#999" />
             <View style={styles.infoText}>
               <Text style={styles.infoLabel}>{t.printerNotConfigured}</Text>
-              <Text style={{ fontSize: 12, color: '#aaa' }}>{t.printerSetIp}</Text>
+              <Text style={styles.infoLabel} numberOfLines={2}>{t.printerSetIp}</Text>
             </View>
           </View>
         )}
