@@ -14,6 +14,7 @@ const PRIMARY = '#8B38CB';
 import TcpSocket from 'react-native-tcp-socket';
 
 function PrinterStatusCard() {
+  const { t } = useLanguage();
   const [printerIp, setPrinterIp] = useState('');
   const [printerPort, setPrinterPort] = useState('');
   const [printerModel, setPrinterModel] = useState('');
@@ -69,7 +70,7 @@ function PrinterStatusCard() {
         <View style={styles.infoRow}>
           <Ionicons name="print-outline" size={18} color={PRIMARY} />
           <View style={styles.infoText}>
-            <Text style={styles.infoLabel}>Model</Text>
+            <Text style={styles.infoLabel}>{t.printerModel}</Text>
             <Text style={styles.infoValue}>{modelLabel(printerModel)}</Text>
           </View>
         </View>
@@ -95,8 +96,8 @@ function PrinterStatusCard() {
           <View style={styles.infoRow}>
             <Ionicons name="alert-circle-outline" size={18} color="#999" />
             <View style={styles.infoText}>
-              <Text style={styles.infoLabel}>Not configured</Text>
-              <Text style={{ fontSize: 12, color: '#aaa' }}>Set printer IP in WordPress plugin</Text>
+              <Text style={styles.infoLabel}>{t.printerNotConfigured}</Text>
+              <Text style={{ fontSize: 12, color: '#aaa' }}>{t.printerSetIp}</Text>
             </View>
           </View>
         )}
@@ -238,7 +239,7 @@ export default function Settings() {
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontSize: 15, fontWeight: '600', color: '#111' }}>{t.reopenDay}</Text>
-                  <Text style={{ fontSize: 12, color: '#888', marginTop: 2 }}>Remove day close status</Text>
+                  <Text style={{ fontSize: 12, color: '#888', marginTop: 2 }}>{t.removeDayCloseStatus}</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={16} color="#ccc" />
               </TouchableOpacity>
