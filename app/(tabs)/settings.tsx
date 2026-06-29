@@ -14,6 +14,9 @@ const PRIMARY = '#8B38CB';
 import TcpSocket from 'react-native-tcp-socket';
 
 function PrinterStatusCard({ t }: { t: any }) {
+  const printerModelLabel = t?.printerModel || 'Modell';
+  const printerNotConfiguredLabel = t?.printerNotConfigured || 'Nicht konfiguriert';
+  const printerSetIpLabel = t?.printerSetIp || 'Drucker-IP im WordPress-Plugin setzen';
   const [printerIp, setPrinterIp] = useState('');
   const [printerPort, setPrinterPort] = useState('');
   const [printerModel, setPrinterModel] = useState('');
@@ -70,7 +73,7 @@ function PrinterStatusCard({ t }: { t: any }) {
         <View style={styles.infoRow}>
           <Ionicons name="print-outline" size={18} color={PRIMARY} />
           <View style={styles.infoText}>
-            <Text style={styles.infoLabel}>{t.printerModel}</Text>
+            <Text style={styles.infoLabel}>{printerModelLabel}</Text>
             <Text style={styles.infoValue}>{modelLabel(printerModel)}</Text>
           </View>
         </View>
@@ -96,8 +99,8 @@ function PrinterStatusCard({ t }: { t: any }) {
           <View style={styles.infoRow}>
             <Ionicons name="alert-circle-outline" size={18} color="#999" />
             <View style={styles.infoText}>
-              <Text style={styles.infoLabel}>{t.printerNotConfigured}</Text>
-              <Text style={styles.infoLabel} numberOfLines={2}>{t.printerSetIp}</Text>
+              <Text style={styles.infoLabel}>{printerNotConfiguredLabel}</Text>
+              <Text style={styles.infoLabel} numberOfLines={2}>{printerSetIpLabel}</Text>
             </View>
           </View>
         )}
@@ -402,7 +405,7 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 12, fontWeight: '700', color: '#666', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8, marginLeft: 4 },
   card: { backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: '#eee', overflow: 'hidden' },
   infoRow: { flexDirection: 'row', alignItems: 'center', padding: 14, gap: 12, borderBottomWidth: 1, borderBottomColor: '#f5f5f5' },
-  infoText: { flex: 1 },
+  infoText: { flex: 1, marginLeft: 12 },
   infoLabel: { fontSize: 12, color: '#666', fontWeight: '600', marginBottom: 2 },
   infoValue: { fontSize: 15, color: '#111', fontWeight: '600' },
   logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', borderRadius: 12, padding: 16, gap: 10, borderWidth: 1, borderColor: '#fde8e8' },
