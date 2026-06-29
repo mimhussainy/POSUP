@@ -5,9 +5,10 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
-import { fetchProfile } from '../lib/api';
+import { useLanguage } from '../lib/LanguageContext';
 
 export default function LoginScreen() {
+  const { t } = useLanguage();
   const [code, setCode] = useState('');
   const [pin, setPin] = useState('');
   const [loading, setLoading] = useState(true);
@@ -30,7 +31,7 @@ export default function LoginScreen() {
 
   async function handleLogin() {
     if (!code.trim() || !pin.trim()) {
-      Alert.alert('Error', 'Please enter restaurant code and PIN');
+      Alert.alert('Error', t.enterCodeAndPin);
       return;
     }
     setLogging(true);
@@ -49,7 +50,7 @@ export default function LoginScreen() {
         if (data.logo_url) await AsyncStorage.setItem('restaurant_logo', data.logo_url);
         router.replace('/(tabs)/orders');
       } else {
-        Alert.alert('Error', data.error || 'Login failed');
+        Alert.alert('Error', data.error || t.invalidCodeOrPin);
       }
     } catch (e) {
       Alert.alert('Error', 'Could not connect. Check your internet connection.');
@@ -71,7 +72,7 @@ export default function LoginScreen() {
         <Image source={require('../assets/FoodupPOS-logo.png')} style={{ width: 180, height: 80, marginBottom: 8 }} resizeMode="contain" />
         <Text style={styles.sub}>Restaurant Point of Sale</Text>
 
-        <Text style={styles.label}>Restaurant Code</Text>
+        <Text style={styles.label}>{t.restaurantCode}</Text>
         <TextInput
           style={styles.input}
           value={code}
@@ -81,7 +82,7 @@ export default function LoginScreen() {
           autoCorrect={false}
         />
 
-        <Text style={styles.label}>PIN</Text>
+        <Text style={styles.label}>{t.ownerPin}</Text>
         <TextInput
           style={styles.input}
           value={pin}
@@ -98,7 +99,7 @@ export default function LoginScreen() {
         >
           {logging
             ? <ActivityIndicator color="#fff" />
-            : <Text style={styles.btnText}>Sign In</Text>
+            : <Text style={styles.btnText}>{t.signIn}</Text>
           }
         </TouchableOpacity>
       </View>
@@ -123,13 +124,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 20,
     elevation: 4,
-  },
-  logo: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: '#7c5cfc',
-    letterSpacing: -1,
-    marginBottom: 4,
   },
   sub: {
     fontSize: 14,

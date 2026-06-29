@@ -64,6 +64,10 @@ export const translations = {
     reopenDay: 'Tag wieder öffnen',
     printer: 'Drucker',
     testPrint: 'Testdruck',
+    removeDayCloseStatus: 'Tagesabschluss entfernen',
+    printerModel: 'Modell',
+    printerNotConfigured: 'Nicht konfiguriert',
+    printerSetIp: 'Drucker-IP im WordPress-Plugin setzen',
   },
   en: {
     newOrder: 'New Order',
@@ -128,6 +132,10 @@ export const translations = {
     reopenDay: 'Reopen Day',
     printer: 'Printer',
     testPrint: 'Test Print',
+    removeDayCloseStatus: 'Remove day close status',
+    printerModel: 'Model',
+    printerNotConfigured: 'Not configured',
+    printerSetIp: 'Set printer IP in WordPress plugin',
   },
 };
 
