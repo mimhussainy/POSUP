@@ -105,10 +105,14 @@ export default function NewOrderScreen() {
         setRestaurantLogo(data.restaurant.logo_url);
         await AsyncStorage.setItem('restaurant_logo', data.restaurant.logo_url);
       }
-      if (data.restaurant?.printer_ip) await AsyncStorage.setItem('printer_ip', data.restaurant.printer_ip);
-      if (data.restaurant?.printer_port) await AsyncStorage.setItem('printer_port', data.restaurant.printer_port);
-      if (data.restaurant?.printer_model) await AsyncStorage.setItem('printer_model', data.restaurant.printer_model);
       if (data.restaurant?.name) await AsyncStorage.setItem('restaurant_name', data.restaurant.name);
+
+      // Fetch printer settings from profile endpoint
+      const { fetchAndSaveProfile } = await import('../../lib/api');
+      const profile = await fetchAndSaveProfile(code);
+      if (profile.printer_ip) await AsyncStorage.setItem('printer_ip', profile.printer_ip);
+      if (profile.printer_port) await AsyncStorage.setItem('printer_port', profile.printer_port);
+      if (profile.printer_model) await AsyncStorage.setItem('printer_model', profile.printer_model);
       const cats = data.categories || [];
       const prods = data.products || [];
       setCategories(cats);
