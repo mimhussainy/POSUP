@@ -9,6 +9,11 @@ const receiptTranslations: { [key: string]: { total: string; payment: string; ca
   it: { total: 'TOTALE', payment: 'Pagamento', cash: 'Contanti', card: 'Carta', note: 'Nota', thank: 'Grazie & arrivederci!', subtotal: 'Subtotale', discount: 'Sconto', table: 'Tavolo' },
 };
 
+const zReportTranslations: { [key: string]: { title: string; period: string; from: string; to: string; orders: string; revenue: string; cash: string; card: string; avgOrder: string; discounts: string; printedBy: string; closedBy: string; } } = {
+  de: { title: 'TAGESABSCHLUSS', period: 'ZEITRAUM', from: 'Von', to: 'Bis', orders: 'Bestellungen', revenue: 'Umsatz', cash: 'Bar', card: 'Karte', avgOrder: 'Ø Bestellung', discounts: 'Rabatte', printedBy: 'Gedruckt von', closedBy: 'Geschlossen von' },
+  en: { title: 'DAY CLOSE REPORT', period: 'PERIOD', from: 'From', to: 'To', orders: 'Orders', revenue: 'Revenue', cash: 'Cash', card: 'Card', avgOrder: 'Avg. Order', discounts: 'Discounts', printedBy: 'Printed by', closedBy: 'Closed by' },
+};
+
 function buildReceiptHTML(order: any, restaurantName: string, logoUrl?: string, language: string = 'de'): string {
   const tr = receiptTranslations[language] || receiptTranslations['de'];
   const date = new Date(order.created_at);
@@ -112,7 +117,68 @@ function buildReceiptHTML(order: any, restaurantName: string, logoUrl?: string, 
     </html>
   `;
 }
-  
+
+function buildZReportHTML(data: any, restaurantName: string, logoUrl: string, language: string = 'de'): string {
+  const tr = zReportTranslations[language] || zReportTranslations['de'];
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('de-CH');
+  const timeStr = now.toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' });
+
+  const logoHTML = logoUrl ? `<img src="${logoUrl}" style="max-height:50px;max-width:150px;margin-bottom:6px;" />` : '';
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        @page { margin: 0; size: 80mm auto; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif; font-size: 12px; width: 80mm; margin: 0 auto; padding: 8px; color: #000; }
+        .header { text-align: center; margin-bottom: 10px; }
+        .restaurant { font-size: 18px; font-weight: 900; letter-spacing: 1px; }
+        .title { font-size: 15px; font-weight: 800; margin-top: 4px; }
+        .meta { font-size: 12px; margin-top: 2px; }
+        .divider { border-top: 1px dashed #000; margin: 8px 0; }
+        .section-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin: 10px 0 4px; }
+        table { width: 100%; border-collapse: collapse; }
+        td { padding: 3px 0; font-size: 14px; }
+        td:last-child { text-align: right; font-weight: 600; }
+        .total-row td { font-size: 17px; font-weight: 900; padding-top: 6px; }
+        .footer { text-align: center; margin-top: 10px; font-size: 11px; font-weight: 500; }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        ${logoHTML}
+        <div class="restaurant">${restaurantName.toUpperCase()}</div>
+        <div class="title">${tr.title}</div>
+        <div class="meta">${dateStr} ${timeStr}</div>
+      </div>
+      <div class="divider"></div>
+      <div class="section-label">${tr.period}</div>
+      <table>
+        <tr><td>${tr.from}</td><td>${data.fromLabel}</td></tr>
+        <tr><td>${tr.to}</td><td>${data.toLabel}</td></tr>
+      </table>
+      <div class="divider"></div>
+      <table>
+        <tr><td>${tr.orders}</td><td>${data.orderCount}</td></tr>
+        <tr><td>${tr.avgOrder}</td><td>CHF ${data.avgOrder.toFixed(2)}</td></tr>
+        <tr><td>${tr.cash}</td><td>CHF ${data.cashRevenue.toFixed(2)}</td></tr>
+        <tr><td>${tr.card}</td><td>CHF ${data.cardRevenue.toFixed(2)}</td></tr>
+        ${data.totalDiscount > 0 ? `<tr><td>${tr.discounts}</td><td>- CHF ${data.totalDiscount.toFixed(2)}</td></tr>` : ''}
+      </table>
+      <div class="divider"></div>
+      <table>
+        <tr class="total-row"><td>${tr.revenue}</td><td>CHF ${data.totalRevenue.toFixed(2)}</td></tr>
+      </table>
+      <div class="divider"></div>
+      <div class="footer">Powered by: FoodUp.ch</div>
+    </body>
+    </html>
+  `;
+}
 
 async function printViaTCP(order: any, restaurantName: string, logoUrl: string, language: string): Promise<void> {
   const printerIp = await AsyncStorage.getItem('printer_ip');
@@ -120,7 +186,6 @@ async function printViaTCP(order: any, restaurantName: string, logoUrl: string, 
 
   if (!printerIp) throw new Error('No printer IP configured');
 
-  // Build ESC/POS commands
   const lines: string[] = [];
   const tr = receiptTranslations[language] || receiptTranslations['de'];
   const date = new Date(order.created_at);
@@ -165,23 +230,94 @@ async function printViaTCP(order: any, restaurantName: string, logoUrl: string, 
 
   const ESC = '\x1b';
   const GS = '\x1d';
-  let data = ESC + '@'; // reset
-  data += ESC + 'a' + '\x01'; // center
-  data += ESC + 'E' + '\x01'; // bold on
+  let data = ESC + '@';
+  data += ESC + 'a' + '\x01';
+  data += ESC + 'E' + '\x01';
   data += lines[0] + '\n';
-  data += ESC + 'E' + '\x00'; // bold off
-  data += ESC + 'a' + '\x00'; // left align
+  data += ESC + 'E' + '\x00';
+  data += ESC + 'a' + '\x00';
 
   for (let i = 1; i < lines.length; i++) {
     data += lines[i] + '\n';
   }
 
-  data += GS + 'V' + '\x00'; // cut
+  data += GS + 'V' + '\x00';
 
   const TcpSocket = require('react-native-tcp-socket');
   return new Promise((resolve, reject) => {
     const client = TcpSocket.createConnection({ host: printerIp, port: printerPort }, () => {
       client.write(data, 'binary');
+      setTimeout(() => { client.destroy(); resolve(); }, 1500);
+    });
+    client.on('error', (err: any) => { client.destroy(); reject(err); });
+    setTimeout(() => { client.destroy(); reject(new Error('Print timeout')); }, 6000);
+  });
+}
+
+async function printZReportViaTCP(data: any, restaurantName: string, language: string): Promise<void> {
+  const printerIp = await AsyncStorage.getItem('printer_ip');
+  const printerPort = parseInt(await AsyncStorage.getItem('printer_port') || '9100');
+
+  if (!printerIp) throw new Error('No printer IP configured');
+
+  const tr = zReportTranslations[language] || zReportTranslations['de'];
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('de-CH');
+  const timeStr = now.toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' });
+
+  const lines: string[] = [];
+  lines.push(restaurantName.toUpperCase());
+  lines.push(tr.title);
+  lines.push(`${dateStr} ${timeStr}`);
+  lines.push('--------------------------------');
+  lines.push(`${tr.from}: ${data.fromLabel}`);
+  lines.push(`${tr.to}: ${data.toLabel}`);
+  lines.push('--------------------------------');
+
+  const orderLine = `${tr.orders}`;
+  lines.push(orderLine.padEnd(32 - String(data.orderCount).length) + data.orderCount);
+
+  const avgStr = `CHF ${data.avgOrder.toFixed(2)}`;
+  lines.push(tr.avgOrder.padEnd(32 - avgStr.length) + avgStr);
+
+  const cashStr = `CHF ${data.cashRevenue.toFixed(2)}`;
+  lines.push(tr.cash.padEnd(32 - cashStr.length) + cashStr);
+
+  const cardStr = `CHF ${data.cardRevenue.toFixed(2)}`;
+  lines.push(tr.card.padEnd(32 - cardStr.length) + cardStr);
+
+  if (data.totalDiscount > 0) {
+    const discStr = `-CHF ${data.totalDiscount.toFixed(2)}`;
+    lines.push(tr.discounts.padEnd(32 - discStr.length) + discStr);
+  }
+
+  lines.push('--------------------------------');
+  const totalStr = `CHF ${data.totalRevenue.toFixed(2)}`;
+  lines.push(tr.revenue.padEnd(32 - totalStr.length) + totalStr);
+  lines.push('--------------------------------');
+  lines.push('Powered by FoodUp.ch');
+  lines.push('', '', '');
+
+  const ESC = '\x1b';
+  const GS = '\x1d';
+  let pdata = ESC + '@';
+  pdata += ESC + 'a' + '\x01';
+  pdata += ESC + 'E' + '\x01';
+  pdata += lines[0] + '\n';
+  pdata += lines[1] + '\n';
+  pdata += ESC + 'E' + '\x00';
+  pdata += ESC + 'a' + '\x00';
+
+  for (let i = 2; i < lines.length; i++) {
+    pdata += lines[i] + '\n';
+  }
+
+  pdata += GS + 'V' + '\x00';
+
+  const TcpSocket = require('react-native-tcp-socket');
+  return new Promise((resolve, reject) => {
+    const client = TcpSocket.createConnection({ host: printerIp, port: printerPort }, () => {
+      client.write(pdata, 'binary');
       setTimeout(() => { client.destroy(); resolve(); }, 1500);
     });
     client.on('error', (err: any) => { client.destroy(); reject(err); });
@@ -195,7 +331,6 @@ export async function printOrder(order: any, restaurantCode: string): Promise<vo
   const language = await AsyncStorage.getItem('app_language') || 'de';
   const printerIp = await AsyncStorage.getItem('printer_ip');
 
-  // Web — use popup
   if (Platform.OS === 'web') {
     const html = buildReceiptHTML(order, restaurantName, logoUrl, language);
     const win = (window as any).open('', '_blank', 'width=400,height=600');
@@ -208,11 +343,44 @@ export async function printOrder(order: any, restaurantCode: string): Promise<vo
     return;
   }
 
-  // Native — use TCP if printer IP is set, otherwise expo-print
   if (printerIp) {
     await printViaTCP(order, restaurantName, logoUrl, language);
   } else {
     const html = buildReceiptHTML(order, restaurantName, logoUrl, language);
+    await Print.printAsync({ html });
+  }
+}
+
+export async function printZReport(zData: {
+  fromLabel: string;
+  toLabel: string;
+  orderCount: number;
+  totalRevenue: number;
+  cashRevenue: number;
+  cardRevenue: number;
+  avgOrder: number;
+  totalDiscount: number;
+}): Promise<void> {
+  const restaurantName = await AsyncStorage.getItem('restaurant_name') || 'Restaurant';
+  const language = await AsyncStorage.getItem('app_language') || 'de';
+  const printerIp = await AsyncStorage.getItem('printer_ip');
+
+  if (Platform.OS === 'web') {
+    const html = buildZReportHTML(zData, restaurantName, '', language);
+    const win = (window as any).open('', '_blank', 'width=400,height=600');
+    if (win) {
+      win.document.write(html);
+      win.document.close();
+      win.focus();
+      setTimeout(() => { win.print(); win.close(); }, 500);
+    }
+    return;
+  }
+
+  if (printerIp) {
+    await printZReportViaTCP(zData, restaurantName, language);
+  } else {
+    const html = buildZReportHTML(zData, restaurantName, '', language);
     await Print.printAsync({ html });
   }
 }

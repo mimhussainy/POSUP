@@ -17,6 +17,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useFocusEffect } from 'expo-router';
 import { useLanguage } from '../../lib/LanguageContext';
 import { appFont } from '../../lib/fonts';
+import { printZReport } from '../../lib/printer';
 
 const BACKEND = 'https://foodup-order-alerts-backend.onrender.com';
 const PRIMARY = '#8B38CB';
@@ -256,6 +257,38 @@ export default function HistoryScreen() {
     const today = new Date().toLocaleDateString('de-CH', {
       timeZone: 'Europe/Zurich',
     });
+
+    const dayRevenue = todayOrders.reduce((sum, order) => sum + parseAmount(order.total), 0);
+    const dayCash = todayOrders
+      .filter(order => getPaymentType(order.payment_method) === 'cash')
+      .reduce((sum, order) => sum + parseAmount(order.total), 0);
+    const dayCard = todayOrders
+      .filter(order => getPaymentType(order.payment_method) === 'card')
+      .reduce((sum, order) => sum + parseAmount(order.total), 0);
+    const dayDiscount = todayOrders.reduce((sum, order) => sum + parseAmount(order.discount), 0);
+    const dayAvg = todayOrders.length > 0 ? dayRevenue / todayOrders.length : 0;
+
+    const firstOrder = todayOrders.length > 0
+      ? [...todayOrders].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())[0]
+      : null;
+    const lastOrder = todayOrders.length > 0
+      ? [...todayOrders].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
+      : null;
+
+    try {
+      await printZReport({
+        fromLabel: firstOrder ? formatTime(firstOrder.created_at) : '—',
+        toLabel: lastOrder ? formatTime(lastOrder.created_at) : '—',
+        orderCount: todayOrders.length,
+        totalRevenue: dayRevenue,
+        cashRevenue: dayCash,
+        cardRevenue: dayCard,
+        avgOrder: dayAvg,
+        totalDiscount: dayDiscount,
+      });
+    } catch (e) {
+      console.log('Z-Report print failed', e);
+    }
 
     await AsyncStorage.setItem('day_closed_date', today);
     setDayClosed(true);
