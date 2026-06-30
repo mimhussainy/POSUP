@@ -17,7 +17,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useFocusEffect } from 'expo-router';
 import { useLanguage } from '../../lib/LanguageContext';
 import { appFont } from '../../lib/fonts';
-import { printZReport } from '../../lib/printer';
+import { printOrder, printZReport } from '../../lib/printer';
 
 const BACKEND = 'https://foodup-order-alerts-backend.onrender.com';
 const PRIMARY = '#8B38CB';
@@ -669,7 +669,7 @@ export default function HistoryScreen() {
 
                   <TouchableOpacity
                     style={styles.reprintBtn}
-                    onPress={() => {}}
+                    onPress={() => selectedOrder && printOrder(selectedOrder, restaurantCode)}
                   >
                     <Ionicons name="print-outline" size={15} color={PRIMARY} />
                     <Text style={styles.reprintBtnText}>{t.reprint}</Text>
