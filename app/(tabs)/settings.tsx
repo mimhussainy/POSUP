@@ -27,9 +27,9 @@ const PRIMARY = '#8B38CB';
 const PRIMARY_SOFT = '#F6EEFF';
 const PRIMARY_BORDER = '#E6D5FF';
 
-const APP_BG = '#F7F8FB';
+const APP_BG = '#F3F4F8';
 const CARD_BG = '#FFFFFF';
-const BORDER = '#ECEEF3';
+const BORDER = '#E0E3EA';
 const TEXT = '#171725';
 const MUTED = '#7A7F8C';
 const SOFT_TEXT = '#5F6572';
@@ -39,20 +39,17 @@ const RED = '#EF4444';
 const ORANGE = '#F59E0B';
 
 const PAGE_PADDING = 16;
-const MAX_CONTENT_WIDTH = 1080;
 
 function PrinterStatusCard({
   t,
   printerIp,
   printerPort,
   printerModel,
-  wide,
 }: {
   t: any;
   printerIp: string;
   printerPort: string;
   printerModel: string;
-  wide: boolean;
 }) {
   const printerModelLabel = t?.printerModel || 'Modell';
   const printerNotConfiguredLabel = t?.printerNotConfigured || 'Nicht konfiguriert';
@@ -141,7 +138,7 @@ function PrinterStatusCard({
           : '#F2F3F7';
 
   return (
-    <View style={[styles.section, wide && styles.sectionHalf]}>
+    <View style={styles.section}>
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionKicker}>{t?.printerSection || 'PRINTER'}</Text>
         <Text style={styles.sectionTitle}>Printer Status</Text>
@@ -229,7 +226,8 @@ export default function Settings() {
 
   const [windowWidth, setWindowWidth] = useState(Dimensions.get('window').width);
 
-  const isWide = windowWidth >= 820;
+  const isNarrow = windowWidth < 760;
+  const centeredWidthStyle = isNarrow ? styles.centeredMobile : styles.centeredDesktop;
 
   useEffect(() => {
     const sub = Dimensions.addEventListener('change', ({ window }) => {
@@ -370,7 +368,7 @@ export default function Settings() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.headerOuter}>
+        <View style={[styles.headerOuter, centeredWidthStyle]}>
           <View style={styles.header}>
             <View style={styles.headerLeft}>
               <Text style={styles.headerKicker}>POSUP</Text>
@@ -390,9 +388,9 @@ export default function Settings() {
           </View>
         </View>
 
-        <View style={styles.contentInner}>
+        <View style={[styles.contentInner, centeredWidthStyle]}>
           <View style={styles.sectionsGrid}>
-            <View style={[styles.section, isWide && styles.sectionHalf]}>
+            <View style={styles.section}>
               {renderSectionHeader(t.restaurantSection, 'Restaurant')}
 
               <View style={styles.card}>
@@ -446,10 +444,9 @@ export default function Settings() {
               printerIp={printerIp}
               printerPort={printerPort}
               printerModel={printerModel}
-              wide={isWide}
             />
 
-            <View style={[styles.section, isWide && styles.sectionHalf]}>
+            <View style={styles.section}>
               {renderSectionHeader(t.dayManagementSection, 'Day Management')}
 
               <View style={styles.card}>
@@ -472,7 +469,7 @@ export default function Settings() {
               </View>
             </View>
 
-            <View style={[styles.section, isWide && styles.sectionHalf]}>
+            <View style={styles.section}>
               {renderSectionHeader(t.language, 'Language')}
 
               <View style={styles.card}>
@@ -801,17 +798,23 @@ const styles = StyleSheet.create({
     paddingBottom: 110,
   },
 
-  contentInner: {
-    width: '100%',
-    maxWidth: MAX_CONTENT_WIDTH,
+  centeredDesktop: {
+    width: '50%',
     alignSelf: 'center',
+  },
+
+  centeredMobile: {
+    width: '100%',
+    alignSelf: 'center',
+  },
+
+  contentInner: {
     paddingHorizontal: PAGE_PADDING,
   },
 
   sectionsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
+    flexDirection: 'column',
+    gap: 14,
   },
 
   center: {
@@ -843,13 +846,11 @@ const styles = StyleSheet.create({
     backgroundColor: APP_BG,
     paddingHorizontal: PAGE_PADDING,
     paddingTop: Platform.OS === 'web' ? 14 : 10,
-    paddingBottom: 8,
+    paddingBottom: 10,
   },
 
   header: {
     width: '100%',
-    maxWidth: MAX_CONTENT_WIDTH,
-    alignSelf: 'center',
     minHeight: 58,
     flexDirection: 'row',
     alignItems: 'center',
@@ -900,14 +901,9 @@ const styles = StyleSheet.create({
 
   section: {
     width: '100%',
-    marginBottom: 2,
   },
 
-  sectionHalf: {
-    flexGrow: 1,
-    flexBasis: 420,
-    maxWidth: '49%',
-  },
+
 
   sectionHeader: {
     marginBottom: 8,
@@ -937,6 +933,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: BORDER,
     overflow: 'hidden',
+
+    shadowColor: '#111827',
+    shadowOpacity: 0.035,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
   },
 
   infoRow: {

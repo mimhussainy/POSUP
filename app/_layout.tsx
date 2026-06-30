@@ -1,7 +1,7 @@
 import { Stack } from 'expo-router';
 import { StatusBar, View, ActivityIndicator, StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 import { Ionicons } from '@expo/vector-icons';
 import { LanguageProvider } from '../lib/LanguageContext';
@@ -36,17 +36,19 @@ export default function RootLayout() {
             translucent={false}
           />
 
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              contentStyle: {
-                backgroundColor: APP_BG,
-              },
-            }}
-          >
-            <Stack.Screen name="index" />
-            <Stack.Screen name="(tabs)" />
-          </Stack>
+          <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                contentStyle: {
+                  backgroundColor: APP_BG,
+                },
+              }}
+            >
+              <Stack.Screen name="index" />
+              <Stack.Screen name="(tabs)" />
+            </Stack>
+          </SafeAreaView>
         </GestureHandlerRootView>
       </SafeAreaProvider>
     </LanguageProvider>
@@ -55,6 +57,11 @@ export default function RootLayout() {
 
 const styles = StyleSheet.create({
   root: {
+    flex: 1,
+    backgroundColor: APP_BG,
+  },
+
+  safeArea: {
     flex: 1,
     backgroundColor: APP_BG,
   },

@@ -10,6 +10,7 @@ import {
   Image,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
@@ -20,11 +21,12 @@ const BACKEND = 'https://foodup-order-alerts-backend.onrender.com';
 
 const PRIMARY = '#8B38CB';
 const PRIMARY_SOFT = '#F6EEFF';
-const APP_BG = '#F7F8FB';
+const APP_BG = '#F1F3F7';
 const CARD_BG = '#FFFFFF';
-const BORDER = '#ECEEF3';
+const BORDER = '#DEE3EC';
 const TEXT = '#171725';
 const MUTED = '#7A7F8C';
+const SOFT_TEXT = '#5F6572';
 
 export default function LoginScreen() {
   const { t } = useLanguage();
@@ -54,6 +56,7 @@ export default function LoginScreen() {
 
       if (savedCode && savedPin) {
         router.replace('/(tabs)/orders');
+        return;
       }
     } catch (e) {
       console.log('Failed to check saved login', e);
@@ -117,74 +120,93 @@ export default function LoginScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={styles.root}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <View style={styles.backgroundCircleTop} />
-      <View style={styles.backgroundCircleBottom} />
-
-      <View style={styles.loginCard}>
-        <View style={styles.logoBox}>
-          <Image
-            source={require('../assets/FoodupPOS-logo.png')}
-            style={styles.logo}
-            resizeMode="contain"
-          />
-        </View>
-
-        <Text style={styles.title}>Welcome back</Text>
-        <Text style={styles.sub}>Sign in to your restaurant POS system</Text>
-
-        <View style={styles.form}>
-          <Text style={styles.label}>{t.restaurantCode}</Text>
-          <View style={styles.inputWrap}>
-            <TextInput
-              style={styles.input}
-              value={code}
-              onChangeText={setCode}
-              placeholder={t.restaurantCode}
-              placeholderTextColor="#A8ACB7"
-              autoCapitalize="none"
-              autoCorrect={false}
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.loginCard}>
+          <View style={styles.logoWrap}>
+            <Image
+              source={require('../assets/FoodupPOS-logo.png')}
+              style={styles.logo}
+              resizeMode="contain"
             />
           </View>
 
-          <Text style={styles.label}>{t.ownerPin}</Text>
-          <View style={styles.inputWrap}>
-            <TextInput
-              style={styles.input}
-              value={pin}
-              onChangeText={setPin}
-              placeholder={t.ownerPin || 'PIN'}
-              placeholderTextColor="#A8ACB7"
-              secureTextEntry
-              keyboardType="default"
-            />
+          <View style={styles.titleBlock}>
+            <Text style={styles.kicker}>POSUP</Text>
+            <Text style={styles.title}>Restaurant Login</Text>
+            <Text style={styles.sub}>Sign in to your restaurant POS system</Text>
           </View>
 
-          <TouchableOpacity
-            style={[styles.btn, logging && styles.btnDisabled]}
-            onPress={handleLogin}
-            disabled={logging}
-            activeOpacity={0.82}
-          >
-            {logging ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.btnText}>{t.signIn}</Text>
-            )}
-          </TouchableOpacity>
-        </View>
+          <View style={styles.form}>
+            <Text style={styles.label}>{t.restaurantCode}</Text>
+            <View style={styles.inputWrap}>
+              <TextInput
+                style={styles.input}
+                value={code}
+                onChangeText={setCode}
+                placeholder={t.restaurantCode}
+                placeholderTextColor="#9BA1AE"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+            </View>
 
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>Powered by FoodUp.ch</Text>
+            <Text style={styles.label}>{t.ownerPin}</Text>
+            <View style={styles.inputWrap}>
+              <TextInput
+                style={styles.input}
+                value={pin}
+                onChangeText={setPin}
+                placeholder={t.ownerPin || 'PIN'}
+                placeholderTextColor="#9BA1AE"
+                secureTextEntry
+                keyboardType="default"
+              />
+            </View>
+
+            <TouchableOpacity
+              style={[styles.btn, logging && styles.btnDisabled]}
+              onPress={handleLogin}
+              disabled={logging}
+              activeOpacity={0.82}
+            >
+              {logging ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.btnText}>{t.signIn}</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>Powered by FoodUp.ch</Text>
+          </View>
         </View>
-      </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: APP_BG,
+  },
+
+  scrollContent: {
+    flexGrow: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 18,
+    paddingVertical: 28,
+  },
+
   center: {
     flex: 1,
     alignItems: 'center',
@@ -201,35 +223,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: BORDER,
-  },
 
-  container: {
-    flex: 1,
-    backgroundColor: APP_BG,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 18,
-    overflow: 'hidden',
-  },
-
-  backgroundCircleTop: {
-    position: 'absolute',
-    width: 360,
-    height: 360,
-    borderRadius: 180,
-    backgroundColor: PRIMARY_SOFT,
-    top: -150,
-    right: -120,
-  },
-
-  backgroundCircleBottom: {
-    position: 'absolute',
-    width: 280,
-    height: 280,
-    borderRadius: 140,
-    backgroundColor: '#EEF0F5',
-    bottom: -120,
-    left: -100,
+    shadowColor: '#111827',
+    shadowOpacity: 0.05,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 4,
   },
 
   loginCard: {
@@ -244,24 +243,39 @@ const styles = StyleSheet.create({
     borderColor: BORDER,
 
     shadowColor: '#111827',
-    shadowOpacity: 0.06,
+    shadowOpacity: 0.08,
     shadowRadius: 24,
     shadowOffset: { width: 0, height: 10 },
-    elevation: 6,
+    elevation: 7,
   },
 
-  logoBox: {
+  logoWrap: {
     alignSelf: 'center',
     width: 190,
-    height: 82,
+    height: 76,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 4,
+    marginBottom: 8,
   },
 
   logo: {
     width: 180,
-    height: 78,
+    height: 72,
+  },
+
+  titleBlock: {
+    alignItems: 'center',
+    marginBottom: 26,
+  },
+
+  kicker: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: PRIMARY,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    fontFamily: appFont,
+    marginBottom: 4,
   },
 
   title: {
@@ -276,7 +290,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: MUTED,
     marginTop: 6,
-    marginBottom: 26,
     fontWeight: '600',
     fontFamily: appFont,
     textAlign: 'center',
@@ -338,6 +351,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 22,
+    paddingTop: 16,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#EEF0F5',
   },
 
   footerText: {

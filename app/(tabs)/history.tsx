@@ -22,15 +22,16 @@ import { printOrder, printZReport } from '../../lib/printer';
 const BACKEND = 'https://foodup-order-alerts-backend.onrender.com';
 
 const PRIMARY = '#8B38CB';
-const PRIMARY_SOFT = '#F6EEFF';
-const PRIMARY_BORDER = '#E6D5FF';
+const PRIMARY_SOFT = '#F4E9FF';
+const PRIMARY_BORDER = '#D8B6FF';
 
-const APP_BG = '#F7F8FB';
+const APP_BG = '#EEF1F6';
 const CARD_BG = '#FFFFFF';
-const BORDER = '#ECEEF3';
-const TEXT = '#171725';
-const MUTED = '#7A7F8C';
-const SOFT_TEXT = '#5F6572';
+const BORDER = '#D9DEE8';
+const BORDER_SOFT = '#E5E9F0';
+const TEXT = '#111827';
+const MUTED = '#6B7280';
+const SOFT_TEXT = '#4B5563';
 
 const GREEN = '#16A34A';
 const BLUE = '#2563EB';
@@ -38,7 +39,8 @@ const ORANGE = '#F97316';
 const RED = '#EF4444';
 
 const PAGE_PADDING = 16;
-const MAX_CONTENT_WIDTH = 1280;
+const MAX_CONTENT_WIDTH = 1480;
+const ANALYTICS_PANEL_WIDTH = 350;
 
 interface POSOrder {
   id: string;
@@ -85,7 +87,11 @@ export default function HistoryScreen() {
 
   const [windowWidth, setWindowWidth] = useState(Dimensions.get('window').width);
 
-  const listWidth = Math.min(windowWidth - PAGE_PADDING * 2, MAX_CONTENT_WIDTH);
+  const contentWidth = Math.min(windowWidth - PAGE_PADDING * 2, MAX_CONTENT_WIDTH);
+  const showAnalyticsPanel = windowWidth >= 1100;
+  const listWidth = showAnalyticsPanel
+    ? contentWidth - ANALYTICS_PANEL_WIDTH - PAGE_PADDING
+    : contentWidth;
   const numColumns = getNumColumns(listWidth);
 
   useEffect(() => {
@@ -731,38 +737,54 @@ export default function HistoryScreen() {
         </View>
       )}
 
-      <FlatList
-        data={paddedOrders}
-        keyExtractor={(item, index) =>
-          'placeholder' in item ? item.id : item.id || `${item.order_number}-${index}`
-        }
-        numColumns={numColumns}
-        key={numColumns}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => restaurantCode && fetchOrders(restaurantCode, true)}
-            colors={[PRIMARY]}
-          />
-        }
-        contentContainerStyle={[
-          styles.listContent,
-          paddedOrders.length === 0 && styles.listContentEmpty,
-        ]}
-        columnWrapperStyle={numColumns > 1 ? styles.columnWrapper : undefined}
-        showsVerticalScrollIndicator={false}
-        ListHeaderComponent={renderListHeader}
-        ListEmptyComponent={
-          <View style={styles.emptyCard}>
-            <View style={styles.emptyIconCircle}>
-              <Ionicons name="receipt-outline" size={42} color="#C6CBD6" />
-            </View>
-            <Text style={styles.emptyTitle}>{t.noOrders}</Text>
+      <View style={styles.bodyOuter}>
+        <View style={[styles.bodyShell, showAnalyticsPanel && styles.bodyShellSplit]}>
+          <View style={styles.leftPane}>
+            <FlatList
+              data={paddedOrders}
+              keyExtractor={(item, index) =>
+                'placeholder' in item ? item.id : item.id || `${item.order_number}-${index}`
+              }
+              numColumns={numColumns}
+              key={numColumns}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={() => restaurantCode && fetchOrders(restaurantCode, true)}
+                  colors={[PRIMARY]}
+                />
+              }
+              contentContainerStyle={[
+                styles.listContent,
+                paddedOrders.length === 0 && styles.listContentEmpty,
+              ]}
+              columnWrapperStyle={numColumns > 1 ? styles.columnWrapper : undefined}
+              showsVerticalScrollIndicator={false}
+              ListHeaderComponent={renderListHeader}
+              ListEmptyComponent={
+                <View style={styles.emptyCard}>
+                  <View style={styles.emptyIconCircle}>
+                    <Ionicons name="receipt-outline" size={42} color="#AEB6C4" />
+                  </View>
+                  <Text style={styles.emptyTitle}>{t.noOrders}</Text>
+                </View>
+              }
+              ListFooterComponent={!showAnalyticsPanel ? renderAnalyticsFooter : null}
+              renderItem={({ item }) => renderOrderCard(item)}
+            />
           </View>
-        }
-        ListFooterComponent={renderAnalyticsFooter}
-        renderItem={({ item }) => renderOrderCard(item)}
-      />
+
+          {showAnalyticsPanel && (
+            <ScrollView
+              style={styles.rightPane}
+              contentContainerStyle={styles.rightPaneContent}
+              showsVerticalScrollIndicator={false}
+            >
+              {renderAnalyticsFooter()}
+            </ScrollView>
+          )}
+        </View>
+      </View>
 
       <Modal
         visible={!!selectedOrder}
@@ -988,6 +1010,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: BORDER,
+
+    shadowColor: '#111827',
+    shadowOpacity: 0.06,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
   },
 
   loadingText: {
@@ -1001,8 +1029,8 @@ const styles = StyleSheet.create({
   headerOuter: {
     backgroundColor: APP_BG,
     paddingHorizontal: PAGE_PADDING,
-    paddingTop: Platform.OS === 'web' ? 14 : 10,
-    paddingBottom: 6,
+    paddingTop: Platform.OS === 'web' ? 14 : 8,
+    paddingBottom: 8,
   },
 
   header: {
@@ -1053,6 +1081,12 @@ const styles = StyleSheet.create({
     borderColor: BORDER,
     alignItems: 'center',
     justifyContent: 'center',
+
+    shadowColor: '#111827',
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
 
   zReportBtn: {
@@ -1099,11 +1133,38 @@ const styles = StyleSheet.create({
     fontFamily: appFont,
   },
 
-  listContent: {
+  bodyOuter: {
+    flex: 1,
+    paddingHorizontal: PAGE_PADDING,
+  },
+
+  bodyShell: {
+    flex: 1,
     width: '100%',
     maxWidth: MAX_CONTENT_WIDTH,
     alignSelf: 'center',
-    paddingHorizontal: PAGE_PADDING,
+  },
+
+  bodyShellSplit: {
+    flexDirection: 'row',
+    gap: PAGE_PADDING,
+  },
+
+  leftPane: {
+    flex: 1,
+    minWidth: 0,
+  },
+
+  rightPane: {
+    width: ANALYTICS_PANEL_WIDTH,
+  },
+
+  rightPaneContent: {
+    paddingTop: 8,
+    paddingBottom: 110,
+  },
+
+  listContent: {
     paddingTop: 8,
     paddingBottom: 110,
   },
@@ -1126,7 +1187,7 @@ const styles = StyleSheet.create({
   statCard: {
     flexGrow: 1,
     flexBasis: 190,
-    minHeight: 66,
+    minHeight: 68,
     backgroundColor: CARD_BG,
     borderRadius: 18,
     borderWidth: 1,
@@ -1136,6 +1197,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+
+    shadowColor: '#111827',
+    shadowOpacity: 0.035,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
   },
 
   statCardActive: {
@@ -1178,6 +1245,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: BORDER,
     padding: 6,
+
+    shadowColor: '#111827',
+    shadowOpacity: 0.025,
+    shadowRadius: 7,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
   },
 
   filterRow: {
@@ -1192,7 +1265,7 @@ const styles = StyleSheet.create({
     minWidth: 76,
     paddingHorizontal: 14,
     borderRadius: 999,
-    backgroundColor: '#F6F7FA',
+    backgroundColor: '#EEF1F6',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1244,13 +1317,19 @@ const styles = StyleSheet.create({
 
   orderCard: {
     flex: 1,
-    minHeight: 108,
+    minHeight: 112,
     backgroundColor: CARD_BG,
     borderRadius: 18,
     padding: 13,
     borderWidth: 1,
     borderColor: BORDER,
     marginBottom: 12,
+
+    shadowColor: '#111827',
+    shadowOpacity: 0.035,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
   },
 
   orderCardPlaceholder: {
@@ -1273,6 +1352,8 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 5,
+    borderWidth: 1,
+    borderColor: PRIMARY_BORDER,
   },
 
   orderNumberText: {
@@ -1367,7 +1448,7 @@ const styles = StyleSheet.create({
   },
 
   itemCountPill: {
-    backgroundColor: '#F2F3F7',
+    backgroundColor: '#EEF1F6',
     borderRadius: 999,
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -1382,7 +1463,7 @@ const styles = StyleSheet.create({
 
   analyticsFooter: {
     gap: 12,
-    marginTop: 2,
+    marginTop: 0,
   },
 
   analyticsCard: {
@@ -1391,6 +1472,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: BORDER,
     padding: 16,
+
+    shadowColor: '#111827',
+    shadowOpacity: 0.035,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
   },
 
   summaryCard: {
@@ -1399,6 +1486,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: BORDER,
     padding: 16,
+
+    shadowColor: '#111827',
+    shadowOpacity: 0.035,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
   },
 
   sectionHeaderRow: {
@@ -1546,11 +1639,13 @@ const styles = StyleSheet.create({
 
   summaryTile: {
     flexGrow: 1,
-    flexBasis: 190,
+    flexBasis: 130,
     minHeight: 68,
-    backgroundColor: '#FAFAFC',
+    backgroundColor: '#F5F7FA',
     borderRadius: 16,
     padding: 12,
+    borderWidth: 1,
+    borderColor: BORDER_SOFT,
   },
 
   summaryLabel: {

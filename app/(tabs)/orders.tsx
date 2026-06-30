@@ -23,9 +23,9 @@ import { appFont } from '../../lib/fonts';
 const PRIMARY = '#8B38CB';
 const PRIMARY_SOFT = '#F5ECFF';
 
-const APP_BG = '#F7F8FB';
+const APP_BG = '#F1F3F8';
 const CARD_BG = '#FFFFFF';
-const BORDER = '#ECEEF3';
+const BORDER = '#DDE2EC';
 const TEXT = '#151521';
 const MUTED = '#7B7F8C';
 
@@ -1476,12 +1476,12 @@ const styles = StyleSheet.create({
 
   catSidebar: {
     backgroundColor: '#FFFFFF',
-    borderRightWidth: thinBorder,
-    borderRightColor: '#E5E7EB',
+    borderRightWidth: 1,
+    borderRightColor: '#DDE2EC',
   },
 
   catLogoWrap: {
-    height: 78,
+    height: 84,
     justifyContent: 'center',
     alignItems: 'center',
     borderBottomWidth: thinBorder,
@@ -1508,7 +1508,8 @@ const styles = StyleSheet.create({
 
   catSidebarContent: {
     paddingVertical: 8,
-    paddingHorizontal: 7,
+    paddingLeft: 7,
+    paddingRight: 7,
   },
 
   catItem: {
@@ -1518,10 +1519,13 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     position: 'relative',
     marginBottom: 5,
+    overflow: 'visible',
   },
 
   catItemActive: {
     backgroundColor: PRIMARY_SOFT,
+    borderTopLeftRadius: 0,
+    borderBottomLeftRadius: 0,
   },
 
   catBadge: {
@@ -1556,9 +1560,9 @@ const styles = StyleSheet.create({
   catActiveBar: {
     position: 'absolute',
     left: -7,
-    top: 13,
-    bottom: 13,
-    width: 4,
+    top: 0,
+    bottom: 0,
+    width: 5,
     backgroundColor: PRIMARY,
     borderTopRightRadius: 8,
     borderBottomRightRadius: 8,
@@ -1573,7 +1577,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    paddingHorizontal: 16,
+    paddingHorizontal: 18,
     paddingTop: 14,
     paddingBottom: 14,
     backgroundColor: APP_BG,
@@ -1587,9 +1591,15 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     paddingHorizontal: 15,
     gap: 9,
-    borderWidth: thinBorder,
-    borderColor: BORDER,
-    height: 48,
+    borderWidth: 1,
+    borderColor: '#DCE1EA',
+    height: 50,
+
+    shadowColor: '#111827',
+    shadowOpacity: 0.035,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
   },
 
   searchInput: {
@@ -1602,8 +1612,8 @@ const styles = StyleSheet.create({
   },
 
   syncBtn: {
-    width: 48,
-    height: 48,
+    width: 50,
+    height: 50,
     borderRadius: 18,
     backgroundColor: PRIMARY,
     justifyContent: 'center',
@@ -1611,7 +1621,7 @@ const styles = StyleSheet.create({
   },
 
   grid: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 18,
     paddingTop: 0,
     paddingBottom: 22,
   },
@@ -1632,8 +1642,14 @@ const styles = StyleSheet.create({
     padding: 15,
     minHeight: 112,
     justifyContent: 'space-between',
-    borderWidth: thinBorder,
-    borderColor: BORDER,
+    borderWidth: 1,
+    borderColor: '#DDE2EC',
+
+    shadowColor: '#111827',
+    shadowOpacity: 0.045,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
   },
 
   productName: {
