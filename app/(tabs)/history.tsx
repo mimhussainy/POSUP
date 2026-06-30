@@ -147,7 +147,9 @@ export default function HistoryScreen() {
 
   const getPaymentType = (method: string) => {
     const normalized = String(method || '').toLowerCase();
-    return normalized.includes('cash') ? 'cash' : 'card';
+    if (normalized.includes('cash')) return 'cash';
+    if (normalized.includes('twint')) return 'twint';
+    return 'card';
   };
 
   const filteredOrders = useMemo(() => {

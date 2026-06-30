@@ -18,10 +18,10 @@ export default function TabsLayout() {
           paddingBottom: 10,
         },
         tabBarActiveTintColor: '#8B38CB',
-        tabBarInactiveTintColor: '#999',
+        tabBarInactiveTintColor: '#555',
         tabBarLabelStyle: {
           fontSize: 13,
-          fontWeight: '600',
+          fontWeight: '700',
           fontFamily: appFont,
           textAlign: 'center',
         },

@@ -244,11 +244,7 @@ export default function NewOrderScreen() {
   const orderTotal = subtotal - discountAmount();
 
   function clearOrder() {
-    if (Platform.OS === 'web') {
-      if (window.confirm('Clear all items?')) { setCart([]); setNote(''); setDiscount(''); }
-    } else {
-      setClearModal(true);
-    }
+    setClearModal(true);
   }
 
   async function placeOrder() {
@@ -451,8 +447,11 @@ export default function NewOrderScreen() {
               <View key={item.id} style={styles.orderItem}>
                 <View style={styles.orderItemRow}>
                   <View style={styles.qtyInline}>
-                    <TouchableOpacity onPress={() => updateQty(item.id, -1)} style={styles.qtyMiniBtn}>
-                      <Ionicons name="remove" size={10} color="#fff" />
+                    <TouchableOpacity
+                      onPress={() => item.quantity === 1 ? removeItem(item.id) : updateQty(item.id, -1)}
+                      style={styles.qtyMiniBtn}
+                    >
+                      <Ionicons name={item.quantity === 1 ? 'trash-outline' : 'remove'} size={item.quantity === 1 ? 11 : 10} color="#fff" />
                     </TouchableOpacity>
                     <Text style={styles.orderItemQty}>{item.quantity}</Text>
                     <TouchableOpacity onPress={() => updateQty(item.id, 1)} style={styles.qtyMiniBtn}>
@@ -464,11 +463,8 @@ export default function NewOrderScreen() {
                       <Text style={styles.orderItemName} numberOfLines={1}>
                         {item.product.name}{item.variation ? ` — ${item.variation.name}` : ''}
                       </Text>
-                      <TouchableOpacity onPress={() => removeItem(item.id)}>
-                        <Ionicons name="close-circle" size={15} color="#333" />
-                      </TouchableOpacity>
+                      <Text style={styles.orderItemPrice}>CHF {(item.price * item.quantity).toFixed(2)}</Text>
                     </View>
-                    <Text style={styles.orderItemPrice}>CHF {(item.price * item.quantity).toFixed(2)}</Text>
                     {item.addons.map((a: any, i: number) => (
                       <View key={i} style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                         <Text style={styles.orderItemSub}>+ {a.name}</Text>
@@ -499,6 +495,10 @@ export default function NewOrderScreen() {
           <TouchableOpacity style={[styles.payBtn, paymentMethod === 'card' && styles.payBtnActive]} onPress={() => setPaymentMethod('card')}>
             <Text style={styles.payEmoji}>💳</Text>
             <Text style={[styles.payBtnText, paymentMethod === 'card' && styles.payBtnTextActive]}>{t.card}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.payBtn, paymentMethod === 'twint' && styles.payBtnActive]} onPress={() => setPaymentMethod('twint')}>
+            <Text style={styles.payEmoji}>📱</Text>
+            <Text style={[styles.payBtnText, paymentMethod === 'twint' && styles.payBtnTextActive]}>Twint</Text>
           </TouchableOpacity>
         </View>
 
@@ -807,7 +807,7 @@ const styles = StyleSheet.create({
   catItemActive: { backgroundColor: '#f5eeff' },
   catBadge: { width: 38, height: 38, borderRadius: 19, justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
   catBadgeLetter: { fontSize: 18, fontWeight: '600', fontFamily: appFont },
-  catItemText: { fontSize: 13, fontWeight: '500', color: '#666', textAlign: 'center', lineHeight: 17, fontFamily: appFont },
+  catItemText: { fontSize: 13, fontWeight: '600', color: '#444', textAlign: 'center', lineHeight: 17, fontFamily: appFont },
   catItemTextActive: { color: PRIMARY, fontWeight: '600' },
   catActiveBar: { position: 'absolute', left: 0, top: 8, bottom: 8, width: 3, backgroundColor: PRIMARY, borderRadius: 2 },
 
