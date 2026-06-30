@@ -743,13 +743,14 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     paddingVertical: 14,
     paddingHorizontal: 20,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
     height: 58,
+    position: 'relative',
   },
 
   headerTitle: {
@@ -757,9 +758,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#111',
     fontFamily: appFont,
+    textAlign: 'center',
   },
 
   headerRight: {
+    position: 'absolute',
+    right: 20,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
