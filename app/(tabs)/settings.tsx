@@ -56,7 +56,7 @@ function PrinterStatusCard({ t, printerIp, printerPort, printerModel }: { t: any
 
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>PRINTER</Text>
+      <Text style={styles.sectionTitle}>{t?.printerSection || 'PRINTER'}</Text>
       <View style={styles.card}>
         <View style={styles.infoRow}>
           <Ionicons name="print-outline" size={18} color={PRIMARY} />
@@ -191,7 +191,7 @@ export default function Settings() {
 
           {/* Restaurant Info */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>RESTAURANT</Text>
+            <Text style={styles.sectionTitle}>{t.restaurantSection}</Text>
             <View style={styles.card}>
               <View style={styles.infoRow}>
                 <Ionicons name="storefront-outline" size={18} color={PRIMARY} />
@@ -204,7 +204,7 @@ export default function Settings() {
                 <View style={styles.infoRow}>
                   <Ionicons name="business-outline" size={18} color={PRIMARY} />
                   <View style={styles.infoText}>
-                    <Text style={styles.infoLabel}>Restaurant Name</Text>
+                    <Text style={styles.infoLabel}>{t.restaurantNameLabel}</Text>
                     <Text style={styles.infoValue}>{restaurantName}</Text>
                   </View>
                 </View>
@@ -227,7 +227,7 @@ export default function Settings() {
 
           {/* Day Management */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>DAY MANAGEMENT</Text>
+            <Text style={styles.sectionTitle}>{t.dayManagementSection}</Text>
             <View style={styles.card}>
               <TouchableOpacity
                 style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 }}
