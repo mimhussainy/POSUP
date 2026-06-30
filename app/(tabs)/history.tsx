@@ -20,9 +20,23 @@ import { appFont } from '../../lib/fonts';
 import { printOrder, printZReport } from '../../lib/printer';
 
 const BACKEND = 'https://foodup-order-alerts-backend.onrender.com';
+
 const PRIMARY = '#8B38CB';
-const RIGHT_PANEL_WIDTH = 270;
-const PAGE_PADDING = 12;
+const PRIMARY_SOFT = '#F5ECFF';
+
+const APP_BG = '#F6F7FA';
+const CARD_BG = '#FFFFFF';
+const BORDER = '#E7E8EE';
+const TEXT = '#141421';
+const MUTED = '#7B7F8C';
+
+const GREEN = '#16A34A';
+const BLUE = '#2563EB';
+const ORANGE = '#F97316';
+const RED = '#EF4444';
+
+const RIGHT_PANEL_WIDTH = 310;
+const PAGE_PADDING = 14;
 
 interface POSOrder {
   id: string;
@@ -47,21 +61,25 @@ interface POSOrder {
 type ListItem = POSOrder | { id: string; placeholder: true };
 
 const getNumColumns = (leftWidth: number) => {
-  if (leftWidth >= 820) return 3;
+  if (leftWidth >= 1120) return 3;
   return 2;
 };
 
 export default function HistoryScreen() {
   const { t } = useLanguage();
+
   const [restaurantCode, setRestaurantCode] = useState('');
   const [orders, setOrders] = useState<POSOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
   const [filter, setFilter] = useState<'today' | 'week' | 'month' | 'all'>('today');
   const [paymentFilter, setPaymentFilter] = useState<'all' | 'cash' | 'card' | 'twint'>('all');
+
   const [selectedOrder, setSelectedOrder] = useState<POSOrder | null>(null);
   const [dayClosed, setDayClosed] = useState(false);
   const [zReportModal, setZReportModal] = useState(false);
+
   const [windowWidth, setWindowWidth] = useState(Dimensions.get('window').width);
 
   const isCompact = windowWidth < 900;
@@ -142,15 +160,35 @@ export default function HistoryScreen() {
   };
 
   const parseAmount = (value: string | number | undefined | null) => {
-    const num = parseFloat(String(value || '0'));
+    const num = parseFloat(String(value || '0').replace(',', '.'));
     return Number.isFinite(num) ? num : 0;
   };
 
   const getPaymentType = (method: string) => {
     const normalized = String(method || '').toLowerCase();
+
     if (normalized.includes('cash')) return 'cash';
     if (normalized.includes('twint')) return 'twint';
+
     return 'card';
+  };
+
+  const getPaymentLabel = (method: string) => {
+    const paymentType = getPaymentType(method);
+
+    if (paymentType === 'cash') return t.cash;
+    if (paymentType === 'twint') return 'Twint';
+
+    return t.card;
+  };
+
+  const getPaymentIcon = (method: string) => {
+    const paymentType = getPaymentType(method);
+
+    if (paymentType === 'cash') return 'cash-outline';
+    if (paymentType === 'twint') return 'phone-portrait-outline';
+
+    return 'card-outline';
   };
 
   const filteredOrders = useMemo(() => {
@@ -159,8 +197,10 @@ export default function HistoryScreen() {
       const now = new Date();
 
       let matchesDate = true;
-      if (filter === 'today') matchesDate = isToday(order.created_at);
-      else if (filter === 'week') {
+
+      if (filter === 'today') {
+        matchesDate = isToday(order.created_at);
+      } else if (filter === 'week') {
         const weekAgo = new Date(now);
         weekAgo.setDate(now.getDate() - 7);
         matchesDate = date >= weekAgo;
@@ -284,6 +324,7 @@ export default function HistoryScreen() {
     const firstOrder = todayOrders.length > 0
       ? [...todayOrders].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())[0]
       : null;
+
     const lastOrder = todayOrders.length > 0
       ? [...todayOrders].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
       : null;
@@ -312,16 +353,57 @@ export default function HistoryScreen() {
     return order.items.reduce((sum, item) => sum + item.quantity, 0);
   };
 
+  const renderStatCard = (
+    label: string,
+    value: string,
+    icon: keyof typeof Ionicons.glyphMap,
+    color: string,
+    active: boolean,
+    onPress: () => void
+  ) => {
+    return (
+      <TouchableOpacity
+        style={[styles.statCard, active && styles.statCardActive]}
+        onPress={onPress}
+        activeOpacity={0.78}
+      >
+        <View style={[styles.statIconBox, { backgroundColor: `${color}14` }]}>
+          <Ionicons name={icon} size={16} color={color} />
+        </View>
+
+        <View style={styles.statTextBox}>
+          <Text style={[styles.statValue, { color }]} numberOfLines={1}>
+            {value}
+          </Text>
+          <Text style={styles.statLabel} numberOfLines={1}>
+            {label}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
   const renderTopProductsPanel = (compact = false) => {
     const maxProductCount = topProducts[0]?.[1]?.count || 1;
 
     return (
       <View style={[styles.sidePanel, compact && styles.sidePanelCompact]}>
-        <Text style={styles.sidePanelTitle}>Top Products</Text>
+        <View style={styles.panelHeader}>
+          <View>
+            <Text style={styles.panelKicker}>Analyse</Text>
+            <Text style={styles.sidePanelTitle}>Top Products</Text>
+          </View>
+
+          <View style={styles.panelIcon}>
+            <Ionicons name="bar-chart-outline" size={18} color={PRIMARY} />
+          </View>
+        </View>
 
         {topProducts.length === 0 ? (
           <View style={styles.noProductsBox}>
-            <Ionicons name="bar-chart-outline" size={36} color="#ddd" />
+            <View style={styles.noProductsIcon}>
+              <Ionicons name="bar-chart-outline" size={34} color="#C6CBD6" />
+            </View>
             <Text style={styles.noProductsText}>{t.noOrders}</Text>
           </View>
         ) : (
@@ -330,8 +412,16 @@ export default function HistoryScreen() {
 
             return (
               <View key={name} style={styles.topProductRow}>
-                <View style={styles.topProductRankBox}>
-                  <Text style={styles.topProductRank}>{index + 1}</Text>
+                <View style={[
+                  styles.topProductRankBox,
+                  index === 0 && styles.topProductRankBoxFirst,
+                ]}>
+                  <Text style={[
+                    styles.topProductRank,
+                    index === 0 && styles.topProductRankFirst,
+                  ]}>
+                    {index + 1}
+                  </Text>
                 </View>
 
                 <View style={styles.topProductMiddle}>
@@ -359,21 +449,23 @@ export default function HistoryScreen() {
 
         <Text style={styles.sidePanelTitle}>Summary</Text>
 
-        <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>{t.orders} Ø</Text>
-          <Text style={styles.summaryValue}>CHF {avgOrder.toFixed(2)}</Text>
-        </View>
+        <View style={styles.summaryBox}>
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>{t.orders} Ø</Text>
+            <Text style={styles.summaryValue}>CHF {avgOrder.toFixed(2)}</Text>
+          </View>
 
-        <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>{t.orders}</Text>
-          <Text style={styles.summaryValue}>{filteredOrders.length}</Text>
-        </View>
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>{t.orders}</Text>
+            <Text style={styles.summaryValue}>{filteredOrders.length}</Text>
+          </View>
 
-        <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>{t.revenue}</Text>
-          <Text style={[styles.summaryValue, styles.summaryValuePrimary]}>
-            CHF {revenue.toFixed(2)}
-          </Text>
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>{t.revenue}</Text>
+            <Text style={[styles.summaryValue, styles.summaryValuePrimary]}>
+              CHF {revenue.toFixed(2)}
+            </Text>
+          </View>
         </View>
       </View>
     );
@@ -391,10 +483,11 @@ export default function HistoryScreen() {
       <TouchableOpacity
         style={styles.orderCard}
         onPress={() => setSelectedOrder(item)}
-        activeOpacity={0.85}
+        activeOpacity={0.84}
       >
         <View style={styles.orderCardTop}>
           <View style={styles.orderNumberBadge}>
+            <Ionicons name="receipt-outline" size={13} color={PRIMARY} />
             <Text style={styles.orderNumberText}>{item.order_number}</Text>
           </View>
 
@@ -404,18 +497,45 @@ export default function HistoryScreen() {
         </View>
 
         <View style={styles.orderInfoRow}>
-          <Text style={styles.orderMeta}>
-            {formatTime(item.created_at)} · {formatDate(item.created_at)}
-          </Text>
+          <View style={styles.orderMetaWrap}>
+            <Ionicons name="time-outline" size={13} color={MUTED} />
+            <Text style={styles.orderMeta}>
+              {formatTime(item.created_at)} · {formatDate(item.created_at)}
+            </Text>
+          </View>
 
           <View
             style={[
               styles.payBadge,
-              paymentType === 'cash' ? styles.payBadgeCash : paymentType === 'twint' ? styles.payBadgeTwint : styles.payBadgeCard,
+              paymentType === 'cash'
+                ? styles.payBadgeCash
+                : paymentType === 'twint'
+                  ? styles.payBadgeTwint
+                  : styles.payBadgeCard,
             ]}
           >
-            <Text style={styles.payBadgeText}>
-              {paymentType === 'cash' ? t.cash : paymentType === 'twint' ? 'Twint' : t.card}
+            <Ionicons
+              name={getPaymentIcon(item.payment_method)}
+              size={11}
+              color={
+                paymentType === 'cash'
+                  ? GREEN
+                  : paymentType === 'twint'
+                    ? ORANGE
+                    : BLUE
+              }
+            />
+            <Text
+              style={[
+                styles.payBadgeText,
+                paymentType === 'cash'
+                  ? styles.payBadgeTextCash
+                  : paymentType === 'twint'
+                    ? styles.payBadgeTextTwint
+                    : styles.payBadgeTextCard,
+              ]}
+            >
+              {getPaymentLabel(item.payment_method)}
             </Text>
           </View>
         </View>
@@ -425,9 +545,11 @@ export default function HistoryScreen() {
             {item.items.map(i => i.name).join(', ')}
           </Text>
 
-          <Text style={styles.orderItemCount}>
-            {itemCount} {itemCount === 1 ? 'item' : 'items'}
-          </Text>
+          <View style={styles.itemCountPill}>
+            <Text style={styles.orderItemCount}>
+              {itemCount} {itemCount === 1 ? t.item : t.items}
+            </Text>
+          </View>
         </View>
       </TouchableOpacity>
     );
@@ -436,8 +558,10 @@ export default function HistoryScreen() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color={PRIMARY} />
-        <Text style={styles.loadingText}>{t.orders}...</Text>
+        <View style={styles.loadingCard}>
+          <ActivityIndicator size="large" color={PRIMARY} />
+          <Text style={styles.loadingText}>{t.orders}...</Text>
+        </View>
       </View>
     );
   }
@@ -445,14 +569,36 @@ export default function HistoryScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>{t.orders}</Text>
+        <View>
+          <Text style={styles.headerKicker}>POSUP</Text>
+          <Text style={styles.headerTitle}>{t.orders}</Text>
+        </View>
+
         <View style={styles.headerRight}>
+          <TouchableOpacity
+            style={styles.refreshBtn}
+            onPress={() => restaurantCode && fetchOrders(restaurantCode, true)}
+            disabled={refreshing}
+            activeOpacity={0.78}
+          >
+            {refreshing ? (
+              <ActivityIndicator size="small" color={PRIMARY} />
+            ) : (
+              <Ionicons name="sync-outline" size={17} color={PRIMARY} />
+            )}
+          </TouchableOpacity>
+
           <TouchableOpacity
             style={[styles.zReportBtn, dayClosed && styles.zReportBtnClosed]}
             onPress={() => !dayClosed && setZReportModal(true)}
+            activeOpacity={dayClosed ? 1 : 0.78}
           >
-            <Ionicons name="lock-closed-outline" size={14} color={dayClosed ? '#999' : '#fff'} />
-            <Text style={[styles.zReportBtnText, dayClosed && { color: '#999' }]}>
+            <Ionicons
+              name="lock-closed-outline"
+              size={14}
+              color={dayClosed ? '#8E929D' : '#fff'}
+            />
+            <Text style={[styles.zReportBtnText, dayClosed && styles.zReportBtnTextClosed]}>
               {dayClosed ? t.dayClosed : t.zReport}
             </Text>
           </TouchableOpacity>
@@ -463,7 +609,7 @@ export default function HistoryScreen() {
         <View style={styles.dayClosedBanner}>
           <Ionicons name="lock-closed" size={16} color="#fff" />
           <Text style={styles.dayClosedText}>
-            {t.dayClosed} — reopens automatically tomorrow
+            {t.dayClosed} — {t.reopensAutomatically}
           </Text>
         </View>
       )}
@@ -471,50 +617,50 @@ export default function HistoryScreen() {
       <View style={styles.shell}>
         <View style={styles.leftPane}>
           <View style={[styles.statsRow, isCompact && styles.statsRowCompact]}>
-            <View style={styles.statCard}>
-              <Text style={styles.statValue}>{filteredOrders.length}</Text>
-              <Text style={styles.statLabel}>{t.orders}</Text>
-            </View>
+            {renderStatCard(
+              t.orders,
+              String(filteredOrders.length),
+              'receipt-outline',
+              TEXT,
+              false,
+              () => setPaymentFilter('all')
+            )}
 
-            <TouchableOpacity
-              style={styles.statCard}
-              onPress={() => setPaymentFilter('all')}
-            >
-              <Text style={[styles.statValue, styles.statValuePrimary]}>
-                CHF {revenue.toFixed(2)}
-              </Text>
-              <Text style={styles.statLabel}>{t.revenue}</Text>
-            </TouchableOpacity>
+            {renderStatCard(
+              t.revenue,
+              `CHF ${revenue.toFixed(2)}`,
+              'trending-up-outline',
+              PRIMARY,
+              paymentFilter === 'all',
+              () => setPaymentFilter('all')
+            )}
 
-            <TouchableOpacity
-              style={[styles.statCard, paymentFilter === 'cash' && styles.statCardActive]}
-              onPress={() => setPaymentFilter(paymentFilter === 'cash' ? 'all' : 'cash')}
-            >
-              <Text style={[styles.statValue, styles.statValueCash]}>
-                CHF {cashRev.toFixed(2)}
-              </Text>
-              <Text style={styles.statLabel}>{t.cash}</Text>
-            </TouchableOpacity>
+            {renderStatCard(
+              t.cash,
+              `CHF ${cashRev.toFixed(2)}`,
+              'cash-outline',
+              GREEN,
+              paymentFilter === 'cash',
+              () => setPaymentFilter(paymentFilter === 'cash' ? 'all' : 'cash')
+            )}
 
-            <TouchableOpacity
-              style={[styles.statCard, paymentFilter === 'card' && styles.statCardActive]}
-              onPress={() => setPaymentFilter(paymentFilter === 'card' ? 'all' : 'card')}
-            >
-              <Text style={[styles.statValue, styles.statValueCard]}>
-                CHF {cardRev.toFixed(2)}
-              </Text>
-              <Text style={styles.statLabel}>{t.card}</Text>
-            </TouchableOpacity>
+            {renderStatCard(
+              t.card,
+              `CHF ${cardRev.toFixed(2)}`,
+              'card-outline',
+              BLUE,
+              paymentFilter === 'card',
+              () => setPaymentFilter(paymentFilter === 'card' ? 'all' : 'card')
+            )}
 
-            <TouchableOpacity
-              style={[styles.statCard, paymentFilter === 'twint' && styles.statCardActive]}
-              onPress={() => setPaymentFilter(paymentFilter === 'twint' ? 'all' : 'twint')}
-            >
-              <Text style={[styles.statValue, styles.statValueTwint]}>
-                CHF {twintRev.toFixed(2)}
-              </Text>
-              <Text style={styles.statLabel}>Twint</Text>
-            </TouchableOpacity>
+            {renderStatCard(
+              'Twint',
+              `CHF ${twintRev.toFixed(2)}`,
+              'phone-portrait-outline',
+              ORANGE,
+              paymentFilter === 'twint',
+              () => setPaymentFilter(paymentFilter === 'twint' ? 'all' : 'twint')
+            )}
           </View>
 
           <View style={styles.filtersLine}>
@@ -526,8 +672,8 @@ export default function HistoryScreen() {
               {(
                 [
                   { key: 'today', label: `${t.today} (${todayOrders.length})` },
-                  { key: 'week', label: '7 days' },
-                  { key: 'month', label: '30 days' },
+                  { key: 'week', label: t.sevenDays },
+                  { key: 'month', label: t.thirtyDays },
                   { key: 'all', label: `${t.all} (${orders.length})` },
                 ] as const
               ).map(item => (
@@ -538,6 +684,7 @@ export default function HistoryScreen() {
                     filter === item.key && styles.filterTabActive,
                   ]}
                   onPress={() => setFilter(item.key)}
+                  activeOpacity={0.78}
                 >
                   <Text
                     style={[
@@ -549,14 +696,8 @@ export default function HistoryScreen() {
                   </Text>
                 </TouchableOpacity>
               ))}
-
-
             </ScrollView>
-
-
           </View>
-
-
 
           <FlatList
             data={paddedOrders}
@@ -572,11 +713,17 @@ export default function HistoryScreen() {
                 colors={[PRIMARY]}
               />
             }
-            contentContainerStyle={styles.listContent}
+            contentContainerStyle={[
+              styles.listContent,
+              paddedOrders.length === 0 && styles.listContentEmpty,
+            ]}
             columnWrapperStyle={styles.columnWrapper}
+            showsVerticalScrollIndicator={false}
             ListEmptyComponent={
               <View style={styles.emptyCard}>
-                <Ionicons name="receipt-outline" size={42} color="#ddd" />
+                <View style={styles.emptyIconCircle}>
+                  <Ionicons name="receipt-outline" size={42} color="#C6CBD6" />
+                </View>
                 <Text style={styles.emptyTitle}>{t.noOrders}</Text>
               </View>
             }
@@ -607,7 +754,8 @@ export default function HistoryScreen() {
             {selectedOrder && (
               <>
                 <View style={styles.modalHeader}>
-                  <View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.modalKicker}>Bestellung</Text>
                     <Text style={styles.modalOrderNumber}>
                       {selectedOrder.order_number}
                     </Text>
@@ -615,17 +763,16 @@ export default function HistoryScreen() {
                     <Text style={styles.modalMeta}>
                       {formatTime(selectedOrder.created_at)} ·{' '}
                       {formatDate(selectedOrder.created_at)} ·{' '}
-                      {getPaymentType(selectedOrder.payment_method) === 'cash'
-                        ? t.cash
-                        : t.card}
+                      {getPaymentLabel(selectedOrder.payment_method)}
                     </Text>
                   </View>
 
                   <TouchableOpacity
                     onPress={() => setSelectedOrder(null)}
                     style={styles.modalCloseBtn}
+                    activeOpacity={0.75}
                   >
-                    <Ionicons name="close" size={18} color="#666" />
+                    <Ionicons name="close" size={18} color="#5B5F6B" />
                   </TouchableOpacity>
                 </View>
 
@@ -660,8 +807,8 @@ export default function HistoryScreen() {
                     <View style={styles.noteBox}>
                       <Ionicons
                         name="chatbubble-ellipses-outline"
-                        size={12}
-                        color="#f59e0b"
+                        size={14}
+                        color="#F59E0B"
                       />
                       <Text style={styles.noteText}>{selectedOrder.note}</Text>
                     </View>
@@ -692,7 +839,7 @@ export default function HistoryScreen() {
                     </>
                   )}
 
-                  <View style={styles.totalRow}>
+                  <View style={styles.finalTotalBox}>
                     <Text style={styles.finalTotalLabel}>{t.total}</Text>
                     <Text style={styles.finalTotalValue}>
                       CHF {parseAmount(selectedOrder.total).toFixed(2)}
@@ -702,8 +849,9 @@ export default function HistoryScreen() {
                   <TouchableOpacity
                     style={styles.reprintBtn}
                     onPress={() => selectedOrder && printOrder(selectedOrder, restaurantCode)}
+                    activeOpacity={0.78}
                   >
-                    <Ionicons name="print-outline" size={15} color={PRIMARY} />
+                    <Ionicons name="print-outline" size={16} color={PRIMARY} />
                     <Text style={styles.reprintBtnText}>{t.reprint}</Text>
                   </TouchableOpacity>
                 </ScrollView>
@@ -730,18 +878,28 @@ export default function HistoryScreen() {
             onPress={e => e.stopPropagation()}
           >
             <View style={styles.modalHeader}>
-              <Text style={styles.modalOrderNumber}>{t.dayClose}</Text>
+              <View>
+                <Text style={styles.modalKicker}>Z-Report</Text>
+                <Text style={styles.modalOrderNumber}>{t.dayClose}</Text>
+              </View>
 
               <TouchableOpacity
                 onPress={() => setZReportModal(false)}
                 style={styles.modalCloseBtn}
+                activeOpacity={0.75}
               >
-                <Ionicons name="close" size={18} color="#666" />
+                <Ionicons name="close" size={18} color="#5B5F6B" />
               </TouchableOpacity>
             </View>
 
             <View style={styles.zModalContent}>
-              <Text style={styles.zModalTitle}>{t.dayClose} — {t.zReport}?</Text>
+              <View style={styles.zIconCircle}>
+                <Ionicons name="lock-closed-outline" size={28} color={PRIMARY} />
+              </View>
+
+              <Text style={styles.zModalTitle}>
+                {t.dayClose} — {t.zReport}?
+              </Text>
 
               <Text style={styles.zModalSummary}>
                 {t.today}: {todayOrders.length} {t.orders} · CHF{' '}
@@ -758,11 +916,16 @@ export default function HistoryScreen() {
                 <TouchableOpacity
                   style={styles.cancelBtn}
                   onPress={() => setZReportModal(false)}
+                  activeOpacity={0.75}
                 >
                   <Text style={styles.cancelBtnText}>{t.cancel}</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.closeDayBtn} onPress={confirmDayClose}>
+                <TouchableOpacity
+                  style={styles.closeDayBtn}
+                  onPress={confirmDayClose}
+                  activeOpacity={0.8}
+                >
                   <Text style={styles.closeDayBtnText}>{t.dayClose}</Text>
                 </TouchableOpacity>
               </View>
@@ -777,7 +940,7 @@ export default function HistoryScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F4F4F8',
+    backgroundColor: APP_BG,
   },
 
   shell: {
@@ -796,46 +959,122 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F4F4F8',
+    backgroundColor: APP_BG,
+  },
+
+  loadingCard: {
+    backgroundColor: '#fff',
+    borderRadius: 18,
+    paddingHorizontal: 28,
+    paddingVertical: 24,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: BORDER,
   },
 
   loadingText: {
     marginTop: 12,
-    color: '#666',
+    color: MUTED,
     fontSize: 13,
+    fontWeight: '600',
     fontFamily: appFont,
   },
 
   header: {
+    minHeight: Platform.OS === 'web' ? 72 : 62,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 20,
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 18,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    height: Platform.OS === 'web' ? 70 : 58,
-    position: 'relative',
+    borderBottomColor: BORDER,
+
+    shadowColor: '#111827',
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 4,
+  },
+
+  headerKicker: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: PRIMARY,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    fontFamily: appFont,
   },
 
   headerTitle: {
+    marginTop: 2,
     fontSize: 20,
-    fontWeight: '700',
-    color: '#111',
+    fontWeight: '900',
+    color: TEXT,
     fontFamily: appFont,
-    textAlign: 'center',
   },
 
   headerRight: {
-    position: 'absolute',
-    right: 20,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
   },
-  statsToggleBtn: {},
-  statsToggleText: {},
+
+  refreshBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 14,
+    backgroundColor: PRIMARY_SOFT,
+    borderWidth: 1,
+    borderColor: '#E8D6FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  zReportBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    backgroundColor: PRIMARY,
+    borderRadius: 14,
+    paddingHorizontal: 13,
+    paddingVertical: 10,
+  },
+
+  zReportBtnClosed: {
+    backgroundColor: '#ECEEF3',
+    borderWidth: 1,
+    borderColor: BORDER,
+  },
+
+  zReportBtnText: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#fff',
+    fontFamily: appFont,
+  },
+
+  zReportBtnTextClosed: {
+    color: '#8E929D',
+  },
+
+  dayClosedBanner: {
+    backgroundColor: '#17172A',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+
+  dayClosedText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
+    fontFamily: appFont,
+  },
 
   statsRow: {
     flexDirection: 'row',
@@ -849,61 +1088,63 @@ const styles = StyleSheet.create({
 
   statCard: {
     flex: 1,
-    height: 58,
-    backgroundColor: '#fff',
-    borderRadius: 10,
+    minHeight: 68,
+    backgroundColor: CARD_BG,
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#E2E2E8',
+    borderColor: BORDER,
+    paddingHorizontal: 11,
+    paddingVertical: 10,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 6,
+    gap: 9,
+
+    shadowColor: '#111827',
+    shadowOpacity: 0.03,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
   },
 
   statCardActive: {
-    borderColor: PRIMARY,
-    borderWidth: 2,
-    backgroundColor: '#F5EEFF',
+    borderColor: '#D7B7FF',
+    backgroundColor: PRIMARY_SOFT,
+  },
+
+  statIconBox: {
+    width: 34,
+    height: 34,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  statTextBox: {
+    flex: 1,
+    minWidth: 0,
   },
 
   statValue: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#111',
-    marginBottom: 3,
-    lineHeight: 20,
+    fontSize: 14,
+    fontWeight: '900',
+    marginBottom: 2,
+    lineHeight: 18,
     fontFamily: appFont,
   },
 
   statLabel: {
     fontSize: 11,
-    color: '#666',
-    fontWeight: '500',
+    color: MUTED,
+    fontWeight: '800',
     lineHeight: 14,
     fontFamily: appFont,
   },
 
-  statValuePrimary: {
-    color: PRIMARY,
-  },
-
-  statValueCash: {
-    color: '#16a34a',
-  },
-
-  statValueCard: {
-    color: '#2563eb',
-  },
-
-  statValueTwint: {
-    color: '#ff5500',
-  },
-
   filtersLine: {
-    minHeight: 38,
+    minHeight: 42,
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
-    gap: 10,
   },
 
   filterRow: {
@@ -914,13 +1155,13 @@ const styles = StyleSheet.create({
   },
 
   filterTab: {
-    height: 28,
-    minWidth: 68,
+    minHeight: 34,
+    minWidth: 76,
     paddingHorizontal: 14,
-    borderRadius: 14,
+    borderRadius: 999,
     backgroundColor: '#fff',
     borderWidth: 1,
-    borderColor: '#E2E2E8',
+    borderColor: BORDER,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -932,69 +1173,67 @@ const styles = StyleSheet.create({
 
   filterTabText: {
     fontSize: 12,
-    fontWeight: '500',
-    color: '#555',
+    fontWeight: '800',
+    color: '#555B66',
     fontFamily: appFont,
   },
 
   filterTabTextActive: {
     color: '#fff',
-    fontWeight: '600',
-  },
-
-  zReportBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: PRIMARY, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 7 },
-  zReportBtnClosed: { backgroundColor: '#E8E8EC' },
-  zReportBtnText: { fontSize: 12, fontWeight: '600', color: '#fff', fontFamily: appFont },
-
-  dayClosedBanner: {
-    backgroundColor: '#1a1a2e',
-    padding: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-
-  dayClosedText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '500',
-    fontFamily: appFont,
   },
 
   listContent: {
-    paddingBottom: 100,
+    paddingBottom: 108,
+  },
+
+  listContentEmpty: {
+    flexGrow: 1,
   },
 
   columnWrapper: {
-    gap: 10,
-    marginBottom: 10,
+    gap: 12,
+    marginBottom: 12,
     alignItems: 'stretch',
   },
 
   emptyCard: {
-    minHeight: 260,
+    minHeight: 280,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 40,
-    gap: 8,
+    gap: 10,
+  },
+
+  emptyIconCircle: {
+    width: 76,
+    height: 76,
+    borderRadius: 28,
+    backgroundColor: '#EEF0F5',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   emptyTitle: {
     fontSize: 14,
-    fontWeight: '500',
-    color: '#999',
+    fontWeight: '800',
+    color: MUTED,
     fontFamily: appFont,
   },
 
   orderCard: {
     flex: 1,
-    minHeight: 82,
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 12,
+    minHeight: 106,
+    backgroundColor: CARD_BG,
+    borderRadius: 18,
+    padding: 13,
     borderWidth: 1,
-    borderColor: '#E2E2E8',
+    borderColor: BORDER,
+
+    shadowColor: '#111827',
+    shadowOpacity: 0.035,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
   },
 
   orderCardPlaceholder: {
@@ -1005,28 +1244,33 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    marginBottom: 10,
     gap: 8,
   },
 
   orderNumberBadge: {
-    backgroundColor: '#F5EEFF',
-    borderRadius: 7,
-    paddingHorizontal: 9,
-    paddingVertical: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: PRIMARY_SOFT,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderWidth: 1,
+    borderColor: '#E8D6FF',
   },
 
   orderNumberText: {
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '900',
     color: PRIMARY,
     fontFamily: appFont,
   },
 
   orderTotal: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#111',
+    fontSize: 16,
+    fontWeight: '900',
+    color: TEXT,
     fontFamily: appFont,
   },
 
@@ -1034,25 +1278,36 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 7,
+    marginBottom: 9,
     gap: 8,
+  },
+
+  orderMetaWrap: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    minWidth: 0,
   },
 
   orderMeta: {
     fontSize: 12,
-    color: '#666',
-    fontWeight: '500',
+    color: MUTED,
+    fontWeight: '700',
     fontFamily: appFont,
   },
 
   payBadge: {
-    borderRadius: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderRadius: 999,
     paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingVertical: 4,
   },
 
   payBadgeCash: {
-    backgroundColor: '#E8FDF2',
+    backgroundColor: '#EAFBF1',
   },
 
   payBadgeCard: {
@@ -1064,10 +1319,21 @@ const styles = StyleSheet.create({
   },
 
   payBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#222',
+    fontSize: 11,
+    fontWeight: '900',
     fontFamily: appFont,
+  },
+
+  payBadgeTextCash: {
+    color: GREEN,
+  },
+
+  payBadgeTextCard: {
+    color: BLUE,
+  },
+
+  payBadgeTextTwint: {
+    color: ORANGE,
   },
 
   orderBottomRow: {
@@ -1080,15 +1346,22 @@ const styles = StyleSheet.create({
   orderPreview: {
     flex: 1,
     fontSize: 12,
-    color: '#666',
-    fontWeight: '400',
+    color: '#5F6572',
+    fontWeight: '600',
     fontFamily: appFont,
   },
 
+  itemCountPill: {
+    backgroundColor: '#F2F3F7',
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+
   orderItemCount: {
-    fontSize: 12,
-    color: '#555',
-    fontWeight: '500',
+    fontSize: 11,
+    color: '#555B66',
+    fontWeight: '900',
     fontFamily: appFont,
   },
 
@@ -1096,10 +1369,16 @@ const styles = StyleSheet.create({
     width: RIGHT_PANEL_WIDTH,
     alignSelf: 'stretch',
     backgroundColor: '#fff',
-    borderRadius: 8,
+    borderRadius: 22,
     borderWidth: 1,
-    borderColor: '#E2E2E8',
+    borderColor: BORDER,
     padding: 16,
+
+    shadowColor: '#111827',
+    shadowOpacity: 0.035,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
   },
 
   sidePanelCompact: {
@@ -1107,49 +1386,94 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
 
+  panelHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+
+  panelKicker: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: PRIMARY,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    fontFamily: appFont,
+  },
+
   sidePanelTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#222',
+    marginTop: 2,
+    fontSize: 15,
+    fontWeight: '900',
+    color: TEXT,
     marginBottom: 14,
     fontFamily: appFont,
+  },
+
+  panelIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 14,
+    backgroundColor: PRIMARY_SOFT,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#E8D6FF',
   },
 
   noProductsBox: {
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 38,
-    gap: 8,
+    gap: 9,
+  },
+
+  noProductsIcon: {
+    width: 68,
+    height: 68,
+    borderRadius: 25,
+    backgroundColor: '#EEF0F5',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   noProductsText: {
-    color: '#999',
+    color: MUTED,
     fontSize: 13,
-    fontWeight: '400',
+    fontWeight: '700',
     fontFamily: appFont,
   },
 
   topProductRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 9,
-    marginBottom: 13,
+    gap: 10,
+    marginBottom: 14,
   },
 
   topProductRankBox: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#F4F4F8',
+    width: 28,
+    height: 28,
+    borderRadius: 11,
+    backgroundColor: '#F2F3F7',
     alignItems: 'center',
     justifyContent: 'center',
   },
 
+  topProductRankBoxFirst: {
+    backgroundColor: PRIMARY,
+  },
+
   topProductRank: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#777',
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#777D8A',
     fontFamily: appFont,
+  },
+
+  topProductRankFirst: {
+    color: '#fff',
   },
 
   topProductMiddle: {
@@ -1159,49 +1483,57 @@ const styles = StyleSheet.create({
 
   topProductName: {
     fontSize: 12,
-    fontWeight: '600',
-    color: '#111',
-    marginBottom: 5,
+    fontWeight: '800',
+    color: TEXT,
+    marginBottom: 6,
     fontFamily: appFont,
   },
 
   barTrack: {
-    height: 4,
-    backgroundColor: '#E8E8EE',
-    borderRadius: 3,
+    height: 6,
+    backgroundColor: '#EEF0F5',
+    borderRadius: 999,
     overflow: 'hidden',
   },
 
   barFill: {
-    height: 4,
+    height: 6,
     backgroundColor: PRIMARY,
-    borderRadius: 3,
+    borderRadius: 999,
   },
 
   topProductRight: {
     alignItems: 'flex-end',
-    minWidth: 56,
+    minWidth: 62,
   },
 
   topProductCount: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '900',
     color: PRIMARY,
     fontFamily: appFont,
   },
 
   topProductRevenue: {
     fontSize: 10,
-    color: '#888',
-    fontWeight: '400',
+    color: MUTED,
+    fontWeight: '700',
     marginTop: 2,
     fontFamily: appFont,
   },
 
   divider: {
     height: 1,
-    backgroundColor: '#E8E8EE',
-    marginVertical: 14,
+    backgroundColor: BORDER,
+    marginVertical: 16,
+  },
+
+  summaryBox: {
+    backgroundColor: '#FAFAFC',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: BORDER,
+    padding: 12,
   },
 
   summaryRow: {
@@ -1214,15 +1546,15 @@ const styles = StyleSheet.create({
 
   summaryLabel: {
     fontSize: 12,
-    color: '#666',
-    fontWeight: '400',
+    color: MUTED,
+    fontWeight: '700',
     fontFamily: appFont,
   },
 
   summaryValue: {
     fontSize: 12,
-    fontWeight: '600',
-    color: '#111',
+    fontWeight: '900',
+    color: TEXT,
     fontFamily: appFont,
   },
 
@@ -1232,7 +1564,7 @@ const styles = StyleSheet.create({
 
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.45)',
+    backgroundColor: 'rgba(10,10,18,0.55)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 18,
@@ -1240,72 +1572,86 @@ const styles = StyleSheet.create({
 
   modalBox: {
     backgroundColor: '#fff',
-    borderRadius: 16,
+    borderRadius: 24,
     width: '92%',
-    maxWidth: 460,
-    maxHeight: '80%',
+    maxWidth: 500,
+    maxHeight: '82%',
     overflow: 'hidden',
   },
 
   zModalBox: {
-    padding: 0,
+    maxWidth: 460,
   },
 
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    padding: 16,
+    padding: 18,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: BORDER,
+    gap: 14,
+  },
+
+  modalKicker: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: PRIMARY,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    fontFamily: appFont,
   },
 
   modalOrderNumber: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: PRIMARY,
+    marginTop: 3,
+    fontSize: 18,
+    fontWeight: '900',
+    color: TEXT,
     fontFamily: appFont,
   },
 
   modalMeta: {
     fontSize: 12,
-    color: '#666',
-    marginTop: 2,
+    color: MUTED,
+    marginTop: 4,
+    fontWeight: '700',
     fontFamily: appFont,
   },
 
   modalCloseBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#EFEFF2',
+    width: 34,
+    height: 34,
+    borderRadius: 14,
+    backgroundColor: '#F0F1F5',
     justifyContent: 'center',
     alignItems: 'center',
   },
 
   modalBody: {
-    padding: 16,
+    padding: 18,
   },
 
   itemRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 10,
-    marginBottom: 10,
+    gap: 11,
+    marginBottom: 12,
   },
 
   itemQtyBadge: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
-    backgroundColor: '#F5EEFF',
+    width: 28,
+    height: 28,
+    borderRadius: 10,
+    backgroundColor: PRIMARY_SOFT,
+    borderWidth: 1,
+    borderColor: '#E8D6FF',
     justifyContent: 'center',
     alignItems: 'center',
   },
 
   itemQtyText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '900',
     color: PRIMARY,
     fontFamily: appFont,
   },
@@ -1315,34 +1661,35 @@ const styles = StyleSheet.create({
   },
 
   itemName: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#111',
+    fontSize: 14,
+    fontWeight: '900',
+    color: TEXT,
     fontFamily: appFont,
   },
 
   itemSub: {
     fontSize: 12,
-    color: '#888',
-    marginTop: 1,
+    color: MUTED,
+    marginTop: 2,
+    fontWeight: '600',
     fontFamily: appFont,
   },
 
   itemTotal: {
     fontSize: 13,
-    fontWeight: '600',
-    color: '#222',
+    fontWeight: '900',
+    color: TEXT,
     fontFamily: appFont,
   },
 
   noteBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
     backgroundColor: '#FFFBEB',
-    borderRadius: 8,
-    padding: 8,
-    marginTop: 4,
+    borderRadius: 14,
+    padding: 11,
+    marginTop: 6,
     borderWidth: 1,
     borderColor: '#FEF3C7',
   },
@@ -1351,7 +1698,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#92400E',
     flex: 1,
-    fontWeight: '500',
+    fontWeight: '700',
     fontFamily: appFont,
   },
 
@@ -1359,99 +1706,49 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 7,
+    marginBottom: 8,
   },
 
   totalLabel: {
     fontSize: 13,
-    color: '#666',
-    fontWeight: '500',
+    color: MUTED,
+    fontWeight: '700',
     fontFamily: appFont,
   },
 
   totalValue: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#111',
+    fontWeight: '900',
+    color: TEXT,
     fontFamily: appFont,
   },
 
   discountText: {
-    color: '#E74C3C',
+    color: RED,
+  },
+
+  finalTotalBox: {
+    backgroundColor: PRIMARY_SOFT,
+    borderWidth: 1,
+    borderColor: '#E8D6FF',
+    borderRadius: 16,
+    padding: 13,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
 
   finalTotalLabel: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#111',
+    fontWeight: '900',
+    color: TEXT,
     fontFamily: appFont,
   },
 
   finalTotalValue: {
-    fontSize: 19,
-    fontWeight: '700',
+    fontSize: 20,
+    fontWeight: '900',
     color: PRIMARY,
-    fontFamily: appFont,
-  },
-
-  zModalContent: {
-    padding: 20,
-  },
-
-  zModalTitle: {
-    fontSize: 15,
-    color: '#222',
-    marginBottom: 6,
-    fontWeight: '600',
-    fontFamily: appFont,
-  },
-
-  zModalSummary: {
-    fontSize: 13,
-    color: '#555',
-    marginBottom: 8,
-    fontWeight: '500',
-    fontFamily: appFont,
-  },
-
-  zModalNote: {
-    fontSize: 12,
-    color: '#888',
-    marginBottom: 20,
-    fontWeight: '400',
-    fontFamily: appFont,
-  },
-
-  zModalActions: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-
-  cancelBtn: {
-    flex: 1,
-    padding: 14,
-    borderRadius: 10,
-    backgroundColor: '#E8E8EC',
-    alignItems: 'center',
-  },
-
-  cancelBtnText: {
-    fontWeight: '600',
-    color: '#444',
-    fontFamily: appFont,
-  },
-
-  closeDayBtn: {
-    flex: 1,
-    padding: 14,
-    borderRadius: 10,
-    backgroundColor: PRIMARY,
-    alignItems: 'center',
-  },
-
-  closeDayBtnText: {
-    fontWeight: '600',
-    color: '#fff',
     fontFamily: appFont,
   },
 
@@ -1460,17 +1757,98 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#f5eeff',
-    borderRadius: 10,
+    backgroundColor: PRIMARY_SOFT,
+    borderRadius: 16,
     paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingVertical: 13,
     marginTop: 16,
+    borderWidth: 1,
+    borderColor: '#E8D6FF',
   },
 
   reprintBtnText: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '900',
     color: PRIMARY,
+    fontFamily: appFont,
+  },
+
+  zModalContent: {
+    padding: 20,
+    alignItems: 'center',
+  },
+
+  zIconCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 26,
+    backgroundColor: PRIMARY_SOFT,
+    borderWidth: 1,
+    borderColor: '#E8D6FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+  },
+
+  zModalTitle: {
+    fontSize: 17,
+    color: TEXT,
+    marginBottom: 7,
+    fontWeight: '900',
+    textAlign: 'center',
+    fontFamily: appFont,
+  },
+
+  zModalSummary: {
+    fontSize: 13,
+    color: '#555B66',
+    marginBottom: 10,
+    fontWeight: '800',
+    textAlign: 'center',
+    fontFamily: appFont,
+  },
+
+  zModalNote: {
+    fontSize: 12,
+    color: MUTED,
+    marginBottom: 20,
+    fontWeight: '600',
+    lineHeight: 18,
+    textAlign: 'center',
+    fontFamily: appFont,
+  },
+
+  zModalActions: {
+    flexDirection: 'row',
+    gap: 10,
+    width: '100%',
+  },
+
+  cancelBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 15,
+    backgroundColor: '#ECEEF3',
+    alignItems: 'center',
+  },
+
+  cancelBtnText: {
+    fontWeight: '900',
+    color: '#555B66',
+    fontFamily: appFont,
+  },
+
+  closeDayBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 15,
+    backgroundColor: PRIMARY,
+    alignItems: 'center',
+  },
+
+  closeDayBtnText: {
+    fontWeight: '900',
+    color: '#fff',
     fontFamily: appFont,
   },
 });
