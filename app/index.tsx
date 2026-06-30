@@ -6,6 +6,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import { useLanguage } from '../lib/LanguageContext';
+import { appFont } from '../lib/fonts';
 
 export default function LoginScreen() {
   const { t } = useLanguage();
@@ -69,7 +70,7 @@ export default function LoginScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.box}>
-        <Image source={require('../assets/FoodupPOS-logo.png')} style={{ width: 180, height: 80, marginBottom: 8 }} resizeMode="contain" />
+        <Image source={require('../assets/FoodupPOS-logo.png')} style={{ width: 180, height: 80, marginBottom: 8, alignSelf: 'center' }} resizeMode="contain" />
         <Text style={styles.sub}>Restaurant Point of Sale</Text>
 
         <Text style={styles.label}>{t.restaurantCode}</Text>
@@ -77,7 +78,7 @@ export default function LoginScreen() {
           style={styles.input}
           value={code}
           onChangeText={setCode}
-          placeholder="e.g. eatime"
+          placeholder={t.restaurantCode}
           autoCapitalize="none"
           autoCorrect={false}
         />
@@ -87,9 +88,9 @@ export default function LoginScreen() {
           style={styles.input}
           value={pin}
           onChangeText={setPin}
-          placeholder="Enter PIN"
+          placeholder="Password"
           secureTextEntry
-          keyboardType="numeric"
+          keyboardType="default"
         />
 
         <TouchableOpacity
@@ -129,6 +130,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#888',
     marginBottom: 32,
+    fontFamily: appFont,
+    textAlign: 'center',
   },
   label: {
     fontSize: 12,
@@ -137,6 +140,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+    fontFamily: appFont,
   },
   input: {
     borderWidth: 1,
@@ -146,6 +150,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     marginBottom: 16,
     color: '#111',
+    fontFamily: appFont,
   },
   btn: {
     backgroundColor: '#7c5cfc',
@@ -158,5 +163,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '700',
+    fontFamily: appFont,
   },
 });
