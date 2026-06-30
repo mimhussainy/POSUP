@@ -115,7 +115,6 @@ export default function Settings() {
   const [printerModel, setPrinterModel] = useState('');
 
   useEffect(() => { loadData(); }, []);
-  useFocusEffect(useCallback(() => { loadData(); }, []));
 
   const loadData = async () => {
     try {
