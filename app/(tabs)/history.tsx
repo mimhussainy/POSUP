@@ -10,6 +10,7 @@ import {
   Modal,
   RefreshControl,
   Dimensions,
+  Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -749,7 +750,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
-    height: 58,
+    height: Platform.OS === 'web' ? 70 : 58,
     position: 'relative',
   },
 
