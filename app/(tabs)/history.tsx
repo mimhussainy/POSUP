@@ -769,7 +769,7 @@ const styles = StyleSheet.create({
 
   loadingText: {
     marginTop: 12,
-    color: '#888',
+    color: '#666',
     fontSize: 13,
     fontFamily: appFont,
   },
@@ -821,7 +821,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#ECECF2',
+    borderColor: '#E2E2E8',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 6,
@@ -838,7 +838,7 @@ const styles = StyleSheet.create({
 
   statLabel: {
     fontSize: 11,
-    color: '#888',
+    color: '#666',
     fontWeight: '500',
     lineHeight: 14,
     fontFamily: appFont,
@@ -878,7 +878,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: '#fff',
     borderWidth: 1,
-    borderColor: '#ECECF2',
+    borderColor: '#E2E2E8',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -891,7 +891,7 @@ const styles = StyleSheet.create({
   filterTabText: {
     fontSize: 12,
     fontWeight: '500',
-    color: '#666',
+    color: '#555',
     fontFamily: appFont,
   },
 
@@ -901,7 +901,7 @@ const styles = StyleSheet.create({
   },
 
   zReportBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: PRIMARY, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 7 },
-  zReportBtnClosed: { backgroundColor: '#f0f0f0' },
+  zReportBtnClosed: { backgroundColor: '#E8E8EC' },
   zReportBtnText: { fontSize: 12, fontWeight: '600', color: '#fff', fontFamily: appFont },
 
   dayClosedBanner: {
@@ -941,7 +941,7 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#bbb',
+    color: '#999',
     fontFamily: appFont,
   },
 
@@ -952,7 +952,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#ECECF2',
+    borderColor: '#E2E2E8',
   },
 
   orderCardPlaceholder: {
@@ -998,7 +998,7 @@ const styles = StyleSheet.create({
 
   orderMeta: {
     fontSize: 11,
-    color: '#888',
+    color: '#666',
     fontWeight: '400',
     fontFamily: appFont,
   },
@@ -1020,7 +1020,7 @@ const styles = StyleSheet.create({
   payBadgeText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#333',
+    color: '#222',
     fontFamily: appFont,
   },
 
@@ -1034,14 +1034,14 @@ const styles = StyleSheet.create({
   orderPreview: {
     flex: 1,
     fontSize: 11,
-    color: '#aaa',
+    color: '#888',
     fontWeight: '400',
     fontFamily: appFont,
   },
 
   orderItemCount: {
     fontSize: 11,
-    color: '#888',
+    color: '#666',
     fontWeight: '500',
     fontFamily: appFont,
   },
@@ -1052,7 +1052,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#ECECF2',
+    borderColor: '#E2E2E8',
     padding: 16,
   },
 
@@ -1064,7 +1064,7 @@ const styles = StyleSheet.create({
   sidePanelTitle: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#333',
+    color: '#222',
     marginBottom: 14,
     fontFamily: appFont,
   },
@@ -1077,7 +1077,7 @@ const styles = StyleSheet.create({
   },
 
   noProductsText: {
-    color: '#bbb',
+    color: '#999',
     fontSize: 13,
     fontWeight: '400',
     fontFamily: appFont,
@@ -1102,7 +1102,7 @@ const styles = StyleSheet.create({
   topProductRank: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#999',
+    color: '#777',
     fontFamily: appFont,
   },
 
@@ -1121,7 +1121,7 @@ const styles = StyleSheet.create({
 
   barTrack: {
     height: 4,
-    backgroundColor: '#F0F0F4',
+    backgroundColor: '#E8E8EE',
     borderRadius: 3,
     overflow: 'hidden',
   },
@@ -1146,7 +1146,7 @@ const styles = StyleSheet.create({
 
   topProductRevenue: {
     fontSize: 10,
-    color: '#aaa',
+    color: '#888',
     fontWeight: '400',
     marginTop: 2,
     fontFamily: appFont,
@@ -1154,7 +1154,7 @@ const styles = StyleSheet.create({
 
   divider: {
     height: 1,
-    backgroundColor: '#EFEFF4',
+    backgroundColor: '#E8E8EE',
     marginVertical: 14,
   },
 
@@ -1168,7 +1168,7 @@ const styles = StyleSheet.create({
 
   summaryLabel: {
     fontSize: 12,
-    color: '#888',
+    color: '#666',
     fontWeight: '400',
     fontFamily: appFont,
   },
@@ -1186,7 +1186,7 @@ const styles = StyleSheet.create({
 
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: 'rgba(0,0,0,0.45)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 18,
@@ -1223,7 +1223,7 @@ const styles = StyleSheet.create({
 
   modalMeta: {
     fontSize: 12,
-    color: '#888',
+    color: '#666',
     marginTop: 2,
     fontFamily: appFont,
   },
@@ -1232,7 +1232,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#EFEFF2',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1277,7 +1277,7 @@ const styles = StyleSheet.create({
 
   itemSub: {
     fontSize: 12,
-    color: '#aaa',
+    color: '#888',
     marginTop: 1,
     fontFamily: appFont,
   },
@@ -1285,7 +1285,7 @@ const styles = StyleSheet.create({
   itemTotal: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#333',
+    color: '#222',
     fontFamily: appFont,
   },
 
@@ -1318,7 +1318,7 @@ const styles = StyleSheet.create({
 
   totalLabel: {
     fontSize: 13,
-    color: '#888',
+    color: '#666',
     fontWeight: '500',
     fontFamily: appFont,
   },
