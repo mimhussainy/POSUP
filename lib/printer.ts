@@ -362,11 +362,12 @@ export async function printZReport(zData: {
   totalDiscount: number;
 }): Promise<void> {
   const restaurantName = await AsyncStorage.getItem('restaurant_name') || 'Restaurant';
+  const logoUrl = await AsyncStorage.getItem('restaurant_logo') || '';
   const language = await AsyncStorage.getItem('app_language') || 'de';
   const printerIp = await AsyncStorage.getItem('printer_ip');
 
   if (Platform.OS === 'web') {
-    const html = buildZReportHTML(zData, restaurantName, '', language);
+    const html = buildZReportHTML(zData, restaurantName, logoUrl, language);
     const win = (window as any).open('', '_blank', 'width=400,height=600');
     if (win) {
       win.document.write(html);
@@ -380,7 +381,7 @@ export async function printZReport(zData: {
   if (printerIp) {
     await printZReportViaTCP(zData, restaurantName, language);
   } else {
-    const html = buildZReportHTML(zData, restaurantName, '', language);
+    const html = buildZReportHTML(zData, restaurantName, logoUrl, language);
     await Print.printAsync({ html });
   }
 }

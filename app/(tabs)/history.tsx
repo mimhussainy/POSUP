@@ -1353,8 +1353,8 @@ const styles = StyleSheet.create({
   },
 
   zModalTitle: {
-    fontSize: 14,
-    color: '#333',
+    fontSize: 15,
+    color: '#222',
     marginBottom: 6,
     fontWeight: '600',
     fontFamily: appFont,
@@ -1362,15 +1362,15 @@ const styles = StyleSheet.create({
 
   zModalSummary: {
     fontSize: 13,
-    color: '#888',
+    color: '#555',
     marginBottom: 8,
-    fontWeight: '400',
+    fontWeight: '500',
     fontFamily: appFont,
   },
 
   zModalNote: {
     fontSize: 12,
-    color: '#aaa',
+    color: '#888',
     marginBottom: 20,
     fontWeight: '400',
     fontFamily: appFont,
@@ -1391,7 +1391,7 @@ const styles = StyleSheet.create({
 
   cancelBtnText: {
     fontWeight: '600',
-    color: '#555',
+    color: '#444',
     fontFamily: appFont,
   },
 
