@@ -977,14 +977,14 @@ const styles = StyleSheet.create({
   },
 
   orderNumberText: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '700',
     color: PRIMARY,
     fontFamily: appFont,
   },
 
   orderTotal: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '700',
     color: '#111',
     fontFamily: appFont,
@@ -999,9 +999,9 @@ const styles = StyleSheet.create({
   },
 
   orderMeta: {
-    fontSize: 11,
+    fontSize: 12,
     color: '#666',
-    fontWeight: '400',
+    fontWeight: '500',
     fontFamily: appFont,
   },
 
@@ -1020,7 +1020,7 @@ const styles = StyleSheet.create({
   },
 
   payBadgeText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '600',
     color: '#222',
     fontFamily: appFont,
@@ -1035,15 +1035,15 @@ const styles = StyleSheet.create({
 
   orderPreview: {
     flex: 1,
-    fontSize: 11,
-    color: '#888',
+    fontSize: 12,
+    color: '#666',
     fontWeight: '400',
     fontFamily: appFont,
   },
 
   orderItemCount: {
-    fontSize: 11,
-    color: '#666',
+    fontSize: 12,
+    color: '#555',
     fontWeight: '500',
     fontFamily: appFont,
   },
