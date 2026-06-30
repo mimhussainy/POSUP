@@ -719,7 +719,7 @@ export default function HistoryScreen() {
               </Text>
 
               <Text style={styles.zModalNote}>
-                After closing, no new orders can be added today.
+                {t.dayCloseNote}
               </Text>
 
               <View style={styles.zModalActions}>
@@ -1385,7 +1385,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 14,
     borderRadius: 10,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#E8E8EC',
     alignItems: 'center',
   },
 
