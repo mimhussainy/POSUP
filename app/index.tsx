@@ -11,6 +11,15 @@ import { appFont } from '../lib/fonts';
 export default function LoginScreen() {
   const { t } = useLanguage();
   const [code, setCode] = useState('');
+
+  useEffect(() => {
+    AsyncStorage.getItem('prefill_restaurant_code').then(prefill => {
+      if (prefill) {
+        setCode(prefill);
+        AsyncStorage.removeItem('prefill_restaurant_code');
+      }
+    });
+  }, []);
   const [pin, setPin] = useState('');
   const [loading, setLoading] = useState(true);
   const [logging, setLogging] = useState(false);
