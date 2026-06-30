@@ -58,6 +58,7 @@ export default function HistoryScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<'today' | 'week' | 'month' | 'all'>('today');
+  const [paymentFilter, setPaymentFilter] = useState<'all' | 'cash' | 'card' | 'twint'>('all');
   const [selectedOrder, setSelectedOrder] = useState<POSOrder | null>(null);
   const [dayClosed, setDayClosed] = useState(false);
   const [zReportModal, setZReportModal] = useState(false);
@@ -157,23 +158,27 @@ export default function HistoryScreen() {
       const date = new Date(order.created_at);
       const now = new Date();
 
-      if (filter === 'today') return isToday(order.created_at);
-
-      if (filter === 'week') {
+      let matchesDate = true;
+      if (filter === 'today') matchesDate = isToday(order.created_at);
+      else if (filter === 'week') {
         const weekAgo = new Date(now);
         weekAgo.setDate(now.getDate() - 7);
-        return date >= weekAgo;
-      }
-
-      if (filter === 'month') {
+        matchesDate = date >= weekAgo;
+      } else if (filter === 'month') {
         const monthAgo = new Date(now);
         monthAgo.setDate(now.getDate() - 30);
-        return date >= monthAgo;
+        matchesDate = date >= monthAgo;
+      }
+
+      if (!matchesDate) return false;
+
+      if (paymentFilter !== 'all') {
+        return getPaymentType(order.payment_method) === paymentFilter;
       }
 
       return true;
     });
-  }, [orders, filter]);
+  }, [orders, filter, paymentFilter]);
 
   const paddedOrders = useMemo<ListItem[]>(() => {
     const data: ListItem[] = [...filteredOrders];
@@ -478,26 +483,35 @@ export default function HistoryScreen() {
               <Text style={styles.statLabel}>{t.revenue}</Text>
             </View>
 
-            <View style={styles.statCard}>
+            <TouchableOpacity
+              style={[styles.statCard, paymentFilter === 'cash' && styles.statCardActive]}
+              onPress={() => setPaymentFilter(paymentFilter === 'cash' ? 'all' : 'cash')}
+            >
               <Text style={[styles.statValue, styles.statValueCash]}>
                 CHF {cashRev.toFixed(2)}
               </Text>
               <Text style={styles.statLabel}>{t.cash}</Text>
-            </View>
+            </TouchableOpacity>
 
-            <View style={styles.statCard}>
+            <TouchableOpacity
+              style={[styles.statCard, paymentFilter === 'card' && styles.statCardActive]}
+              onPress={() => setPaymentFilter(paymentFilter === 'card' ? 'all' : 'card')}
+            >
               <Text style={[styles.statValue, styles.statValueCard]}>
                 CHF {cardRev.toFixed(2)}
               </Text>
               <Text style={styles.statLabel}>{t.card}</Text>
-            </View>
+            </TouchableOpacity>
 
-            <View style={styles.statCard}>
+            <TouchableOpacity
+              style={[styles.statCard, paymentFilter === 'twint' && styles.statCardActive]}
+              onPress={() => setPaymentFilter(paymentFilter === 'twint' ? 'all' : 'twint')}
+            >
               <Text style={[styles.statValue, styles.statValueTwint]}>
                 CHF {twintRev.toFixed(2)}
               </Text>
               <Text style={styles.statLabel}>Twint</Text>
-            </View>
+            </TouchableOpacity>
           </View>
 
           <View style={styles.filtersLine}>
@@ -840,6 +854,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 6,
+  },
+
+  statCardActive: {
+    borderColor: PRIMARY,
+    borderWidth: 2,
+    backgroundColor: '#F5EEFF',
   },
 
   statValue: {
