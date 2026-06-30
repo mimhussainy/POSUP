@@ -333,7 +333,7 @@ export async function printOrder(order: any, restaurantCode: string): Promise<vo
 
   if (Platform.OS === 'web') {
     const html = buildReceiptHTML(order, restaurantName, logoUrl, language);
-    const win = (window as any).open('', '_blank', 'width=400,height=600');
+    const win = (window as any).open('', '_blank', 'width=800,height=900');
     if (win) {
       win.document.write(html);
       win.document.close();
