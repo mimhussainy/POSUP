@@ -188,13 +188,13 @@ export default function NewOrderScreen() {
   function addToCart() {
     if (!selectedProduct) return;
     if (selectedProduct.variations?.length > 0 && !selectedVariation) {
-      setAddonError('Please select a size or variation');
+      setAddonError(t.selectSizeVariation);
       return;
     }
     for (const group of productAddons) {
       const isRequired = group.required || group.options.some((o: any) => o.required);
       if (isRequired && !(selectedAddonOptions[group.id]?.length > 0)) {
-        setAddonError(`Please select: ${group.name}`);
+        setAddonError(`${t.pleaseSelect}: ${group.name}`);
         return;
       }
     }
@@ -253,6 +253,14 @@ export default function NewOrderScreen() {
 
   async function placeOrder() {
     if (cart.length === 0) return;
+
+    const dayClosedDate = await AsyncStorage.getItem('day_closed_date');
+    const todayStr = new Date().toLocaleDateString('de-CH', { timeZone: 'Europe/Zurich' });
+    if (dayClosedDate === todayStr) {
+      showToast(t.dayClosedCannotOrder, 'error');
+      return;
+    }
+
     setPlacingOrder(true);
     try {
       const BACKEND = 'https://foodup-order-alerts-backend.onrender.com';
@@ -717,7 +725,7 @@ export default function NewOrderScreen() {
               {/* Variations */}
               {selectedProduct?.variations?.length > 0 && (
                 <View style={styles.addonSection}>
-                  <Text style={styles.addonSectionTitle}>Size / Variation *</Text>
+                  <Text style={styles.addonSectionTitle}>{t.sizeVariation} *</Text>
                   <View style={styles.chipsRow}>
                     {selectedProduct.variations.map((v: any) => (
                       <TouchableOpacity
