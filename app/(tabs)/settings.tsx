@@ -12,6 +12,7 @@ import {
   Linking,
   Modal,
   Dimensions,
+  StatusBar,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -39,6 +40,13 @@ const RED = '#EF4444';
 const ORANGE = '#F59E0B';
 
 const PAGE_PADDING = 16;
+const MAX_CONTENT_WIDTH = 760;
+const HEADER_TOP_PADDING =
+  Platform.OS === 'android'
+    ? (StatusBar.currentHeight || 0) + 8
+    : Platform.OS === 'web'
+      ? 14
+      : 12;
 
 function PrinterStatusCard({
   t,
@@ -141,7 +149,7 @@ function PrinterStatusCard({
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionKicker}>{t?.printerSection || 'PRINTER'}</Text>
-        <Text style={styles.sectionTitle}>Printer Status</Text>
+        <Text style={styles.sectionTitle}>{t?.printerStatus || 'Printer Status'}</Text>
       </View>
 
       <View style={styles.card}>
@@ -157,7 +165,7 @@ function PrinterStatusCard({
         </View>
 
         {printerIp ? (
-          <View style={styles.infoRow}>
+          <View style={[styles.infoRow, styles.infoRowLast]}>
             <View style={styles.iconBox}>
               <Ionicons name="wifi-outline" size={19} color={PRIMARY} />
             </View>
@@ -184,7 +192,7 @@ function PrinterStatusCard({
             </TouchableOpacity>
           </View>
         ) : (
-          <View style={styles.infoRow}>
+          <View style={[styles.infoRow, styles.infoRowLast]}>
             <View style={[styles.iconBox, styles.iconBoxMuted]}>
               <Ionicons name="alert-circle-outline" size={19} color="#9CA3AF" />
             </View>
@@ -227,7 +235,7 @@ export default function Settings() {
   const [windowWidth, setWindowWidth] = useState(Dimensions.get('window').width);
 
   const isNarrow = windowWidth < 760;
-  const centeredWidthStyle = isNarrow ? styles.centeredMobile : styles.centeredDesktop;
+  const contentWidthStyle = isNarrow ? styles.contentInnerMobile : null;
 
   useEffect(() => {
     const sub = Dimensions.addEventListener('change', ({ window }) => {
@@ -363,18 +371,16 @@ export default function Settings() {
 
   return (
     <View style={styles.root}>
-      <ScrollView
-        style={styles.container}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={[styles.headerOuter, centeredWidthStyle]}>
+      <View style={styles.headerOuter}>
+        <View style={styles.headerInner}>
           <View style={styles.header}>
             <View style={styles.headerLeft}>
               <Text style={styles.headerKicker}>POSUP</Text>
               <Text style={styles.headerTitle}>{t.settings}</Text>
               <Text style={styles.headerSub} numberOfLines={1}>
-                {restaurantName || restaurantCode || 'Restaurant'}
+                {restaurantName
+                  ? `${restaurantName}${restaurantCode ? ` · ${restaurantCode}` : ''}`
+                  : restaurantCode || 'Restaurant'}
               </Text>
             </View>
 
@@ -387,8 +393,14 @@ export default function Settings() {
             </TouchableOpacity>
           </View>
         </View>
+      </View>
 
-        <View style={[styles.contentInner, centeredWidthStyle]}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={[styles.contentInner, contentWidthStyle]}>
           <View style={styles.sectionsGrid}>
             <View style={styles.section}>
               {renderSectionHeader(t.restaurantSection, 'Restaurant')}
@@ -418,7 +430,7 @@ export default function Settings() {
                   </View>
                 ) : null}
 
-                <View style={styles.infoRow}>
+                <View style={[styles.infoRow, styles.infoRowLast]}>
                   <View style={styles.iconBox}>
                     <Ionicons name="key-outline" size={19} color={PRIMARY} />
                   </View>
@@ -795,21 +807,19 @@ const styles = StyleSheet.create({
   },
 
   content: {
-    paddingBottom: 110,
-  },
-
-  centeredDesktop: {
-    width: '50%',
-    alignSelf: 'center',
-  },
-
-  centeredMobile: {
-    width: '100%',
-    alignSelf: 'center',
+    paddingHorizontal: PAGE_PADDING,
+    paddingTop: 14,
+    paddingBottom: Platform.OS === 'android' ? 150 : 130,
   },
 
   contentInner: {
-    paddingHorizontal: PAGE_PADDING,
+    width: '100%',
+    maxWidth: MAX_CONTENT_WIDTH,
+    alignSelf: 'center',
+  },
+
+  contentInnerMobile: {
+    maxWidth: '100%',
   },
 
   sectionsGrid: {
@@ -845,13 +855,21 @@ const styles = StyleSheet.create({
   headerOuter: {
     backgroundColor: APP_BG,
     paddingHorizontal: PAGE_PADDING,
-    paddingTop: Platform.OS === 'web' ? 14 : 10,
+    paddingTop: HEADER_TOP_PADDING,
     paddingBottom: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#E7EAF0',
+  },
+
+  headerInner: {
+    width: '100%',
+    maxWidth: MAX_CONTENT_WIDTH,
+    alignSelf: 'center',
   },
 
   header: {
     width: '100%',
-    minHeight: 58,
+    minHeight: 54,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -897,6 +915,11 @@ const styles = StyleSheet.create({
     borderColor: BORDER,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#111827',
+    shadowOpacity: 0.025,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
   },
 
   section: {
@@ -935,19 +958,25 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
 
     shadowColor: '#111827',
-    shadowOpacity: 0.035,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 2,
+    shadowOpacity: 0.018,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
   },
 
   infoRow: {
+    minHeight: 70,
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
     gap: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#EEF0F5',
+  },
+
+  infoRowLast: {
+    borderBottomWidth: 0,
   },
 
   iconBox: {
@@ -1103,7 +1132,13 @@ const styles = StyleSheet.create({
     padding: 14,
     gap: 12,
     borderWidth: 1,
-    borderColor: '#FECACA',
+    borderColor: '#FAD0D0',
+
+    shadowColor: '#111827',
+    shadowOpacity: 0.012,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
   },
 
   logoutTitle: {

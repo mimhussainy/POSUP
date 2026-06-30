@@ -10,6 +10,7 @@ import {
   StyleSheet,
   TextInput,
   Dimensions,
+  Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -21,11 +22,11 @@ import { useLanguage } from '../../lib/LanguageContext';
 import { appFont } from '../../lib/fonts';
 
 const PRIMARY = '#8B38CB';
-const PRIMARY_SOFT = '#F5ECFF';
+const PRIMARY_SOFT = '#F6EEFF';
 
-const APP_BG = '#F1F3F8';
+const APP_BG = '#F7F8FB';
 const CARD_BG = '#FFFFFF';
-const BORDER = '#DDE2EC';
+const BORDER = '#E7EAF1';
 const TEXT = '#151521';
 const MUTED = '#7B7F8C';
 
@@ -39,14 +40,14 @@ const getLayout = (width: number) => {
   const isLarge = width > 1440;
 
   const catSidebar = isCompact
-    ? Math.max(78, Math.min(96, width * 0.12))
-    : Math.max(118, Math.min(150, width * 0.09));
+    ? Math.max(108, Math.min(132, width * 0.15))
+    : Math.max(142, Math.min(184, width * 0.115));
 
   const orderPanel = isCompact
-    ? Math.max(280, Math.min(340, width * 0.36))
+    ? Math.max(292, Math.min(344, width * 0.34))
     : isLarge
-      ? Math.max(380, Math.min(440, width * 0.22))
-      : Math.max(330, Math.min(390, width * 0.28));
+      ? Math.max(380, Math.min(430, width * 0.21))
+      : Math.max(340, Math.min(398, width * 0.27));
 
   const productArea = width - orderPanel - catSidebar;
 
@@ -56,7 +57,7 @@ const getLayout = (width: number) => {
     productArea > 720 ? 3 :
     2;
 
-  const gapPercent = 1.25;
+  const gapPercent = 1;
   const totalGap = gapPercent * (numColumns - 1);
   const cardWidth = (100 - totalGap) / numColumns;
 
@@ -528,8 +529,8 @@ export default function NewOrderScreen() {
             <Image
               source={{ uri: restaurantLogo }}
               style={{
-                width: Math.max(62, layout.catSidebar - 24),
-                height: 46,
+                width: Math.max(76, layout.catSidebar - 26),
+                height: 40,
               }}
               resizeMode="contain"
             />
@@ -1414,6 +1415,8 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     backgroundColor: APP_BG,
+    paddingTop: 0,
+    paddingBottom: 0,
   },
 
   center: {
@@ -1425,9 +1428,9 @@ const styles = StyleSheet.create({
 
   loadingCard: {
     backgroundColor: '#fff',
-    borderRadius: 18,
-    paddingHorizontal: 28,
-    paddingVertical: 24,
+    borderRadius: 16,
+    paddingHorizontal: 26,
+    paddingVertical: 22,
     alignItems: 'center',
     borderWidth: thinBorder,
     borderColor: BORDER,
@@ -1476,24 +1479,24 @@ const styles = StyleSheet.create({
 
   catSidebar: {
     backgroundColor: '#FFFFFF',
-    borderRightWidth: 1,
-    borderRightColor: '#DDE2EC',
+    borderRightWidth: thinBorder,
+    borderRightColor: BORDER,
   },
 
   catLogoWrap: {
-    height: 84,
+    height: 70,
     justifyContent: 'center',
     alignItems: 'center',
     borderBottomWidth: thinBorder,
     borderBottomColor: BORDER,
     paddingHorizontal: 10,
-    paddingTop: 10,
+    paddingTop: Platform.OS === 'android' ? 4 : 8,
   },
 
   logoFallback: {
-    width: 46,
-    height: 46,
-    borderRadius: 14,
+    width: 44,
+    height: 44,
+    borderRadius: 13,
     backgroundColor: PRIMARY_SOFT,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1508,17 +1511,19 @@ const styles = StyleSheet.create({
 
   catSidebarContent: {
     paddingVertical: 8,
-    paddingLeft: 7,
-    paddingRight: 7,
+    paddingLeft: 8,
+    paddingRight: 8,
   },
 
   catItem: {
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 11,
-    paddingHorizontal: 5,
-    borderRadius: 16,
+    paddingVertical: 9,
+    paddingHorizontal: 8,
+    borderRadius: 14,
     position: 'relative',
-    marginBottom: 5,
+    marginBottom: 6,
+    minHeight: 54,
     overflow: 'visible',
   },
 
@@ -1529,27 +1534,28 @@ const styles = StyleSheet.create({
   },
 
   catBadge: {
-    width: 39,
-    height: 39,
-    borderRadius: 14,
+    width: 36,
+    height: 36,
+    borderRadius: 13,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 6,
+    marginRight: 8,
     borderWidth: thinBorder,
   },
 
   catBadgeLetter: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '800',
     fontFamily: appFont,
   },
 
   catItemText: {
-    fontSize: 12,
+    flex: 1,
+    fontSize: 12.5,
     fontWeight: '700',
     color: '#4A4D58',
-    textAlign: 'center',
-    lineHeight: 15,
+    textAlign: 'left',
+    lineHeight: 16,
     fontFamily: appFont,
   },
 
@@ -1559,10 +1565,10 @@ const styles = StyleSheet.create({
 
   catActiveBar: {
     position: 'absolute',
-    left: -7,
-    top: 0,
-    bottom: 0,
-    width: 5,
+    left: -8,
+    top: 6,
+    bottom: 6,
+    width: 4,
     backgroundColor: PRIMARY,
     borderTopRightRadius: 8,
     borderBottomRightRadius: 8,
@@ -1576,10 +1582,10 @@ const styles = StyleSheet.create({
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 18,
-    paddingTop: 14,
-    paddingBottom: 14,
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingTop: Platform.OS === 'android' ? 8 : 10,
+    paddingBottom: 10,
     backgroundColor: APP_BG,
   },
 
@@ -1588,18 +1594,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: CARD_BG,
-    borderRadius: 18,
-    paddingHorizontal: 15,
+    borderRadius: 15,
+    paddingHorizontal: 14,
     gap: 9,
-    borderWidth: 1,
-    borderColor: '#DCE1EA',
-    height: 50,
-
-    shadowColor: '#111827',
-    shadowOpacity: 0.035,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 2,
+    borderWidth: thinBorder,
+    borderColor: BORDER,
+    height: 46,
   },
 
   searchInput: {
@@ -1612,18 +1612,18 @@ const styles = StyleSheet.create({
   },
 
   syncBtn: {
-    width: 50,
-    height: 50,
-    borderRadius: 18,
+    width: 46,
+    height: 46,
+    borderRadius: 15,
     backgroundColor: PRIMARY,
     justifyContent: 'center',
     alignItems: 'center',
   },
 
   grid: {
-    paddingHorizontal: 18,
+    paddingHorizontal: 14,
     paddingTop: 0,
-    paddingBottom: 22,
+    paddingBottom: 18,
   },
 
   gridEmpty: {
@@ -1631,30 +1631,24 @@ const styles = StyleSheet.create({
   },
 
   gridRow: {
-    gap: '1.25%' as any,
-    marginBottom: 12,
+    gap: '1%' as any,
+    marginBottom: 10,
     justifyContent: 'flex-start',
   },
 
   productCard: {
     backgroundColor: CARD_BG,
-    borderRadius: 17,
-    padding: 15,
-    minHeight: 112,
+    borderRadius: 15,
+    padding: 14,
+    minHeight: 104,
     justifyContent: 'space-between',
-    borderWidth: 1,
-    borderColor: '#DDE2EC',
-
-    shadowColor: '#111827',
-    shadowOpacity: 0.045,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
+    borderWidth: thinBorder,
+    borderColor: BORDER,
   },
 
   productName: {
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: '700',
     color: TEXT,
     lineHeight: 19,
     fontFamily: appFont,
@@ -1664,8 +1658,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'space-between',
-    gap: 12,
-    marginTop: 16,
+    gap: 10,
+    marginTop: 14,
   },
 
   productPriceLabel: {
@@ -1686,9 +1680,9 @@ const styles = StyleSheet.create({
   },
 
   productAddBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 14,
+    width: 34,
+    height: 34,
+    borderRadius: 13,
     backgroundColor: PRIMARY,
     justifyContent: 'center',
     alignItems: 'center',
@@ -1696,8 +1690,9 @@ const styles = StyleSheet.create({
 
   orderPanel: {
     backgroundColor: DARK,
-    padding: 14,
-    paddingTop: 14,
+    padding: 12,
+    paddingTop: Platform.OS === 'android' ? 10 : 12,
+    paddingBottom: 12,
     justifyContent: 'space-between',
     borderLeftWidth: thinBorder,
     borderLeftColor: DARK_BORDER,
@@ -1707,7 +1702,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 12,
+    marginBottom: 10,
   },
 
   orderKicker: {
@@ -1751,9 +1746,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 9,
     backgroundColor: DARK_CARD,
-    borderRadius: 14,
+    borderRadius: 13,
     paddingHorizontal: 11,
-    paddingVertical: 10,
+    paddingVertical: 9,
     borderWidth: thinBorder,
     borderColor: DARK_BORDER,
   },
@@ -1817,7 +1812,7 @@ const styles = StyleSheet.create({
 
   itemsList: {
     flex: 1,
-    marginTop: 12,
+    marginTop: 10,
   },
 
   itemsListContent: {
@@ -1842,7 +1837,7 @@ const styles = StyleSheet.create({
   },
 
   orderItem: {
-    paddingVertical: 10,
+    paddingVertical: 9,
     borderBottomWidth: thinBorder,
     borderBottomColor: '#282845',
   },
@@ -1926,20 +1921,20 @@ const styles = StyleSheet.create({
   },
 
   orderFooter: {
-    paddingTop: 10,
+    paddingTop: 8,
   },
 
   noteInput: {
     backgroundColor: DARK_CARD,
-    borderRadius: 14,
+    borderRadius: 13,
     paddingHorizontal: 11,
-    paddingVertical: 9,
+    paddingVertical: 8,
     fontSize: 13,
     color: '#F1F1F6',
-    minHeight: 38,
-    maxHeight: 74,
+    minHeight: 36,
+    maxHeight: 68,
     textAlignVertical: 'top',
-    marginBottom: 9,
+    marginBottom: 8,
     borderWidth: thinBorder,
     borderColor: DARK_BORDER,
     fontFamily: appFont,
@@ -1948,8 +1943,8 @@ const styles = StyleSheet.create({
 
   payRow: {
     flexDirection: 'row',
-    gap: 8,
-    marginBottom: 9,
+    gap: 7,
+    marginBottom: 8,
   },
 
   payBtn: {
@@ -1958,8 +1953,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 5,
-    paddingVertical: 9,
-    borderRadius: 13,
+    paddingVertical: 8,
+    borderRadius: 12,
     backgroundColor: DARK_CARD,
     borderWidth: thinBorder,
     borderColor: DARK_BORDER,
@@ -1987,9 +1982,9 @@ const styles = StyleSheet.create({
 
   totalsBox: {
     backgroundColor: DARK_CARD,
-    borderRadius: 16,
-    padding: 12,
-    marginBottom: 10,
+    borderRadius: 14,
+    padding: 11,
+    marginBottom: 9,
     borderWidth: thinBorder,
     borderColor: DARK_BORDER,
   },
@@ -2046,19 +2041,19 @@ const styles = StyleSheet.create({
 
   actionBtns: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 7,
   },
 
   discountBtn: {
-    minWidth: 86,
+    minWidth: 84,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 5,
     backgroundColor: 'rgba(245,158,11,0.12)',
-    borderRadius: 14,
-    paddingHorizontal: 11,
-    paddingVertical: 12,
+    borderRadius: 13,
+    paddingHorizontal: 10,
+    paddingVertical: 11,
     borderWidth: thinBorder,
     borderColor: 'rgba(245,158,11,0.32)',
   },
@@ -2073,8 +2068,8 @@ const styles = StyleSheet.create({
   placeBtn: {
     flex: 1,
     backgroundColor: PRIMARY,
-    borderRadius: 14,
-    paddingVertical: 12,
+    borderRadius: 13,
+    paddingVertical: 11,
     alignItems: 'center',
     justifyContent: 'center',
   },

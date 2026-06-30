@@ -11,6 +11,7 @@ import {
   RefreshControl,
   Dimensions,
   Platform,
+  StatusBar,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -22,13 +23,13 @@ import { printOrder, printZReport } from '../../lib/printer';
 const BACKEND = 'https://foodup-order-alerts-backend.onrender.com';
 
 const PRIMARY = '#8B38CB';
-const PRIMARY_SOFT = '#F4E9FF';
-const PRIMARY_BORDER = '#D8B6FF';
+const PRIMARY_SOFT = '#F6EEFF';
+const PRIMARY_BORDER = '#E9D5FF';
 
-const APP_BG = '#EEF1F6';
+const APP_BG = '#F7F8FB';
 const CARD_BG = '#FFFFFF';
-const BORDER = '#D9DEE8';
-const BORDER_SOFT = '#E5E9F0';
+const BORDER = '#ECEEF3';
+const BORDER_SOFT = '#F1F3F8';
 const TEXT = '#111827';
 const MUTED = '#6B7280';
 const SOFT_TEXT = '#4B5563';
@@ -72,6 +73,7 @@ const getNumColumns = (width: number) => {
 
 export default function HistoryScreen() {
   const { t } = useLanguage();
+  const historyTitle = (t as any).history || 'History';
 
   const [restaurantCode, setRestaurantCode] = useState('');
   const [orders, setOrders] = useState<POSOrder[]>([]);
@@ -693,7 +695,10 @@ export default function HistoryScreen() {
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <Text style={styles.headerKicker}>POSUP</Text>
-            <Text style={styles.headerTitle}>{t.orders}</Text>
+            <Text style={styles.headerTitle}>{historyTitle}</Text>
+            <Text style={styles.headerSubtitle} numberOfLines={1}>
+              {filteredOrders.length} {t.orders} · {formatMoney(revenue)}
+            </Text>
           </View>
 
           <View style={styles.headerRight}>
@@ -729,11 +734,13 @@ export default function HistoryScreen() {
       </View>
 
       {dayClosed && (
-        <View style={styles.dayClosedBanner}>
-          <Ionicons name="lock-closed" size={16} color="#fff" />
-          <Text style={styles.dayClosedText}>
-            {t.dayClosed} — {t.reopensAutomatically}
-          </Text>
+        <View style={styles.dayClosedBannerOuter}>
+          <View style={styles.dayClosedBanner}>
+            <Ionicons name="lock-closed" size={15} color="#6B4BB8" />
+            <Text style={styles.dayClosedText}>
+              {t.dayClosed} — {t.reopensAutomatically}
+            </Text>
+          </View>
         </View>
       )}
 
@@ -1004,18 +1011,12 @@ const styles = StyleSheet.create({
 
   loadingCard: {
     backgroundColor: CARD_BG,
-    borderRadius: 20,
+    borderRadius: 18,
     paddingHorizontal: 28,
     paddingVertical: 24,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: BORDER,
-
-    shadowColor: '#111827',
-    shadowOpacity: 0.06,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
   },
 
   loadingText: {
@@ -1029,7 +1030,11 @@ const styles = StyleSheet.create({
   headerOuter: {
     backgroundColor: APP_BG,
     paddingHorizontal: PAGE_PADDING,
-    paddingTop: Platform.OS === 'web' ? 14 : 8,
+    paddingTop: Platform.OS === 'android'
+      ? Math.max(6, (StatusBar.currentHeight || 24) - 18)
+      : Platform.OS === 'web'
+        ? 14
+        : 10,
     paddingBottom: 8,
   },
 
@@ -1037,7 +1042,7 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: MAX_CONTENT_WIDTH,
     alignSelf: 'center',
-    minHeight: 56,
+    minHeight: 62,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -1060,9 +1065,17 @@ const styles = StyleSheet.create({
 
   headerTitle: {
     marginTop: 1,
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '800',
     color: TEXT,
+    fontFamily: appFont,
+  },
+
+  headerSubtitle: {
+    marginTop: 2,
+    fontSize: 12,
+    fontWeight: '600',
+    color: MUTED,
     fontFamily: appFont,
   },
 
@@ -1081,12 +1094,6 @@ const styles = StyleSheet.create({
     borderColor: BORDER,
     alignItems: 'center',
     justifyContent: 'center',
-
-    shadowColor: '#111827',
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
   },
 
   zReportBtn: {
@@ -1116,10 +1123,22 @@ const styles = StyleSheet.create({
     color: '#8E929D',
   },
 
+  dayClosedBannerOuter: {
+    backgroundColor: APP_BG,
+    paddingHorizontal: PAGE_PADDING,
+    paddingBottom: 8,
+  },
+
   dayClosedBanner: {
-    backgroundColor: '#17172A',
-    paddingVertical: 10,
-    paddingHorizontal: 14,
+    width: '100%',
+    maxWidth: MAX_CONTENT_WIDTH,
+    alignSelf: 'center',
+    backgroundColor: '#F4EEFF',
+    borderWidth: 1,
+    borderColor: PRIMARY_BORDER,
+    borderRadius: 14,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1127,7 +1146,7 @@ const styles = StyleSheet.create({
   },
 
   dayClosedText: {
-    color: '#fff',
+    color: '#5B3AA8',
     fontSize: 12,
     fontWeight: '700',
     fontFamily: appFont,
@@ -1186,10 +1205,10 @@ const styles = StyleSheet.create({
 
   statCard: {
     flexGrow: 1,
-    flexBasis: 190,
-    minHeight: 68,
+    flexBasis: 180,
+    minHeight: 64,
     backgroundColor: CARD_BG,
-    borderRadius: 18,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: BORDER,
     paddingHorizontal: 12,
@@ -1197,12 +1216,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-
-    shadowColor: '#111827',
-    shadowOpacity: 0.035,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 1,
   },
 
   statCardActive: {
@@ -1246,11 +1259,6 @@ const styles = StyleSheet.create({
     borderColor: BORDER,
     padding: 6,
 
-    shadowColor: '#111827',
-    shadowOpacity: 0.025,
-    shadowRadius: 7,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 1,
   },
 
   filterRow: {
@@ -1325,11 +1333,6 @@ const styles = StyleSheet.create({
     borderColor: BORDER,
     marginBottom: 12,
 
-    shadowColor: '#111827',
-    shadowOpacity: 0.035,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 1,
   },
 
   orderCardPlaceholder: {
@@ -1473,11 +1476,6 @@ const styles = StyleSheet.create({
     borderColor: BORDER,
     padding: 16,
 
-    shadowColor: '#111827',
-    shadowOpacity: 0.035,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 1,
   },
 
   summaryCard: {
@@ -1487,11 +1485,6 @@ const styles = StyleSheet.create({
     borderColor: BORDER,
     padding: 16,
 
-    shadowColor: '#111827',
-    shadowOpacity: 0.035,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 1,
   },
 
   sectionHeaderRow: {

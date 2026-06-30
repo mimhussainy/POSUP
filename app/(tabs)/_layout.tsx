@@ -29,7 +29,7 @@ export default function TabsLayout() {
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? 'add-circle' : 'add-circle-outline'}
-              size={26}
+              size={focused ? 25 : 24}
               color={color}
             />
           ),
@@ -43,7 +43,7 @@ export default function TabsLayout() {
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? 'receipt' : 'receipt-outline'}
-              size={25}
+              size={focused ? 24 : 23}
               color={color}
             />
           ),
@@ -57,7 +57,7 @@ export default function TabsLayout() {
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? 'settings' : 'settings-outline'}
-              size={25}
+              size={focused ? 24 : 23}
               color={color}
             />
           ),
@@ -69,34 +69,34 @@ export default function TabsLayout() {
 
 const styles = StyleSheet.create({
   tabBar: {
-    height: Platform.OS === 'ios' ? 82 : 74,
+    height: Platform.OS === 'ios' ? 82 : 62,
     backgroundColor: '#FFFFFF',
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: BORDER,
-    paddingTop: 4,
-    paddingBottom: Platform.OS === 'ios' ? 16 : 8,
-    paddingHorizontal: 10,
+    paddingTop: Platform.OS === 'ios' ? 5 : 4,
+    paddingBottom: Platform.OS === 'ios' ? 18 : 5,
+    paddingHorizontal: 8,
 
-    shadowColor: '#111827',
-    shadowOpacity: 0.045,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: -3 },
-    elevation: 6,
+    shadowColor: 'transparent',
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 0,
   },
 
   tabBarItem: {
-    height: 60,
+    height: Platform.OS === 'ios' ? 58 : 52,
     paddingTop: 0,
-    paddingBottom: 4,
+    paddingBottom: 0,
     justifyContent: 'center',
   },
 
   tabBarLabel: {
-    fontSize: 13,
-    fontWeight: '800',
+    fontSize: 12,
+    fontWeight: '600',
     fontFamily: appFont,
     textAlign: 'center',
-    marginTop: 2,
-    paddingBottom: 2,
+    marginTop: 1,
+    paddingBottom: 0,
   },
 });
