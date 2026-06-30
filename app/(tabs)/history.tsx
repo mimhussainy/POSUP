@@ -476,12 +476,15 @@ export default function HistoryScreen() {
               <Text style={styles.statLabel}>{t.orders}</Text>
             </View>
 
-            <View style={styles.statCard}>
+            <TouchableOpacity
+              style={styles.statCard}
+              onPress={() => setPaymentFilter('all')}
+            >
               <Text style={[styles.statValue, styles.statValuePrimary]}>
                 CHF {revenue.toFixed(2)}
               </Text>
               <Text style={styles.statLabel}>{t.revenue}</Text>
-            </View>
+            </TouchableOpacity>
 
             <TouchableOpacity
               style={[styles.statCard, paymentFilter === 'cash' && styles.statCardActive]}
