@@ -213,6 +213,12 @@ export default function HistoryScreen() {
       .reduce((sum, order) => sum + parseAmount(order.total), 0);
   }, [filteredOrders]);
 
+  const twintRev = useMemo(() => {
+    return filteredOrders
+      .filter(order => getPaymentType(order.payment_method) === 'twint')
+      .reduce((sum, order) => sum + parseAmount(order.total), 0);
+  }, [filteredOrders]);
+
   const avgOrder = filteredOrders.length > 0 ? revenue / filteredOrders.length : 0;
 
   const topProducts = useMemo(() => {
@@ -400,11 +406,11 @@ export default function HistoryScreen() {
           <View
             style={[
               styles.payBadge,
-              paymentType === 'cash' ? styles.payBadgeCash : styles.payBadgeCard,
+              paymentType === 'cash' ? styles.payBadgeCash : paymentType === 'twint' ? styles.payBadgeTwint : styles.payBadgeCard,
             ]}
           >
             <Text style={styles.payBadgeText}>
-              {paymentType === 'cash' ? t.cash : t.card}
+              {paymentType === 'cash' ? t.cash : paymentType === 'twint' ? 'Twint' : t.card}
             </Text>
           </View>
         </View>
@@ -484,6 +490,13 @@ export default function HistoryScreen() {
                 CHF {cardRev.toFixed(2)}
               </Text>
               <Text style={styles.statLabel}>{t.card}</Text>
+            </View>
+
+            <View style={styles.statCard}>
+              <Text style={[styles.statValue, styles.statValueTwint]}>
+                CHF {twintRev.toFixed(2)}
+              </Text>
+              <Text style={styles.statLabel}>Twint</Text>
             </View>
           </View>
 
@@ -858,6 +871,10 @@ const styles = StyleSheet.create({
     color: '#2563eb',
   },
 
+  statValueTwint: {
+    color: '#ff5500',
+  },
+
   filtersLine: {
     minHeight: 38,
     flexDirection: 'row',
@@ -1017,6 +1034,10 @@ const styles = StyleSheet.create({
 
   payBadgeCard: {
     backgroundColor: '#EEF4FF',
+  },
+
+  payBadgeTwint: {
+    backgroundColor: '#FFF1E8',
   },
 
   payBadgeText: {
