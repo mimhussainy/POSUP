@@ -5,10 +5,10 @@ import { useLanguage } from '../../lib/LanguageContext';
 import { appFont } from '../../lib/fonts';
 
 const PRIMARY = '#8B38CB';
-const PRIMARY_SOFT = '#F5ECFF';
+const PRIMARY_SOFT = '#F6EEFF';
 const TEXT = '#17172A';
 const MUTED = '#7B7F8C';
-const BORDER = '#E7E8EE';
+const BORDER = '#ECEEF3';
 
 export default function TabsLayout() {
   const { t } = useLanguage();
@@ -77,46 +77,45 @@ export default function TabsLayout() {
 
 const styles = StyleSheet.create({
   tabBar: {
-    height: 78,
+    height: Platform.OS === 'ios' ? 78 : 68,
     backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
+    borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: BORDER,
-    paddingTop: 8,
-    paddingBottom: Platform.OS === 'ios' ? 14 : 10,
-    paddingHorizontal: 18,
+    paddingTop: 6,
+    paddingBottom: Platform.OS === 'ios' ? 16 : 8,
+    paddingHorizontal: 14,
 
     shadowColor: '#111827',
-    shadowOpacity: 0.06,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: -4 },
-    elevation: 10,
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: -3 },
+    elevation: 6,
   },
 
   tabBarItem: {
-    height: 58,
-    borderRadius: 18,
-    paddingVertical: 4,
+    height: 52,
+    borderRadius: 16,
+    paddingVertical: 3,
+    marginHorizontal: 3,
   },
 
   tabBarLabel: {
-    fontSize: 12,
-    fontWeight: '800',
+    fontSize: 11,
+    fontWeight: '700',
     fontFamily: appFont,
     textAlign: 'center',
-    marginTop: 2,
+    marginTop: 0,
   },
 
   iconWrap: {
-    width: 38,
+    width: 42,
     height: 30,
-    borderRadius: 14,
+    borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
   },
 
   iconWrapActive: {
     backgroundColor: PRIMARY_SOFT,
-    borderWidth: 1,
-    borderColor: '#E8D6FF',
   },
 });

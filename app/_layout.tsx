@@ -1,22 +1,23 @@
 import { Stack } from 'expo-router';
-import { StatusBar, Platform, View, ActivityIndicator, Text } from 'react-native';
+import { StatusBar, View, ActivityIndicator, StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 import { Ionicons } from '@expo/vector-icons';
 import { LanguageProvider } from '../lib/LanguageContext';
+
+const APP_BG = '#F7F8FB';
+const PRIMARY = '#8B38CB';
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
     ...Ionicons.font,
   });
 
-  
-
   if (!fontsLoaded && !fontError) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#ffffff' }}>
-        <ActivityIndicator size="large" color="#8B38CB" />
+      <View style={styles.loadingScreen}>
+        <ActivityIndicator size="large" color={PRIMARY} />
       </View>
     );
   }
@@ -27,17 +28,41 @@ export default function RootLayout() {
 
   return (
     <LanguageProvider>
-    <SafeAreaProvider>
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <StatusBar barStyle="dark-content" backgroundColor="#ffffff" translucent={false} />
-        <SafeAreaView style={{ flex: 1, paddingTop: Platform.OS === 'web' ? 0 : 20 }} edges={[]}>
-          <Stack>
-            <Stack.Screen name="index" options={{ headerShown: false }} />
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <SafeAreaProvider>
+        <GestureHandlerRootView style={styles.root}>
+          <StatusBar
+            barStyle="dark-content"
+            backgroundColor={APP_BG}
+            translucent={false}
+          />
+
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: {
+                backgroundColor: APP_BG,
+              },
+            }}
+          >
+            <Stack.Screen name="index" />
+            <Stack.Screen name="(tabs)" />
           </Stack>
-        </SafeAreaView>
-      </GestureHandlerRootView>
-    </SafeAreaProvider>
+        </GestureHandlerRootView>
+      </SafeAreaProvider>
     </LanguageProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: APP_BG,
+  },
+
+  loadingScreen: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: APP_BG,
+  },
+});

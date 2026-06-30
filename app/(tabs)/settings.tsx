@@ -11,6 +11,7 @@ import {
   Image,
   Linking,
   Modal,
+  Dimensions,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -23,28 +24,35 @@ import TcpSocket from 'react-native-tcp-socket';
 const BACKEND = 'https://foodup-order-alerts-backend.onrender.com';
 
 const PRIMARY = '#8B38CB';
-const PRIMARY_SOFT = '#F5ECFF';
+const PRIMARY_SOFT = '#F6EEFF';
+const PRIMARY_BORDER = '#E6D5FF';
 
-const APP_BG = '#F6F7FA';
+const APP_BG = '#F7F8FB';
 const CARD_BG = '#FFFFFF';
-const BORDER = '#E7E8EE';
-const TEXT = '#141421';
-const MUTED = '#7B7F8C';
+const BORDER = '#ECEEF3';
+const TEXT = '#171725';
+const MUTED = '#7A7F8C';
+const SOFT_TEXT = '#5F6572';
 
 const GREEN = '#16A34A';
 const RED = '#EF4444';
 const ORANGE = '#F59E0B';
+
+const PAGE_PADDING = 16;
+const MAX_CONTENT_WIDTH = 1080;
 
 function PrinterStatusCard({
   t,
   printerIp,
   printerPort,
   printerModel,
+  wide,
 }: {
   t: any;
   printerIp: string;
   printerPort: string;
   printerModel: string;
+  wide: boolean;
 }) {
   const printerModelLabel = t?.printerModel || 'Modell';
   const printerNotConfiguredLabel = t?.printerNotConfigured || 'Nicht konfiguriert';
@@ -133,8 +141,11 @@ function PrinterStatusCard({
           : '#F2F3F7';
 
   return (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{t?.printerSection || 'PRINTER'}</Text>
+    <View style={[styles.section, wide && styles.sectionHalf]}>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionKicker}>{t?.printerSection || 'PRINTER'}</Text>
+        <Text style={styles.sectionTitle}>Printer Status</Text>
+      </View>
 
       <View style={styles.card}>
         <View style={styles.infoRow}>
@@ -215,6 +226,18 @@ export default function Settings() {
   const [printerIp, setPrinterIp] = useState('');
   const [printerPort, setPrinterPort] = useState('');
   const [printerModel, setPrinterModel] = useState('');
+
+  const [windowWidth, setWindowWidth] = useState(Dimensions.get('window').width);
+
+  const isWide = windowWidth >= 820;
+
+  useEffect(() => {
+    const sub = Dimensions.addEventListener('change', ({ window }) => {
+      setWindowWidth(window.width);
+    });
+
+    return () => sub?.remove();
+  }, []);
 
   const loadData = useCallback(async () => {
     try {
@@ -322,6 +345,13 @@ export default function Settings() {
     setReopenModal(true);
   };
 
+  const renderSectionHeader = (kicker: string, title: string) => (
+    <View style={styles.sectionHeader}>
+      <Text style={styles.sectionKicker}>{kicker}</Text>
+      <Text style={styles.sectionTitle}>{title}</Text>
+    </View>
+  );
+
   if (loading) {
     return (
       <View style={styles.center}>
@@ -340,148 +370,161 @@ export default function Settings() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.headerKicker}>POSUP</Text>
-            <Text style={styles.headerTitle}>{t.settings}</Text>
-            <Text style={styles.headerSub}>
-              {restaurantName || restaurantCode || 'Restaurant'}
-            </Text>
-          </View>
+        <View style={styles.headerOuter}>
+          <View style={styles.header}>
+            <View style={styles.headerLeft}>
+              <Text style={styles.headerKicker}>POSUP</Text>
+              <Text style={styles.headerTitle}>{t.settings}</Text>
+              <Text style={styles.headerSub} numberOfLines={1}>
+                {restaurantName || restaurantCode || 'Restaurant'}
+              </Text>
+            </View>
 
-          <TouchableOpacity
-            style={styles.aboutHeaderBtn}
-            onPress={() => setAboutModal(true)}
-            activeOpacity={0.75}
-          >
-            <Ionicons name="information-circle-outline" size={20} color={PRIMARY} />
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.aboutHeaderBtn}
+              onPress={() => setAboutModal(true)}
+              activeOpacity={0.75}
+            >
+              <Ionicons name="information-circle-outline" size={20} color={PRIMARY} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         <View style={styles.contentInner}>
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{t.restaurantSection}</Text>
+          <View style={styles.sectionsGrid}>
+            <View style={[styles.section, isWide && styles.sectionHalf]}>
+              {renderSectionHeader(t.restaurantSection, 'Restaurant')}
 
-            <View style={styles.card}>
-              <View style={styles.infoRow}>
-                <View style={styles.iconBox}>
-                  <Ionicons name="storefront-outline" size={19} color={PRIMARY} />
-                </View>
-
-                <View style={styles.infoText}>
-                  <Text style={styles.infoLabel}>{t.restaurantCode}</Text>
-                  <Text style={styles.infoValue}>{restaurantCode}</Text>
-                </View>
-              </View>
-
-              {restaurantName ? (
+              <View style={styles.card}>
                 <View style={styles.infoRow}>
                   <View style={styles.iconBox}>
-                    <Ionicons name="business-outline" size={19} color={PRIMARY} />
+                    <Ionicons name="storefront-outline" size={19} color={PRIMARY} />
                   </View>
 
                   <View style={styles.infoText}>
-                    <Text style={styles.infoLabel}>{t.restaurantNameLabel}</Text>
-                    <Text style={styles.infoValue}>{restaurantName}</Text>
+                    <Text style={styles.infoLabel}>{t.restaurantCode}</Text>
+                    <Text style={styles.infoValue}>{restaurantCode || '—'}</Text>
                   </View>
                 </View>
-              ) : null}
 
-              <View style={styles.infoRow}>
-                <View style={styles.iconBox}>
-                  <Ionicons name="key-outline" size={19} color={PRIMARY} />
+                {restaurantName ? (
+                  <View style={styles.infoRow}>
+                    <View style={styles.iconBox}>
+                      <Ionicons name="business-outline" size={19} color={PRIMARY} />
+                    </View>
+
+                    <View style={styles.infoText}>
+                      <Text style={styles.infoLabel}>{t.restaurantNameLabel}</Text>
+                      <Text style={styles.infoValue}>{restaurantName}</Text>
+                    </View>
+                  </View>
+                ) : null}
+
+                <View style={styles.infoRow}>
+                  <View style={styles.iconBox}>
+                    <Ionicons name="key-outline" size={19} color={PRIMARY} />
+                  </View>
+
+                  <View style={styles.infoText}>
+                    <Text style={styles.infoLabel}>PIN</Text>
+                    <Text style={styles.infoValue}>••••</Text>
+                  </View>
+
+                  <TouchableOpacity
+                    style={styles.primarySmallBtn}
+                    onPress={() => setPinModal(true)}
+                    activeOpacity={0.78}
+                  >
+                    <Text style={styles.primarySmallBtnText}>{t.changePin}</Text>
+                  </TouchableOpacity>
                 </View>
+              </View>
+            </View>
 
-                <View style={styles.infoText}>
-                  <Text style={styles.infoLabel}>PIN</Text>
-                  <Text style={styles.infoValue}>••••</Text>
-                </View>
+            <PrinterStatusCard
+              t={t}
+              printerIp={printerIp}
+              printerPort={printerPort}
+              printerModel={printerModel}
+              wide={isWide}
+            />
 
+            <View style={[styles.section, isWide && styles.sectionHalf]}>
+              {renderSectionHeader(t.dayManagementSection, 'Day Management')}
+
+              <View style={styles.card}>
                 <TouchableOpacity
-                  style={styles.primarySmallBtn}
-                  onPress={() => setPinModal(true)}
+                  style={styles.actionRow}
+                  onPress={reopenDay}
                   activeOpacity={0.78}
                 >
-                  <Text style={styles.primarySmallBtnText}>{t.changePin}</Text>
+                  <View style={styles.greenIconBox}>
+                    <Ionicons name="refresh-circle-outline" size={21} color={GREEN} />
+                  </View>
+
+                  <View style={styles.infoText}>
+                    <Text style={styles.actionTitle}>{t.reopenDay}</Text>
+                    <Text style={styles.actionSub}>{t.removeDayCloseStatus}</Text>
+                  </View>
+
+                  <Ionicons name="chevron-forward" size={17} color="#C0C4CE" />
                 </TouchableOpacity>
               </View>
             </View>
-          </View>
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{t.dayManagementSection}</Text>
+            <View style={[styles.section, isWide && styles.sectionHalf]}>
+              {renderSectionHeader(t.language, 'Language')}
 
-            <View style={styles.card}>
+              <View style={styles.card}>
+                <View style={styles.languageRow}>
+                  {(['de', 'en'] as const).map(lang => {
+                    const active = language === lang;
+
+                    return (
+                      <TouchableOpacity
+                        key={lang}
+                        style={[
+                          styles.languageBtn,
+                          active && styles.languageBtnActive,
+                        ]}
+                        onPress={() => setLanguage(lang)}
+                        activeOpacity={0.78}
+                      >
+                        <Text
+                          style={[
+                            styles.languageText,
+                            active && styles.languageTextActive,
+                          ]}
+                        >
+                          {Platform.OS === 'web'
+                            ? lang === 'de' ? 'Deutsch' : 'English'
+                            : lang === 'de' ? '🇩🇪 Deutsch' : '🇬🇧 English'}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+            </View>
+
+            <View style={styles.section}>
               <TouchableOpacity
-                style={styles.actionRow}
-                onPress={reopenDay}
+                style={styles.logoutBtn}
+                onPress={() => setLogoutModal(true)}
                 activeOpacity={0.78}
               >
-                <View style={styles.greenIconBox}>
-                  <Ionicons name="refresh-circle-outline" size={21} color={GREEN} />
+                <View style={styles.logoutIconBox}>
+                  <Ionicons name="log-out-outline" size={19} color={RED} />
                 </View>
 
                 <View style={styles.infoText}>
-                  <Text style={styles.actionTitle}>{t.reopenDay}</Text>
-                  <Text style={styles.actionSub}>{t.removeDayCloseStatus}</Text>
+                  <Text style={styles.logoutTitle}>{t.logout}</Text>
+                  <Text style={styles.logoutSub}>{t.logoutConfirm}</Text>
                 </View>
 
-                <Ionicons name="chevron-forward" size={17} color="#C0C4CE" />
+                <Ionicons name="chevron-forward" size={17} color="#FCA5A5" />
               </TouchableOpacity>
             </View>
-          </View>
-
-          <PrinterStatusCard
-            t={t}
-            printerIp={printerIp}
-            printerPort={printerPort}
-            printerModel={printerModel}
-          />
-
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{t.language}</Text>
-
-            <View style={styles.card}>
-              <View style={styles.languageRow}>
-                {(['de', 'en'] as const).map(lang => {
-                  const active = language === lang;
-
-                  return (
-                    <TouchableOpacity
-                      key={lang}
-                      style={[
-                        styles.languageBtn,
-                        active && styles.languageBtnActive,
-                      ]}
-                      onPress={() => setLanguage(lang)}
-                      activeOpacity={0.78}
-                    >
-                      <Text
-                        style={[
-                          styles.languageText,
-                          active && styles.languageTextActive,
-                        ]}
-                      >
-                        {Platform.OS === 'web'
-                          ? lang === 'de' ? 'Deutsch' : 'English'
-                          : lang === 'de' ? '🇩🇪 Deutsch' : '🇬🇧 English'}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </View>
-          </View>
-
-          <View style={styles.section}>
-            <TouchableOpacity
-              style={styles.logoutBtn}
-              onPress={() => setLogoutModal(true)}
-              activeOpacity={0.78}
-            >
-              <Ionicons name="log-out-outline" size={19} color={RED} />
-              <Text style={styles.logoutText}>{t.logout}</Text>
-            </TouchableOpacity>
           </View>
 
           <TouchableOpacity
@@ -756,14 +799,19 @@ const styles = StyleSheet.create({
 
   content: {
     paddingBottom: 110,
-    alignItems: 'center',
   },
 
   contentInner: {
-    width: '48%',
+    width: '100%',
+    maxWidth: MAX_CONTENT_WIDTH,
     alignSelf: 'center',
-    minWidth: 340,
-    maxWidth: 620,
+    paddingHorizontal: PAGE_PADDING,
+  },
+
+  sectionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
   },
 
   center: {
@@ -774,8 +822,8 @@ const styles = StyleSheet.create({
   },
 
   loadingCard: {
-    backgroundColor: '#fff',
-    borderRadius: 18,
+    backgroundColor: CARD_BG,
+    borderRadius: 20,
     paddingHorizontal: 28,
     paddingVertical: 24,
     alignItems: 'center',
@@ -787,43 +835,46 @@ const styles = StyleSheet.create({
     marginTop: 12,
     color: MUTED,
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '600',
     fontFamily: appFont,
+  },
+
+  headerOuter: {
+    backgroundColor: APP_BG,
+    paddingHorizontal: PAGE_PADDING,
+    paddingTop: Platform.OS === 'web' ? 14 : 10,
+    paddingBottom: 8,
   },
 
   header: {
     width: '100%',
-    minHeight: Platform.OS === 'web' ? 78 : 68,
-    paddingHorizontal: 22,
-    paddingVertical: 14,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: BORDER,
-    marginBottom: 18,
+    maxWidth: MAX_CONTENT_WIDTH,
+    alignSelf: 'center',
+    minHeight: 58,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: 12,
+  },
 
-    shadowColor: '#111827',
-    shadowOpacity: 0.04,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 4,
+  headerLeft: {
+    flex: 1,
+    minWidth: 0,
   },
 
   headerKicker: {
     fontSize: 10,
-    fontWeight: '900',
+    fontWeight: '800',
     color: PRIMARY,
     textTransform: 'uppercase',
-    letterSpacing: 0.8,
+    letterSpacing: 0.7,
     fontFamily: appFont,
   },
 
   headerTitle: {
-    marginTop: 2,
+    marginTop: 1,
     fontSize: 20,
-    fontWeight: '900',
+    fontWeight: '800',
     color: TEXT,
     fontFamily: appFont,
   },
@@ -832,35 +883,51 @@ const styles = StyleSheet.create({
     marginTop: 2,
     fontSize: 12,
     color: MUTED,
-    fontWeight: '700',
+    fontWeight: '600',
     fontFamily: appFont,
   },
 
   aboutHeaderBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 15,
-    backgroundColor: PRIMARY_SOFT,
+    width: 38,
+    height: 38,
+    borderRadius: 14,
+    backgroundColor: CARD_BG,
     borderWidth: 1,
-    borderColor: '#E8D6FF',
+    borderColor: BORDER,
     alignItems: 'center',
     justifyContent: 'center',
   },
 
   section: {
-    paddingHorizontal: 16,
-    marginBottom: 16,
     width: '100%',
+    marginBottom: 2,
+  },
+
+  sectionHalf: {
+    flexGrow: 1,
+    flexBasis: 420,
+    maxWidth: '49%',
+  },
+
+  sectionHeader: {
+    marginBottom: 8,
+    paddingHorizontal: 3,
+  },
+
+  sectionKicker: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: PRIMARY,
+    textTransform: 'uppercase',
+    letterSpacing: 0.7,
+    fontFamily: appFont,
   },
 
   sectionTitle: {
-    fontSize: 11,
-    fontWeight: '900',
-    color: '#8A8E99',
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-    marginBottom: 9,
-    marginLeft: 4,
+    marginTop: 2,
+    fontSize: 16,
+    fontWeight: '800',
+    color: TEXT,
     fontFamily: appFont,
   },
 
@@ -870,12 +937,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: BORDER,
     overflow: 'hidden',
-
-    shadowColor: '#111827',
-    shadowOpacity: 0.035,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 2,
   },
 
   infoRow: {
@@ -883,8 +944,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 14,
     gap: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F1F5',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#EEF0F5',
   },
 
   iconBox: {
@@ -892,15 +953,12 @@ const styles = StyleSheet.create({
     height: 38,
     borderRadius: 14,
     backgroundColor: PRIMARY_SOFT,
-    borderWidth: 1,
-    borderColor: '#E8D6FF',
     alignItems: 'center',
     justifyContent: 'center',
   },
 
   iconBoxMuted: {
     backgroundColor: '#F2F3F7',
-    borderColor: '#ECEEF3',
   },
 
   greenIconBox: {
@@ -908,8 +966,15 @@ const styles = StyleSheet.create({
     height: 38,
     borderRadius: 14,
     backgroundColor: '#EAFBF1',
-    borderWidth: 1,
-    borderColor: '#BBF7D0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  logoutIconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 14,
+    backgroundColor: '#FEF2F2',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -922,7 +987,7 @@ const styles = StyleSheet.create({
   infoLabel: {
     fontSize: 11,
     color: MUTED,
-    fontWeight: '800',
+    fontWeight: '700',
     marginBottom: 3,
     fontFamily: appFont,
   },
@@ -930,7 +995,7 @@ const styles = StyleSheet.create({
   infoValue: {
     fontSize: 14,
     color: TEXT,
-    fontWeight: '900',
+    fontWeight: '800',
     fontFamily: appFont,
   },
 
@@ -952,7 +1017,7 @@ const styles = StyleSheet.create({
   primarySmallBtnText: {
     color: '#fff',
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '800',
     fontFamily: appFont,
   },
 
@@ -973,7 +1038,7 @@ const styles = StyleSheet.create({
 
   statusText: {
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '800',
     fontFamily: appFont,
   },
 
@@ -986,7 +1051,7 @@ const styles = StyleSheet.create({
 
   actionTitle: {
     fontSize: 15,
-    fontWeight: '900',
+    fontWeight: '800',
     color: TEXT,
     fontFamily: appFont,
   },
@@ -1009,20 +1074,17 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 11,
     borderRadius: 14,
-    backgroundColor: '#F2F3F7',
+    backgroundColor: '#F3F4F8',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#ECEEF3',
   },
 
   languageBtnActive: {
     backgroundColor: PRIMARY,
-    borderColor: PRIMARY,
   },
 
   languageText: {
     fontSize: 14,
-    fontWeight: '900',
+    fontWeight: '800',
     color: '#555B66',
     fontFamily: appFont,
   },
@@ -1034,19 +1096,26 @@ const styles = StyleSheet.create({
   logoutBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 18,
+    backgroundColor: CARD_BG,
+    borderRadius: 20,
     padding: 14,
-    gap: 10,
+    gap: 12,
     borderWidth: 1,
     borderColor: '#FECACA',
   },
 
-  logoutText: {
-    fontSize: 14,
-    fontWeight: '900',
+  logoutTitle: {
+    fontSize: 15,
+    fontWeight: '800',
     color: RED,
+    fontFamily: appFont,
+  },
+
+  logoutSub: {
+    fontSize: 12,
+    color: '#B45353',
+    marginTop: 3,
+    fontWeight: '600',
     fontFamily: appFont,
   },
 
@@ -1055,7 +1124,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    marginTop: 6,
+    marginTop: 10,
     paddingHorizontal: 16,
     paddingBottom: 8,
   },
@@ -1063,7 +1132,7 @@ const styles = StyleSheet.create({
   footerText: {
     fontSize: 12,
     color: '#9CA3AF',
-    fontWeight: '700',
+    fontWeight: '600',
     fontFamily: appFont,
   },
 
@@ -1088,24 +1157,24 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     padding: 18,
-    borderBottomWidth: 1,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: BORDER,
     gap: 14,
   },
 
   modalKicker: {
     fontSize: 10,
-    fontWeight: '900',
+    fontWeight: '800',
     color: PRIMARY,
     textTransform: 'uppercase',
-    letterSpacing: 0.8,
+    letterSpacing: 0.7,
     fontFamily: appFont,
   },
 
   modalTitle: {
     marginTop: 3,
     fontSize: 18,
-    fontWeight: '900',
+    fontWeight: '800',
     color: TEXT,
     fontFamily: appFont,
   },
@@ -1128,8 +1197,6 @@ const styles = StyleSheet.create({
     height: 72,
     borderRadius: 26,
     backgroundColor: '#EAFBF1',
-    borderWidth: 1,
-    borderColor: '#BBF7D0',
     alignSelf: 'center',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1138,7 +1205,7 @@ const styles = StyleSheet.create({
 
   modalMessage: {
     fontSize: 14,
-    color: '#555B66',
+    color: SOFT_TEXT,
     marginBottom: 20,
     lineHeight: 20,
     fontWeight: '600',
@@ -1160,7 +1227,7 @@ const styles = StyleSheet.create({
   },
 
   cancelBtnText: {
-    fontWeight: '900',
+    fontWeight: '800',
     color: '#555B66',
     fontFamily: appFont,
   },
@@ -1174,14 +1241,14 @@ const styles = StyleSheet.create({
   },
 
   dangerBtnText: {
-    fontWeight: '900',
+    fontWeight: '800',
     color: '#fff',
     fontFamily: appFont,
   },
 
   fieldLabel: {
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '700',
     color: '#555B66',
     marginBottom: 7,
     marginTop: 12,
@@ -1198,7 +1265,7 @@ const styles = StyleSheet.create({
     color: TEXT,
     backgroundColor: '#FAFAFB',
     fontFamily: appFont,
-    fontWeight: '700',
+    fontWeight: '600',
   },
 
   saveBtn: {
@@ -1216,7 +1283,7 @@ const styles = StyleSheet.create({
   saveBtnText: {
     color: '#fff',
     fontSize: 14,
-    fontWeight: '900',
+    fontWeight: '800',
     fontFamily: appFont,
   },
 
@@ -1232,7 +1299,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     paddingVertical: 13,
-    borderBottomWidth: 1,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#F0F1F5',
   },
 
@@ -1245,21 +1312,18 @@ const styles = StyleSheet.create({
     height: 38,
     borderRadius: 14,
     backgroundColor: PRIMARY_SOFT,
-    borderWidth: 1,
-    borderColor: '#E8D6FF',
     alignItems: 'center',
     justifyContent: 'center',
   },
 
   whatsappIconBox: {
     backgroundColor: '#ECFDF5',
-    borderColor: '#BBF7D0',
   },
 
   contactText: {
     fontSize: 14,
     color: TEXT,
-    fontWeight: '900',
+    fontWeight: '800',
     fontFamily: appFont,
   },
 });

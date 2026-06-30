@@ -21,19 +21,18 @@ import { useLanguage } from '../../lib/LanguageContext';
 import { appFont } from '../../lib/fonts';
 
 const PRIMARY = '#8B38CB';
-const PRIMARY_DARK = '#7229ad';
 const PRIMARY_SOFT = '#F5ECFF';
 
-const APP_BG = '#F6F7FA';
+const APP_BG = '#F7F8FB';
 const CARD_BG = '#FFFFFF';
-const BORDER = '#E7E8EE';
-const TEXT = '#141421';
+const BORDER = '#ECEEF3';
+const TEXT = '#151521';
 const MUTED = '#7B7F8C';
 
 const DARK = '#17172A';
-const DARK_CARD = '#23233D';
+const DARK_CARD = '#24243E';
 const DARK_CARD_2 = '#2B2B49';
-const DARK_BORDER = '#343452';
+const DARK_BORDER = '#33334F';
 
 const getLayout = (width: number) => {
   const isCompact = width < 900;
@@ -46,7 +45,7 @@ const getLayout = (width: number) => {
   const orderPanel = isCompact
     ? Math.max(280, Math.min(340, width * 0.36))
     : isLarge
-      ? Math.max(380, Math.min(460, width * 0.22))
+      ? Math.max(380, Math.min(440, width * 0.22))
       : Math.max(330, Math.min(390, width * 0.28));
 
   const productArea = width - orderPanel - catSidebar;
@@ -100,6 +99,7 @@ function getCatColor(name: string): string {
   ];
 
   let hash = 0;
+
   for (let i = 0; i < name.length; i++) {
     hash = name.charCodeAt(i) + ((hash << 5) - hash);
   }
@@ -246,8 +246,6 @@ export default function NewOrderScreen() {
     return selectedCategory ? (p.category_ids || []).includes(selectedCategory) : true;
   });
 
-  const activeCategory = categories.find(c => c.id === selectedCategory);
-
   function productDisplayPrice(product: any) {
     if (product.type === 'variable' && product.variations?.length > 0) {
       return money(product.variations[0].price);
@@ -261,10 +259,6 @@ export default function NewOrderScreen() {
       (a.assigned_category_ids || []).some((id: string) => (product.category_ids || []).includes(id)) ||
       (a.assigned_product_ids || []).includes(product.id)
     );
-  }
-
-  function getCategoryProductCount(catId: string) {
-    return products.filter(p => p.active && (p.category_ids || []).includes(catId)).length;
   }
 
   function addProductDirectly(product: any) {
@@ -528,7 +522,6 @@ export default function NewOrderScreen() {
   return (
     <View style={styles.container}>
 
-      {/* CATEGORY SIDEBAR */}
       <View style={[styles.catSidebar, { width: layout.catSidebar }]}>
         <View style={styles.catLogoWrap}>
           {restaurantLogo ? (
@@ -557,7 +550,6 @@ export default function NewOrderScreen() {
             const active = selectedCategory === cat.id && !searchQuery;
             const letter = cat.name.trim()[0]?.toUpperCase() || '?';
             const color = getCatColor(cat.name);
-            const count = getCategoryProductCount(cat.id);
 
             return (
               <TouchableOpacity
@@ -578,8 +570,8 @@ export default function NewOrderScreen() {
                   style={[
                     styles.catBadge,
                     {
-                      backgroundColor: active ? PRIMARY : `${color}18`,
-                      borderColor: active ? PRIMARY : `${color}30`,
+                      backgroundColor: active ? PRIMARY : `${color}16`,
+                      borderColor: active ? PRIMARY : `${color}28`,
                     },
                   ]}
                 >
@@ -604,37 +596,16 @@ export default function NewOrderScreen() {
                 >
                   {cat.name}
                 </Text>
-
-                {count > 0 && (
-                  <Text
-                    style={[
-                      styles.catCount,
-                      active && styles.catCountActive,
-                    ]}
-                  >
-                    {count}
-                  </Text>
-                )}
               </TouchableOpacity>
             );
           })}
         </ScrollView>
       </View>
 
-      {/* PRODUCT AREA */}
       <View style={styles.middle}>
         <View style={styles.topBar}>
-          <View style={styles.topBarTitleWrap}>
-            <Text style={styles.topBarKicker}>
-              {searchQuery.trim() ? 'Search' : 'Category'}
-            </Text>
-            <Text style={styles.topBarTitle} numberOfLines={1}>
-              {searchQuery.trim() ? searchQuery : activeCategory?.name || t.searchProducts}
-            </Text>
-          </View>
-
           <View style={styles.searchWrap}>
-            <Ionicons name="search-outline" size={17} color="#9CA3AF" />
+            <Ionicons name="search-outline" size={18} color="#9CA3AF" />
             <TextInput
               style={styles.searchInput}
               placeholder={t.searchProducts}
@@ -664,28 +635,9 @@ export default function NewOrderScreen() {
             {refreshing ? (
               <ActivityIndicator size="small" color="#fff" />
             ) : (
-              <Ionicons name="sync-outline" size={19} color="#fff" />
+              <Ionicons name="sync-outline" size={20} color="#fff" />
             )}
           </TouchableOpacity>
-        </View>
-
-        <View style={styles.productMetaRow}>
-          <Text style={styles.productMetaText}>
-            {filteredProducts.length} Artikel
-          </Text>
-
-          {searchQuery.trim() ? (
-            <TouchableOpacity
-              onPress={() => setSearchQuery('')}
-              style={styles.resetSearchBtn}
-              activeOpacity={0.75}
-            >
-              <Ionicons name="arrow-back-outline" size={13} color={PRIMARY} />
-              <Text style={styles.resetSearchText}>
-                Kategorie anzeigen
-              </Text>
-            </TouchableOpacity>
-          ) : null}
         </View>
 
         <FlatList
@@ -708,32 +660,20 @@ export default function NewOrderScreen() {
               onPress={() => openProductModal(item)}
               activeOpacity={0.72}
             >
-              <View style={styles.productTopRow}>
-                <Text style={styles.productName} numberOfLines={2}>
-                  {item.name}
-                </Text>
-
-                {(item.type === 'variable' && item.variations?.length > 0) ? (
-                  <View style={styles.variablePill}>
-                    <Text style={styles.variablePillText}>
-                      Optionen
-                    </Text>
-                  </View>
-                ) : null}
-              </View>
+              <Text style={styles.productName} numberOfLines={2}>
+                {item.name}
+              </Text>
 
               <View style={styles.productBottomRow}>
                 <View>
-                  <Text style={styles.productPriceLabel}>
-                    Preis
-                  </Text>
+                  <Text style={styles.productPriceLabel}>Preis</Text>
                   <Text style={styles.productPrice}>
                     CHF {productDisplayPrice(item).toFixed(2)}
                   </Text>
                 </View>
 
                 <View style={styles.productAddBtn}>
-                  <Ionicons name="add" size={18} color="#fff" />
+                  <Ionicons name="add" size={20} color="#fff" />
                 </View>
               </View>
             </TouchableOpacity>
@@ -750,7 +690,6 @@ export default function NewOrderScreen() {
         />
       </View>
 
-      {/* ORDER PANEL */}
       <View style={[styles.orderPanel, { width: layout.orderPanel }]}>
         <View>
           <View style={styles.orderHeader}>
@@ -1010,7 +949,6 @@ export default function NewOrderScreen() {
         </View>
       </View>
 
-      {/* CLEAR MODAL */}
       <Modal visible={clearModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={[styles.discountModalBox, { width: layout.discountModalWidth }]}>
@@ -1059,7 +997,6 @@ export default function NewOrderScreen() {
         </View>
       </Modal>
 
-      {/* TABLE MODAL */}
       <Modal visible={tableModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={[styles.addonModalBox, { width: layout.addonModalWidth }]}>
@@ -1177,7 +1114,6 @@ export default function NewOrderScreen() {
         </View>
       </Modal>
 
-      {/* DISCOUNT MODAL */}
       <Modal visible={discountModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={[styles.discountModalBox, { width: layout.discountModalWidth }]}>
@@ -1340,7 +1276,6 @@ export default function NewOrderScreen() {
         </View>
       </Modal>
 
-      {/* ADDON MODAL */}
       <Modal visible={addonModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={[styles.addonModalBox, { width: layout.addonModalWidth }]}>
@@ -1453,7 +1388,6 @@ export default function NewOrderScreen() {
         </View>
       </Modal>
 
-      {/* TOAST */}
       {toast && (
         <View
           style={[
@@ -1472,6 +1406,8 @@ export default function NewOrderScreen() {
     </View>
   );
 }
+
+const thinBorder = StyleSheet.hairlineWidth;
 
 const styles = StyleSheet.create({
   container: {
@@ -1493,7 +1429,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28,
     paddingVertical: 24,
     alignItems: 'center',
-    borderWidth: 1,
+    borderWidth: thinBorder,
     borderColor: BORDER,
   },
 
@@ -1538,18 +1474,17 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
-  // CATEGORY SIDEBAR
   catSidebar: {
     backgroundColor: '#FFFFFF',
-    borderRightWidth: 1,
-    borderRightColor: BORDER,
+    borderRightWidth: thinBorder,
+    borderRightColor: '#E5E7EB',
   },
 
   catLogoWrap: {
     height: 78,
     justifyContent: 'center',
     alignItems: 'center',
-    borderBottomWidth: 1,
+    borderBottomWidth: thinBorder,
     borderBottomColor: BORDER,
     paddingHorizontal: 10,
     paddingTop: 10,
@@ -1596,7 +1531,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 6,
-    borderWidth: 1,
+    borderWidth: thinBorder,
   },
 
   catBadgeLetter: {
@@ -1618,18 +1553,6 @@ const styles = StyleSheet.create({
     color: PRIMARY,
   },
 
-  catCount: {
-    marginTop: 3,
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#A2A6B1',
-    fontFamily: appFont,
-  },
-
-  catCountActive: {
-    color: PRIMARY,
-  },
-
   catActiveBar: {
     position: 'absolute',
     left: -7,
@@ -1641,7 +1564,6 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 8,
   },
 
-  // MIDDLE
   middle: {
     flex: 1,
     backgroundColor: APP_BG,
@@ -1652,31 +1574,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 10,
+    paddingTop: 14,
+    paddingBottom: 14,
     backgroundColor: APP_BG,
-  },
-
-  topBarTitleWrap: {
-    minWidth: 130,
-    maxWidth: 220,
-  },
-
-  topBarKicker: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#A0A4AE',
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    fontFamily: appFont,
-  },
-
-  topBarTitle: {
-    marginTop: 2,
-    fontSize: 16,
-    fontWeight: '800',
-    color: TEXT,
-    fontFamily: appFont,
   },
 
   searchWrap: {
@@ -1685,11 +1585,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: CARD_BG,
     borderRadius: 18,
-    paddingHorizontal: 14,
-    gap: 8,
-    borderWidth: 1,
+    paddingHorizontal: 15,
+    gap: 9,
+    borderWidth: thinBorder,
     borderColor: BORDER,
-    height: 46,
+    height: 48,
   },
 
   searchInput: {
@@ -1702,49 +1602,17 @@ const styles = StyleSheet.create({
   },
 
   syncBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 16,
+    width: 48,
+    height: 48,
+    borderRadius: 18,
     backgroundColor: PRIMARY,
     justifyContent: 'center',
     alignItems: 'center',
   },
 
-  productMetaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingBottom: 8,
-  },
-
-  productMetaText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: MUTED,
-    fontFamily: appFont,
-  },
-
-  resetSearchBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    backgroundColor: PRIMARY_SOFT,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-  },
-
-  resetSearchText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: PRIMARY,
-    fontFamily: appFont,
-  },
-
   grid: {
     paddingHorizontal: 16,
-    paddingTop: 2,
+    paddingTop: 0,
     paddingBottom: 22,
   },
 
@@ -1760,16 +1628,12 @@ const styles = StyleSheet.create({
 
   productCard: {
     backgroundColor: CARD_BG,
-    borderRadius: 18,
+    borderRadius: 17,
     padding: 15,
     minHeight: 112,
     justifyContent: 'space-between',
-    borderWidth: 1,
+    borderWidth: thinBorder,
     borderColor: BORDER,
-  },
-
-  productTopRow: {
-    gap: 8,
   },
 
   productName: {
@@ -1780,27 +1644,12 @@ const styles = StyleSheet.create({
     fontFamily: appFont,
   },
 
-  variablePill: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#EEF2FF',
-    borderRadius: 999,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-
-  variablePillText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#6366F1',
-    fontFamily: appFont,
-  },
-
   productBottomRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'space-between',
     gap: 12,
-    marginTop: 12,
+    marginTop: 16,
   },
 
   productPriceLabel: {
@@ -1814,28 +1663,27 @@ const styles = StyleSheet.create({
   },
 
   productPrice: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '900',
     color: PRIMARY,
     fontFamily: appFont,
   },
 
   productAddBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 13,
+    width: 36,
+    height: 36,
+    borderRadius: 14,
     backgroundColor: PRIMARY,
     justifyContent: 'center',
     alignItems: 'center',
   },
 
-  // ORDER PANEL
   orderPanel: {
     backgroundColor: DARK,
     padding: 14,
     paddingTop: 14,
     justifyContent: 'space-between',
-    borderLeftWidth: 1,
+    borderLeftWidth: thinBorder,
     borderLeftColor: DARK_BORDER,
   },
 
@@ -1871,7 +1719,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingHorizontal: 9,
     paddingVertical: 6,
-    borderWidth: 1,
+    borderWidth: thinBorder,
     borderColor: 'rgba(255,107,107,0.20)',
   },
 
@@ -1890,7 +1738,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     paddingHorizontal: 11,
     paddingVertical: 10,
-    borderWidth: 1,
+    borderWidth: thinBorder,
     borderColor: DARK_BORDER,
   },
 
@@ -1930,7 +1778,7 @@ const styles = StyleSheet.create({
     backgroundColor: DARK_CARD,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
+    borderWidth: thinBorder,
     borderColor: DARK_BORDER,
   },
 
@@ -1963,7 +1811,7 @@ const styles = StyleSheet.create({
   itemsHeader: {
     flexDirection: 'row',
     paddingBottom: 8,
-    borderBottomWidth: 1,
+    borderBottomWidth: thinBorder,
     borderBottomColor: DARK_BORDER,
     marginBottom: 6,
   },
@@ -1979,7 +1827,7 @@ const styles = StyleSheet.create({
 
   orderItem: {
     paddingVertical: 10,
-    borderBottomWidth: 1,
+    borderBottomWidth: thinBorder,
     borderBottomColor: '#282845',
   },
 
@@ -2076,7 +1924,7 @@ const styles = StyleSheet.create({
     maxHeight: 74,
     textAlignVertical: 'top',
     marginBottom: 9,
-    borderWidth: 1,
+    borderWidth: thinBorder,
     borderColor: DARK_BORDER,
     fontFamily: appFont,
     fontWeight: '500',
@@ -2097,7 +1945,7 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
     borderRadius: 13,
     backgroundColor: DARK_CARD,
-    borderWidth: 1,
+    borderWidth: thinBorder,
     borderColor: DARK_BORDER,
   },
 
@@ -2126,7 +1974,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 12,
     marginBottom: 10,
-    borderWidth: 1,
+    borderWidth: thinBorder,
     borderColor: DARK_BORDER,
   },
 
@@ -2161,7 +2009,7 @@ const styles = StyleSheet.create({
   },
 
   totalDivider: {
-    height: 1,
+    height: thinBorder,
     backgroundColor: DARK_BORDER,
     marginVertical: 7,
   },
@@ -2195,7 +2043,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     paddingHorizontal: 11,
     paddingVertical: 12,
-    borderWidth: 1,
+    borderWidth: thinBorder,
     borderColor: 'rgba(245,158,11,0.32)',
   },
 
@@ -2226,7 +2074,6 @@ const styles = StyleSheet.create({
     fontFamily: appFont,
   },
 
-  // MODALS
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(10,10,18,0.55)',
@@ -2241,7 +2088,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     paddingHorizontal: 18,
     paddingVertical: 16,
-    borderBottomWidth: 1,
+    borderBottomWidth: thinBorder,
     borderBottomColor: BORDER,
     gap: 14,
   },
@@ -2278,7 +2125,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
-  // DISCOUNT MODAL
   discountModalBox: {
     backgroundColor: '#fff',
     borderRadius: 24,
@@ -2310,7 +2156,7 @@ const styles = StyleSheet.create({
     borderRadius: 13,
     backgroundColor: '#F0F1F5',
     alignItems: 'center',
-    borderWidth: 1,
+    borderWidth: thinBorder,
     borderColor: '#E2E4EA',
   },
 
@@ -2341,7 +2187,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 999,
-    borderWidth: 1.5,
+    borderWidth: thinBorder,
     borderColor: '#D9DCE4',
     backgroundColor: '#FAFAFB',
   },
@@ -2363,7 +2209,7 @@ const styles = StyleSheet.create({
   },
 
   discountInput: {
-    borderWidth: 1,
+    borderWidth: thinBorder,
     borderColor: '#D9DCE4',
     borderRadius: 14,
     paddingHorizontal: 13,
@@ -2382,7 +2228,7 @@ const styles = StyleSheet.create({
     padding: 13,
     marginBottom: 12,
     gap: 3,
-    borderWidth: 1,
+    borderWidth: thinBorder,
     borderColor: '#BBF7D0',
   },
 
@@ -2418,7 +2264,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: '#FEF2F2',
     alignItems: 'center',
-    borderWidth: 1,
+    borderWidth: thinBorder,
     borderColor: '#FECACA',
   },
 
@@ -2444,7 +2290,6 @@ const styles = StyleSheet.create({
     fontFamily: appFont,
   },
 
-  // TABLE MODAL
   tableModalScroll: {
     padding: 16,
     maxHeight: 460,
@@ -2464,7 +2309,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: '#F0F1F5',
     gap: 7,
-    borderWidth: 1,
+    borderWidth: thinBorder,
     borderColor: '#E2E4EA',
   },
 
@@ -2499,7 +2344,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 3,
-    borderWidth: 1,
+    borderWidth: thinBorder,
     borderColor: '#E2E4EA',
   },
 
@@ -2530,7 +2375,6 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
 
-  // ADDON MODAL
   addonModalBox: {
     backgroundColor: '#fff',
     borderRadius: 24,
@@ -2567,7 +2411,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 9,
     borderRadius: 999,
-    borderWidth: 1.5,
+    borderWidth: thinBorder,
     borderColor: '#D9DCE4',
     backgroundColor: '#FAFAFB',
   },
@@ -2593,7 +2437,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 7,
     backgroundColor: '#FEF2F2',
-    borderWidth: 1,
+    borderWidth: thinBorder,
     borderColor: '#FECACA',
     borderRadius: 14,
     paddingHorizontal: 12,
@@ -2625,7 +2469,6 @@ const styles = StyleSheet.create({
     fontFamily: appFont,
   },
 
-  // TOAST
   toast: {
     position: 'absolute',
     bottom: 30,
