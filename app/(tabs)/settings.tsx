@@ -262,7 +262,7 @@ export default function Settings() {
                       onPress={() => setLanguage(lang)}
                     >
                       <Text style={{ fontSize: 14, fontWeight: '700', color: language === lang ? '#fff' : '#555' }}>
-                        {lang === 'de' ? '🇩🇪 Deutsch' : '🇬🇧 English'}
+                        {Platform.OS === 'web' ? (lang === 'de' ? 'Deutsch' : 'English') : (lang === 'de' ? '🇩🇪 Deutsch' : '🇬🇧 English')}
                       </Text>
                     </TouchableOpacity>
                   );
