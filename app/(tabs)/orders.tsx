@@ -1614,7 +1614,7 @@ const styles = StyleSheet.create({
 
   catItemTextActive: {
     color: PRIMARY,
-    fontWeight: fontWeights.black,
+    fontWeight: fontWeights.extrabold,
   },
 
   catActiveBar: {
