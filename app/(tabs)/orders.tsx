@@ -10,10 +10,8 @@ import {
   StyleSheet,
   TextInput,
   Dimensions,
-    Platform,
+  Platform,
   Animated,
-  LayoutAnimation,
-  UIManager,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -125,7 +123,106 @@ interface CartItem {
   price: number;
   quantity: number;
 }
+const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
 
+function CategoryButton({
+  cat,
+  active,
+  letter,
+  color,
+  onPress,
+}: {
+  cat: any;
+  active: boolean;
+  letter: string;
+  color: string;
+  onPress: () => void;
+}) {
+  const activeAnim = useRef(new Animated.Value(active ? 1 : 0)).current;
+
+  useEffect(() => {
+    Animated.spring(activeAnim, {
+      toValue: active ? 1 : 0,
+      speed: 18,
+      bounciness: 6,
+      useNativeDriver: false,
+    }).start();
+  }, [active, activeAnim]);
+
+  const backgroundColor = activeAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['#FFFFFF', PRIMARY_SOFT],
+  });
+
+  const barOpacity = activeAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 1],
+  });
+
+  const barScaleY = activeAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.3, 1],
+  });
+
+  const badgeScale = activeAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 1.05],
+  });
+
+  return (
+    <AnimatedTouchable
+      style={[
+        styles.catItem,
+        active && styles.catItemActive,
+        { backgroundColor },
+      ]}
+      onPress={onPress}
+      activeOpacity={0.82}
+    >
+      <Animated.View
+        style={[
+          styles.catActiveBar,
+          {
+            opacity: barOpacity,
+            transform: [{ scaleY: barScaleY }],
+          },
+        ]}
+      />
+
+      <Animated.View
+        style={[
+          styles.catBadge,
+          {
+            backgroundColor: active ? PRIMARY : `${color}16`,
+            borderColor: active ? PRIMARY : `${color}28`,
+            transform: [{ scale: badgeScale }],
+          },
+        ]}
+      >
+        <Text
+          style={[
+            styles.catBadgeLetter,
+            {
+              color: active ? '#fff' : color,
+            },
+          ]}
+        >
+          {letter}
+        </Text>
+      </Animated.View>
+
+      <Text
+        style={[
+          styles.catItemText,
+          active && styles.catItemTextActive,
+        ]}
+        numberOfLines={2}
+      >
+        {cat.name}
+      </Text>
+    </AnimatedTouchable>
+  );
+}
 export default function NewOrderScreen() {
   const { t } = useLanguage();
 
@@ -167,13 +264,9 @@ export default function NewOrderScreen() {
   const [restaurantLogo, setRestaurantLogo] = useState('');
 
   const [layout, setLayout] = useState(getLayout(Dimensions.get('window').width));
-  const gridOpacity = useRef(new Animated.Value(1)).current;
 
-  useEffect(() => {
-  if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-    UIManager.setLayoutAnimationEnabledExperimental(true);
-  }
-}, []);
+
+
 
   useEffect(() => {
     const sub = Dimensions.addEventListener('change', ({ window }) => {
@@ -197,25 +290,11 @@ export default function NewOrderScreen() {
   };
 
   const switchCategory = (categoryId: string) => {
-  if (selectedCategory === categoryId && !searchQuery) return;
+    if (selectedCategory === categoryId && !searchQuery) return;
 
-  LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-
-  Animated.timing(gridOpacity, {
-    toValue: 0.72,
-    duration: 80,
-    useNativeDriver: true,
-  }).start(() => {
     setSelectedCategory(categoryId);
     setSearchQuery('');
-
-    Animated.timing(gridOpacity, {
-      toValue: 1,
-      duration: 130,
-      useNativeDriver: true,
-    }).start();
-  });
-};
+  };
 
   async function loadData(force = false) {
     if (force) setRefreshing(true);
@@ -584,48 +663,14 @@ export default function NewOrderScreen() {
             const color = getCatColor(cat.name);
 
             return (
-              <TouchableOpacity
+              <CategoryButton
                 key={cat.id}
-                style={[
-                  styles.catItem,
-                  active && styles.catItemActive,
-                ]}
+                cat={cat}
+                active={active}
+                letter={letter}
+                color={color}
                 onPress={() => switchCategory(cat.id)}
-                activeOpacity={0.78}
-              >
-                {active && <View style={styles.catActiveBar} />}
-
-                <View
-                  style={[
-                    styles.catBadge,
-                    {
-                      backgroundColor: active ? PRIMARY : `${color}16`,
-                      borderColor: active ? PRIMARY : `${color}28`,
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.catBadgeLetter,
-                      {
-                        color: active ? '#fff' : color,
-                      },
-                    ]}
-                  >
-                    {letter}
-                  </Text>
-                </View>
-
-                <Text
-                  style={[
-                    styles.catItemText,
-                    active && styles.catItemTextActive,
-                  ]}
-                  numberOfLines={2}
-                >
-                  {cat.name}
-                </Text>
-              </TouchableOpacity>
+              />
             );
           })}
         </ScrollView>
@@ -669,9 +714,8 @@ export default function NewOrderScreen() {
           </TouchableOpacity>
         </View>
 
-        <Animated.View style={[styles.productGridWrap, { opacity: gridOpacity }]}>
-  <FlatList
-    data={filteredProducts}
+        <FlatList
+          data={filteredProducts}
           keyExtractor={p => p.id}
           numColumns={layout.numColumns}
           key={layout.numColumns}
@@ -717,8 +761,7 @@ export default function NewOrderScreen() {
               <Text style={styles.emptyText}>{t.searchProducts}</Text>
             </View>
           }
-          />
-        </Animated.View>
+        />
       </View>
 
       <View style={[styles.orderPanel, { width: layout.orderPanel }]}>
@@ -1557,13 +1600,14 @@ const styles = StyleSheet.create({
   overflow: 'hidden',
 },
 
-  catItemActive: {
+    catItemActive: {
   backgroundColor: PRIMARY_SOFT,
   borderTopLeftRadius: 0,
   borderBottomLeftRadius: 0,
-  borderTopRightRadius: 26,
-  borderBottomRightRadius: 26,
+  borderTopRightRadius: 8,
+  borderBottomRightRadius: 8,
   paddingLeft: 16,
+  marginLeft: -8,
 },
 
   catBadge: {
@@ -1595,6 +1639,7 @@ const styles = StyleSheet.create({
 
   catItemTextActive: {
     color: PRIMARY,
+    fontWeight: '900',
   },
 
   catActiveBar: {
