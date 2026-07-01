@@ -2129,19 +2129,23 @@ const styles = StyleSheet.create({
   },
 
   modalCloseBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 14,
-    backgroundColor: '#F0F1F5',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  width: 34,
+  height: 34,
+  borderRadius: 14,
+  backgroundColor: '#F7F8FA',
+  justifyContent: 'center',
+  alignItems: 'center',
+  borderWidth: thinBorder,
+  borderColor: BORDER,
+},
 
   discountModalBox: {
-    backgroundColor: '#fff',
-    borderRadius: 24,
-    overflow: 'hidden',
-  },
+  backgroundColor: '#fff',
+  borderRadius: 24,
+  overflow: 'hidden',
+  borderWidth: thinBorder,
+  borderColor: BORDER,
+},
 
   discountBody: {
     padding: 16,
@@ -2387,12 +2391,14 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
 
-  addonModalBox: {
-    backgroundColor: '#fff',
-    borderRadius: 24,
-    maxHeight: '84%',
-    overflow: 'hidden',
-  },
+ addonModalBox: {
+  backgroundColor: '#fff',
+  borderRadius: 24,
+  maxHeight: '84%',
+  overflow: 'hidden',
+  borderWidth: thinBorder,
+  borderColor: BORDER,
+},
 
   addonScroll: {
     padding: 18,
