@@ -6,7 +6,7 @@ import { appFont } from '../../lib/fonts';
 
 const PRIMARY = '#8B38CB';
 const MUTED = '#7B7F8C';
-const BORDER = '#ECEEF3';
+const BORDER = '#D8DCE5';
 
 export default function TabsLayout() {
   const { t } = useLanguage();
@@ -29,7 +29,7 @@ export default function TabsLayout() {
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? 'add-circle' : 'add-circle-outline'}
-              size={focused ? 25 : 24}
+              size={24}
               color={color}
             />
           ),
@@ -43,7 +43,7 @@ export default function TabsLayout() {
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? 'receipt' : 'receipt-outline'}
-              size={focused ? 24 : 23}
+              size={23}
               color={color}
             />
           ),
@@ -57,7 +57,7 @@ export default function TabsLayout() {
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? 'settings' : 'settings-outline'}
-              size={focused ? 24 : 23}
+              size={23}
               color={color}
             />
           ),
@@ -69,12 +69,12 @@ export default function TabsLayout() {
 
 const styles = StyleSheet.create({
   tabBar: {
-    height: Platform.OS === 'ios' ? 82 : 62,
+    height: Platform.OS === 'ios' ? 78 : 64,
     backgroundColor: '#FFFFFF',
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: BORDER,
-    paddingTop: Platform.OS === 'ios' ? 5 : 4,
-    paddingBottom: Platform.OS === 'ios' ? 18 : 5,
+    paddingTop: Platform.OS === 'ios' ? 6 : 5,
+    paddingBottom: Platform.OS === 'ios' ? 14 : 6,
     paddingHorizontal: 8,
 
     shadowColor: 'transparent',
@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
   },
 
   tabBarItem: {
-    height: Platform.OS === 'ios' ? 58 : 52,
+    height: Platform.OS === 'ios' ? 56 : 52,
     paddingTop: 0,
     paddingBottom: 0,
     justifyContent: 'center',
