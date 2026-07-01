@@ -858,7 +858,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28,
     paddingVertical: 24,
     alignItems: 'center',
-    borderWidth: 1,
+    borderWidth: thinBorder,
     borderColor: BORDER,
   },
 

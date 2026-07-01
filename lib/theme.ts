@@ -46,7 +46,8 @@ export const colors = {
   // / #ECEEF3 (history, settings) — kept as two tokens: a soft default
   // and a slightly stronger one for inputs/cards on native.
   border: '#ECEEF3',
-  borderStrong: '#D8DCE5',
+  // Darkened from #D8DCE5 for better visibility on native hairline borders
+  borderStrong: '#C4CAD6',
   fieldBorder: '#CDD3DE',
 
   // Text
@@ -92,8 +93,8 @@ export const catPalette = [
 
 export const borders = {
   hairline: StyleSheet.hairlineWidth,
-  // CONSOLIDATED: web thin-border width was `1` (order/history) vs
-  // `0.5` (settings) — standardized to 1.
+  // Web gets a flat 1px line; native keeps the OS-native hairline
+  // (sub-pixel width) for a crisper, platform-appropriate look.
   thin: Platform.OS === 'web' ? 1 : StyleSheet.hairlineWidth,
   medium: 2,
 };

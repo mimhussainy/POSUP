@@ -1009,7 +1009,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28,
     paddingVertical: 24,
     alignItems: 'center',
-    borderWidth: 1,
+    borderWidth: thinBorder,
     borderColor: BORDER,
   },
 
@@ -1081,7 +1081,7 @@ const styles = StyleSheet.create({
     height: 38,
     borderRadius: radii.lg,
     backgroundColor: CARD_BG,
-    borderWidth: 1,
+    borderWidth: thinBorder,
     borderColor: BORDER,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1099,7 +1099,7 @@ const styles = StyleSheet.create({
 
   zReportBtnClosed: {
     backgroundColor: colors.border,
-    borderWidth: 1,
+    borderWidth: thinBorder,
     borderColor: BORDER,
   },
 
@@ -1125,7 +1125,7 @@ const styles = StyleSheet.create({
     maxWidth: MAX_CONTENT_WIDTH,
     alignSelf: 'center',
     backgroundColor: '#F4EEFF',
-    borderWidth: 1,
+    borderWidth: thinBorder,
     borderColor: PRIMARY_BORDER,
     borderRadius: radii.lg,
     paddingVertical: 9,
@@ -1197,7 +1197,7 @@ const styles = StyleSheet.create({
     minHeight: 64,
     backgroundColor: CARD_BG,
     borderRadius: radii.xl,
-    borderWidth: 1,
+    borderWidth: thinBorder,
     borderColor: BORDER,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -1243,7 +1243,7 @@ const styles = StyleSheet.create({
   filtersCard: {
     backgroundColor: CARD_BG,
     borderRadius: radii.xxl,
-    borderWidth: 1,
+    borderWidth: thinBorder,
     borderColor: BORDER,
     padding: 6,
   },
@@ -1340,7 +1340,7 @@ const styles = StyleSheet.create({
     borderRadius: radii.full,
     paddingHorizontal: 10,
     paddingVertical: 5,
-    borderWidth: 1,
+    borderWidth: thinBorder,
     borderColor: PRIMARY_BORDER,
   },
 
@@ -1457,7 +1457,7 @@ const styles = StyleSheet.create({
   analyticsCard: {
     backgroundColor: CARD_BG,
     borderRadius: radii.huge,
-    borderWidth: 1,
+    borderWidth: thinBorder,
     borderColor: BORDER,
     padding: 16,
   },
@@ -1465,7 +1465,7 @@ const styles = StyleSheet.create({
   summaryCard: {
     backgroundColor: CARD_BG,
     borderRadius: radii.huge,
-    borderWidth: 1,
+    borderWidth: thinBorder,
     borderColor: BORDER,
     padding: 16,
   },
@@ -1622,7 +1622,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F7FA',
     borderRadius: radii.xl,
     padding: 12,
-    borderWidth: 1,
+    borderWidth: thinBorder,
     borderColor: BORDER_SOFT,
   },
 
@@ -1736,7 +1736,7 @@ const styles = StyleSheet.create({
     height: 28,
     borderRadius: radii.smd,
     backgroundColor: PRIMARY_SOFT,
-    borderWidth: 1,
+    borderWidth: thinBorder,
     borderColor: PRIMARY_BORDER,
     justifyContent: 'center',
     alignItems: 'center',
@@ -1783,7 +1783,7 @@ const styles = StyleSheet.create({
     borderRadius: radii.lg,
     padding: 11,
     marginTop: 6,
-    borderWidth: 1,
+    borderWidth: thinBorder,
     borderColor: '#FEF3C7',
   },
 
@@ -1822,7 +1822,7 @@ const styles = StyleSheet.create({
 
   finalTotalBox: {
     backgroundColor: PRIMARY_SOFT,
-    borderWidth: 1,
+    borderWidth: thinBorder,
     borderColor: PRIMARY_BORDER,
     borderRadius: radii.xl,
     padding: 13,
@@ -1856,7 +1856,7 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
     marginTop: 16,
     marginBottom: 28,
-    borderWidth: 1,
+    borderWidth: thinBorder,
     borderColor: PRIMARY_BORDER,
   },
 
@@ -1877,7 +1877,7 @@ const styles = StyleSheet.create({
     height: 72,
     borderRadius: 26,
     backgroundColor: PRIMARY_SOFT,
-    borderWidth: 1,
+    borderWidth: thinBorder,
     borderColor: PRIMARY_BORDER,
     alignItems: 'center',
     justifyContent: 'center',
