@@ -29,8 +29,8 @@ const PRIMARY_BORDER = colors.primaryBorder;
 
 const APP_BG = colors.appBg;
 const CARD_BG = colors.cardBg;
-const BORDER = colors.border;
-const BORDER_SOFT = colors.border;
+const BORDER = colors.borderStrong;
+const BORDER_SOFT = colors.borderStrong;
 const TEXT = colors.text;
 const MUTED = colors.muted;
 const SOFT_TEXT = colors.softText;
@@ -1226,7 +1226,7 @@ const styles = StyleSheet.create({
 
   statValue: {
     fontSize: fontSizes.mdl,
-    fontWeight: fontWeights.extrabold,
+    fontWeight: fontWeights.black,
     marginBottom: 2,
     lineHeight: 18,
     fontFamily: appFont,
