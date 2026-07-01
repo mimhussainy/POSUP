@@ -26,7 +26,7 @@ const PRIMARY = '#8B38CB';
 const PRIMARY_SOFT = '#F6EEFF';
 const PRIMARY_BORDER = '#E9D5FF';
 
-const APP_BG = '#F7F8FB';
+const APP_BG = '#F5F5F5';
 const CARD_BG = '#FFFFFF';
 const BORDER = '#ECEEF3';
 const BORDER_SOFT = '#F1F3F8';
@@ -91,14 +91,17 @@ export default function HistoryScreen() {
 
   const contentWidth = Math.min(windowWidth - PAGE_PADDING * 2, MAX_CONTENT_WIDTH);
 const showAnalyticsPanel = windowWidth >= 1100;
-const analyticsPanelWidth = showAnalyticsPanel
-  ? Math.floor(contentWidth * ANALYTICS_PANEL_RATIO)
-  : 0;
-const listWidth = showAnalyticsPanel
-  ? contentWidth - analyticsPanelWidth - PAGE_PADDING
-  : contentWidth;
-const numColumns = getNumColumns(listWidth);
+const splitGap = showAnalyticsPanel ? PAGE_PADDING : 0;
 
+const analyticsPanelWidth = showAnalyticsPanel
+  ? Math.floor((contentWidth - splitGap) * 0.35)
+  : 0;
+
+const listWidth = showAnalyticsPanel
+  ? contentWidth - splitGap - analyticsPanelWidth
+  : contentWidth;
+
+const numColumns = getNumColumns(listWidth);
   useEffect(() => {
     const sub = Dimensions.addEventListener('change', ({ window }) => {
       setWindowWidth(window.width);
@@ -745,7 +748,7 @@ const numColumns = getNumColumns(listWidth);
 
       <View style={styles.bodyOuter}>
         <View style={[styles.bodyShell, showAnalyticsPanel && styles.bodyShellSplit]}>
-          <View style={styles.leftPane}>
+          <View style={[styles.leftPane, showAnalyticsPanel && { width: listWidth }]}>
             <FlatList
               data={paddedOrders}
               keyExtractor={(item, index) =>
@@ -1166,9 +1169,8 @@ const styles = StyleSheet.create({
   },
 
   leftPane: {
-    flex: 1,
-    minWidth: 0,
-  },
+  minWidth: 0,
+},
 
   rightPane: {},
 
