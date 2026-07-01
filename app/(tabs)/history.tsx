@@ -41,7 +41,7 @@ const RED = '#EF4444';
 
 const PAGE_PADDING = 16;
 const MAX_CONTENT_WIDTH = 1480;
-const ANALYTICS_PANEL_WIDTH = 350;
+const ANALYTICS_PANEL_RATIO = 0.35;
 
 interface POSOrder {
   id: string;
@@ -90,11 +90,14 @@ export default function HistoryScreen() {
   const [windowWidth, setWindowWidth] = useState(Dimensions.get('window').width);
 
   const contentWidth = Math.min(windowWidth - PAGE_PADDING * 2, MAX_CONTENT_WIDTH);
-  const showAnalyticsPanel = windowWidth >= 1100;
-  const listWidth = showAnalyticsPanel
-    ? contentWidth - ANALYTICS_PANEL_WIDTH - PAGE_PADDING
-    : contentWidth;
-  const numColumns = getNumColumns(listWidth);
+const showAnalyticsPanel = windowWidth >= 1100;
+const analyticsPanelWidth = showAnalyticsPanel
+  ? Math.floor(contentWidth * ANALYTICS_PANEL_RATIO)
+  : 0;
+const listWidth = showAnalyticsPanel
+  ? contentWidth - analyticsPanelWidth - PAGE_PADDING
+  : contentWidth;
+const numColumns = getNumColumns(listWidth);
 
   useEffect(() => {
     const sub = Dimensions.addEventListener('change', ({ window }) => {
@@ -694,12 +697,8 @@ export default function HistoryScreen() {
       <View style={styles.headerOuter}>
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <Text style={styles.headerKicker}>POSUP</Text>
-            <Text style={styles.headerTitle}>{historyTitle}</Text>
-            <Text style={styles.headerSubtitle} numberOfLines={1}>
-              {filteredOrders.length} {t.orders} · {formatMoney(revenue)}
-            </Text>
-          </View>
+          <Text style={styles.headerTitle}>{historyTitle}</Text>
+        </View>
 
           <View style={styles.headerRight}>
             <TouchableOpacity
@@ -783,7 +782,7 @@ export default function HistoryScreen() {
 
           {showAnalyticsPanel && (
             <ScrollView
-              style={styles.rightPane}
+              style={[styles.rightPane, { width: analyticsPanelWidth }]}
               contentContainerStyle={styles.rightPaneContent}
               showsVerticalScrollIndicator={false}
             >
@@ -1028,26 +1027,24 @@ const styles = StyleSheet.create({
   },
 
   headerOuter: {
-    backgroundColor: APP_BG,
-    paddingHorizontal: PAGE_PADDING,
-    paddingTop: Platform.OS === 'android'
-      ? Math.max(6, (StatusBar.currentHeight || 24) - 18)
-      : Platform.OS === 'web'
-        ? 14
-        : 10,
-    paddingBottom: 8,
-  },
+  height: 75,
+  backgroundColor: CARD_BG,
+  paddingHorizontal: PAGE_PADDING,
+  borderBottomWidth: 1,
+  borderBottomColor: BORDER,
+  justifyContent: 'center',
+},
 
   header: {
-    width: '100%',
-    maxWidth: MAX_CONTENT_WIDTH,
-    alignSelf: 'center',
-    minHeight: 62,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
+  width: '100%',
+  maxWidth: MAX_CONTENT_WIDTH,
+  alignSelf: 'center',
+  height: 75,
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  gap: 12,
+},
 
   headerLeft: {
     flex: 1,
@@ -1064,12 +1061,11 @@ const styles = StyleSheet.create({
   },
 
   headerTitle: {
-    marginTop: 1,
-    fontSize: 22,
-    fontWeight: '800',
-    color: TEXT,
-    fontFamily: appFont,
-  },
+  fontSize: 22,
+  fontWeight: '700',
+  color: TEXT,
+  fontFamily: appFont,
+},
 
   headerSubtitle: {
     marginTop: 2,
@@ -1174,19 +1170,17 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
 
-  rightPane: {
-    width: ANALYTICS_PANEL_WIDTH,
-  },
+  rightPane: {},
 
   rightPaneContent: {
-    paddingTop: 8,
-    paddingBottom: 110,
-  },
+  paddingTop: 16,
+  paddingBottom: 110,
+},
 
   listContent: {
-    paddingTop: 8,
-    paddingBottom: 110,
-  },
+  paddingTop: 16,
+  paddingBottom: 110,
+},
 
   listContentEmpty: {
     flexGrow: 1,
