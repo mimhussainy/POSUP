@@ -30,7 +30,7 @@ const PRIMARY_BORDER = '#E6D5FF';
 
 const APP_BG = '#F5F5F5';
 const CARD_BG = '#FFFFFF';
-const BORDER = '#D8DCE5';
+const BORDER = '#ECEEF3';
 const TEXT = '#171725';
 const MUTED = '#7A7F8C';
 const SOFT_TEXT = '#5F6572';
@@ -41,23 +41,28 @@ const ORANGE = '#F59E0B';
 
 const PAGE_PADDING = 16;
 const MAX_CONTENT_WIDTH = 760;
-const thinBorder = StyleSheet.hairlineWidth;
+const thinBorder = Platform.OS === 'web' ? 0.5 : StyleSheet.hairlineWidth;
 
 
 function PrinterStatusCard({
   t,
+  language,
   printerIp,
   printerPort,
   printerModel,
 }: {
   t: any;
+  language: string;
   printerIp: string;
   printerPort: string;
   printerModel: string;
 }) {
-  const printerModelLabel = t?.printerModel || 'Modell';
-  const printerNotConfiguredLabel = t?.printerNotConfigured || 'Nicht konfiguriert';
-  const printerSetIpLabel = t?.printerSetIp || 'Drucker-IP im WordPress-Plugin setzen';
+  const isGerman = language === 'de';
+  const tr = (key: string, en: string, de: string) => t?.[key] || (isGerman ? de : en);
+
+  const printerModelLabel = tr('printerModel', 'Model', 'Modell');
+  const printerNotConfiguredLabel = tr('printerNotConfigured', 'Not configured', 'Nicht konfiguriert');
+  const printerSetIpLabel = tr('printerSetIp', 'Set printer IP in the WordPress plugin', 'Drucker-IP im WordPress-Plugin setzen');
 
   const [status, setStatus] = useState<'checking' | 'online' | 'offline' | 'unknown'>('unknown');
 
@@ -125,12 +130,12 @@ function PrinterStatusCard({
 
   const statusLabel =
     status === 'online'
-      ? 'Online'
+      ? tr('online', 'Online', 'Online')
       : status === 'offline'
-        ? 'Offline'
+        ? tr('offline', 'Offline', 'Offline')
         : status === 'checking'
-          ? 'Checking...'
-          : 'Unknown';
+          ? tr('checking', 'Checking...', 'Wird geprüft...')
+          : tr('unknown', 'Unknown', 'Unbekannt');
 
   const statusBg =
     status === 'online'
@@ -144,8 +149,7 @@ function PrinterStatusCard({
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionKicker}>{t?.printerSection || 'PRINTER'}</Text>
-        <Text style={styles.sectionTitle}>{t?.printerStatus || 'Printer Status'}</Text>
+        <Text style={styles.sectionTitle}>{tr('printerStatus', 'Printer Status', 'Druckerstatus')}</Text>
       </View>
 
       <View style={styles.card}>
@@ -167,7 +171,7 @@ function PrinterStatusCard({
             </View>
 
             <View style={styles.infoText}>
-              <Text style={styles.infoLabel}>Address</Text>
+              <Text style={styles.infoLabel}>{tr('address', 'Address', 'Adresse')}</Text>
               <Text style={styles.infoValue}>{printerIp}:{printerPort || '9100'}</Text>
             </View>
 
@@ -233,6 +237,30 @@ export default function Settings() {
   const isNarrow = windowWidth < 760;
   const contentWidthStyle = isNarrow ? styles.contentInnerMobile : null;
 
+  const isGerman = language === 'de';
+
+  const labels = {
+    restaurantSection: isGerman ? 'RESTAURANT' : 'RESTAURANT',
+    restaurantTitle: isGerman ? 'Restaurant' : 'Restaurant',
+    dayManagementSection: isGerman ? 'TAG' : 'DAY',
+    dayManagementTitle: isGerman ? 'Tagesverwaltung' : 'Day Management',
+    languageSection: isGerman ? 'APP' : 'APP',
+    languageTitle: isGerman ? 'Sprache' : 'Language',
+    account: isGerman ? 'Konto' : 'Account',
+    security: isGerman ? 'Sicherheit' : 'Security',
+    poweredBy: isGerman ? 'Powered by' : 'Powered by',
+    fillAllFields: isGerman ? 'Bitte alle Felder ausfüllen' : 'Please fill in all fields',
+    pinMismatch: isGerman ? 'Neue PIN und Bestätigung stimmen nicht überein' : 'New PIN and confirmation do not match',
+    pinTooShort: isGerman ? 'PIN muss mindestens 4 Zeichen lang sein' : 'PIN must be at least 4 characters',
+    pinChanged: isGerman ? 'PIN erfolgreich geändert' : 'PIN changed successfully',
+    pinIncorrect: isGerman ? 'Aktuelle PIN ist falsch' : 'Current PIN is incorrect',
+    pinChangeFailed: isGerman ? 'PIN konnte nicht geändert werden' : 'Failed to change PIN',
+    dayReopened: isGerman ? 'Der Tag wurde erfolgreich wieder geöffnet.' : 'The day has been reopened successfully.',
+    ok: isGerman ? 'OK' : 'OK',
+  };
+
+  const tr = (key: string, fallback: string) => ((t as any)?.[key] || fallback);
+
   useEffect(() => {
     const sub = Dimensions.addEventListener('change', ({ window }) => {
       setWindowWidth(window.width);
@@ -294,17 +322,17 @@ export default function Settings() {
 
   const handleChangePin = async () => {
     if (!currentPin || !newPin || !confirmPin) {
-      alert('Please fill in all fields');
+      alert(tr('fillAllFields', labels.fillAllFields));
       return;
     }
 
     if (newPin !== confirmPin) {
-      alert('New PIN and confirmation do not match');
+      alert(tr('pinMismatch', labels.pinMismatch));
       return;
     }
 
     if (newPin.length < 4) {
-      alert('PIN must be at least 4 characters');
+      alert(tr('pinTooShort', labels.pinTooShort));
       return;
     }
 
@@ -326,12 +354,12 @@ export default function Settings() {
       if (data.success) {
         await AsyncStorage.setItem('owner_pin', newPin);
         closePinModal();
-        alert('PIN changed successfully');
+        alert(tr('pinChanged', labels.pinChanged));
       } else {
-        alert(data.message || 'Current PIN is incorrect');
+        alert(data.message || tr('pinIncorrect', labels.pinIncorrect));
       }
     } catch (e) {
-      alert('Failed to change PIN');
+      alert(tr('pinChangeFailed', labels.pinChangeFailed));
     } finally {
       setChangingPin(false);
     }
@@ -347,9 +375,8 @@ export default function Settings() {
     setReopenModal(true);
   };
 
-  const renderSectionHeader = (kicker: string, title: string) => (
+  const renderSectionHeader = (title: string) => (
     <View style={styles.sectionHeader}>
-      <Text style={styles.sectionKicker}>{kicker}</Text>
       <Text style={styles.sectionTitle}>{title}</Text>
     </View>
   );
@@ -371,20 +398,20 @@ export default function Settings() {
         <View style={styles.headerInner}>
           <View style={styles.header}>
             <View style={styles.headerLeft}>
-  <Text style={styles.headerTitle}>{t.settings}</Text>
-</View>
+              <Text style={styles.headerTitle}>{t.settings}</Text>
+            </View>
 
             <TouchableOpacity
-  style={styles.aboutHeaderBtn}
-  onPress={() => setAboutModal(true)}
-  activeOpacity={0.75}
->
-  <Image
-    source={require('../../assets/favicon-dashboard.png')}
-    style={styles.aboutHeaderIcon}
-    resizeMode="contain"
-  />
-</TouchableOpacity>
+              style={styles.aboutHeaderBtn}
+              onPress={() => setAboutModal(true)}
+              activeOpacity={0.75}
+            >
+              <Image
+                source={require('../../assets/favicon-dashboard.png')}
+                style={styles.aboutHeaderIcon}
+                resizeMode="contain"
+              />
+            </TouchableOpacity>
           </View>
         </View>
       </View>
@@ -397,7 +424,7 @@ export default function Settings() {
         <View style={[styles.contentInner, contentWidthStyle]}>
           <View style={styles.sectionsGrid}>
             <View style={styles.section}>
-              {renderSectionHeader(t.restaurantSection, 'Restaurant')}
+              {renderSectionHeader(tr('restaurantTitle', labels.restaurantTitle))}
 
               <View style={styles.card}>
                 <View style={styles.infoRow}>
@@ -447,13 +474,14 @@ export default function Settings() {
 
             <PrinterStatusCard
               t={t}
+              language={language}
               printerIp={printerIp}
               printerPort={printerPort}
               printerModel={printerModel}
             />
 
             <View style={styles.section}>
-              {renderSectionHeader(t.dayManagementSection, 'Day Management')}
+              {renderSectionHeader(tr('dayManagementTitle', labels.dayManagementTitle))}
 
               <View style={styles.card}>
                 <TouchableOpacity
@@ -476,7 +504,7 @@ export default function Settings() {
             </View>
 
             <View style={styles.section}>
-              {renderSectionHeader(t.language, 'Language')}
+              {renderSectionHeader(tr('languageTitle', labels.languageTitle))}
 
               <View style={styles.card}>
                 <View style={styles.languageRow}>
@@ -554,7 +582,6 @@ export default function Settings() {
           >
             <View style={styles.modalHeader}>
               <View>
-                <Text style={styles.modalKicker}>Day Management</Text>
                 <Text style={styles.modalTitle}>{t.reopenDay}</Text>
               </View>
 
@@ -573,7 +600,7 @@ export default function Settings() {
               </View>
 
               <Text style={styles.modalMessage}>
-                The day has been reopened successfully.
+                {tr('dayReopened', labels.dayReopened)}
               </Text>
 
               <TouchableOpacity
@@ -581,7 +608,7 @@ export default function Settings() {
                 onPress={() => setReopenModal(false)}
                 activeOpacity={0.78}
               >
-                <Text style={styles.saveBtnText}>OK</Text>
+                <Text style={styles.saveBtnText}>{tr('ok', labels.ok)}</Text>
               </TouchableOpacity>
             </View>
           </TouchableOpacity>
@@ -601,7 +628,6 @@ export default function Settings() {
           >
             <View style={styles.modalHeader}>
               <View>
-                <Text style={styles.modalKicker}>Account</Text>
                 <Text style={styles.modalTitle}>{t.logout}</Text>
               </View>
 
@@ -652,7 +678,6 @@ export default function Settings() {
           >
             <View style={styles.modalHeader}>
               <View>
-                <Text style={styles.modalKicker}>Security</Text>
                 <Text style={styles.modalTitle}>{t.changePin}</Text>
               </View>
 
@@ -708,7 +733,7 @@ export default function Settings() {
                 {changingPin ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={styles.saveBtnText}>{t.newPin}</Text>
+                  <Text style={styles.saveBtnText}>{t.changePin}</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -729,7 +754,6 @@ export default function Settings() {
           >
             <View style={styles.modalHeader}>
               <View>
-                <Text style={styles.modalKicker}>Powered by</Text>
                 <Text style={styles.modalTitle}>FoodUp</Text>
               </View>
 
@@ -902,7 +926,7 @@ const styles = StyleSheet.create({
   aboutHeaderIcon: {
   width: 24,
   height: 24,
-  borderRadius: 7,
+  borderRadius: 0,
 },
 
   aboutHeaderBtn: {
@@ -927,20 +951,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 3,
   },
 
-  sectionKicker: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: PRIMARY,
-    textTransform: 'uppercase',
-    letterSpacing: 0.7,
-    fontFamily: appFont,
-  },
 
   sectionTitle: {
     marginTop: 2,
-    fontSize: 16,
+    fontSize: 12,
     fontWeight: '800',
-    color: TEXT,
+    color: '#555B66',
+    textTransform: 'uppercase',
+    letterSpacing: 0.7,
     fontFamily: appFont,
   },
 
@@ -1183,14 +1201,6 @@ const styles = StyleSheet.create({
     gap: 14,
   },
 
-  modalKicker: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: PRIMARY,
-    textTransform: 'uppercase',
-    letterSpacing: 0.7,
-    fontFamily: appFont,
-  },
 
   modalTitle: {
     marginTop: 3,

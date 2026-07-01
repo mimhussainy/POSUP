@@ -492,7 +492,6 @@ const numColumns = getNumColumns(listWidth);
         <View style={styles.analyticsCard}>
           <View style={styles.sectionHeaderRow}>
             <View>
-              <Text style={styles.sectionKicker}>Analyse</Text>
               <Text style={styles.sectionTitle}>Top Products</Text>
             </View>
 
@@ -553,7 +552,6 @@ const numColumns = getNumColumns(listWidth);
         <View style={styles.summaryCard}>
           <View style={styles.sectionHeaderRow}>
             <View>
-              <Text style={styles.sectionKicker}>Übersicht</Text>
               <Text style={styles.sectionTitle}>Summary</Text>
             </View>
 
@@ -1493,9 +1491,11 @@ const styles = StyleSheet.create({
 
   sectionTitle: {
     marginTop: 2,
-    fontSize: 16,
+    fontSize: 12,
     fontWeight: '800',
-    color: TEXT,
+    color: '#8B38CB',
+    textTransform: 'uppercase',
+    letterSpacing: 0.7,
     fontFamily: appFont,
   },
 
