@@ -371,24 +371,20 @@ export default function Settings() {
         <View style={styles.headerInner}>
           <View style={styles.header}>
             <View style={styles.headerLeft}>
-  <View style={styles.headerTitleRow}>
-    <Image
-      source={require('../../assets/favicon-dashboard.png')}
-      style={styles.headerIcon}
-      resizeMode="contain"
-    />
-
-    <Text style={styles.headerTitle}>{t.settings}</Text>
-  </View>
+  <Text style={styles.headerTitle}>{t.settings}</Text>
 </View>
 
             <TouchableOpacity
-              style={styles.aboutHeaderBtn}
-              onPress={() => setAboutModal(true)}
-              activeOpacity={0.75}
-            >
-              <Ionicons name="information-circle-outline" size={20} color={PRIMARY} />
-            </TouchableOpacity>
+  style={styles.aboutHeaderBtn}
+  onPress={() => setAboutModal(true)}
+  activeOpacity={0.75}
+>
+  <Image
+    source={require('../../assets/favicon-dashboard.png')}
+    style={styles.aboutHeaderIcon}
+    resizeMode="contain"
+  />
+</TouchableOpacity>
           </View>
         </View>
       </View>
@@ -879,18 +875,6 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
 
-headerTitleRow: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  gap: 10,
-},
-
-headerIcon: {
-  width: 32,
-  height: 32,
-  borderRadius: 10,
-},
-
   headerKicker: {
     fontSize: 10,
     fontWeight: '800',
@@ -914,6 +898,12 @@ headerIcon: {
     fontWeight: '600',
     fontFamily: appFont,
   },
+
+  aboutHeaderIcon: {
+  width: 24,
+  height: 24,
+  borderRadius: 7,
+},
 
   aboutHeaderBtn: {
   width: 38,
