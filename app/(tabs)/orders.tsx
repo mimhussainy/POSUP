@@ -1745,12 +1745,12 @@ const styles = StyleSheet.create({
     marginTop: 14,
   },
 
-  productPriceLabel: {
+    productPriceLabel: {
     fontSize: 10,
-    fontWeight: '800',
-    color: '#A4A8B2',
+    fontWeight: '600',
+    color: '#B8BBC4',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.4,
     marginBottom: 2,
     fontFamily: appFont,
   },
