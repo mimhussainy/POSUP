@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,10 @@ import {
   StyleSheet,
   TextInput,
   Dimensions,
-  Platform,
+    Platform,
+  Animated,
+  LayoutAnimation,
+  UIManager,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -40,8 +43,8 @@ const getLayout = (width: number) => {
   const isLarge = width > 1440;
 
   const catSidebar = isCompact
-    ? Math.max(108, Math.min(132, width * 0.15))
-    : Math.max(142, Math.min(184, width * 0.115));
+  ? Math.max(133, Math.min(157, width * 0.15 + 25))
+  : Math.max(167, Math.min(209, width * 0.115 + 25));
 
   const orderPanel = isCompact
     ? Math.max(292, Math.min(344, width * 0.34))
@@ -164,6 +167,13 @@ export default function NewOrderScreen() {
   const [restaurantLogo, setRestaurantLogo] = useState('');
 
   const [layout, setLayout] = useState(getLayout(Dimensions.get('window').width));
+  const gridOpacity = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+  if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+    UIManager.setLayoutAnimationEnabledExperimental(true);
+  }
+}, []);
 
   useEffect(() => {
     const sub = Dimensions.addEventListener('change', ({ window }) => {
@@ -185,6 +195,27 @@ export default function NewOrderScreen() {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
   };
+
+  const switchCategory = (categoryId: string) => {
+  if (selectedCategory === categoryId && !searchQuery) return;
+
+  LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+
+  Animated.timing(gridOpacity, {
+    toValue: 0.72,
+    duration: 80,
+    useNativeDriver: true,
+  }).start(() => {
+    setSelectedCategory(categoryId);
+    setSearchQuery('');
+
+    Animated.timing(gridOpacity, {
+      toValue: 1,
+      duration: 130,
+      useNativeDriver: true,
+    }).start();
+  });
+};
 
   async function loadData(force = false) {
     if (force) setRefreshing(true);
@@ -559,10 +590,7 @@ export default function NewOrderScreen() {
                   styles.catItem,
                   active && styles.catItemActive,
                 ]}
-                onPress={() => {
-                  setSelectedCategory(cat.id);
-                  setSearchQuery('');
-                }}
+                onPress={() => switchCategory(cat.id)}
                 activeOpacity={0.78}
               >
                 {active && <View style={styles.catActiveBar} />}
@@ -641,8 +669,9 @@ export default function NewOrderScreen() {
           </TouchableOpacity>
         </View>
 
-        <FlatList
-          data={filteredProducts}
+        <Animated.View style={[styles.productGridWrap, { opacity: gridOpacity }]}>
+  <FlatList
+    data={filteredProducts}
           keyExtractor={p => p.id}
           numColumns={layout.numColumns}
           key={layout.numColumns}
@@ -688,7 +717,8 @@ export default function NewOrderScreen() {
               <Text style={styles.emptyText}>{t.searchProducts}</Text>
             </View>
           }
-        />
+          />
+        </Animated.View>
       </View>
 
       <View style={[styles.orderPanel, { width: layout.orderPanel }]}>
@@ -1516,22 +1546,25 @@ const styles = StyleSheet.create({
   },
 
   catItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 9,
-    paddingHorizontal: 8,
-    borderRadius: 14,
-    position: 'relative',
-    marginBottom: 6,
-    minHeight: 54,
-    overflow: 'visible',
-  },
+  flexDirection: 'row',
+  alignItems: 'center',
+  paddingVertical: 9,
+  paddingHorizontal: 8,
+  borderRadius: 14,
+  position: 'relative',
+  marginBottom: 6,
+  minHeight: 54,
+  overflow: 'hidden',
+},
 
   catItemActive: {
-    backgroundColor: PRIMARY_SOFT,
-    borderTopLeftRadius: 0,
-    borderBottomLeftRadius: 0,
-  },
+  backgroundColor: PRIMARY_SOFT,
+  borderTopLeftRadius: 0,
+  borderBottomLeftRadius: 0,
+  borderTopRightRadius: 26,
+  borderBottomRightRadius: 26,
+  paddingLeft: 16,
+},
 
   catBadge: {
   width: 36,
@@ -1565,15 +1598,15 @@ const styles = StyleSheet.create({
   },
 
   catActiveBar: {
-    position: 'absolute',
-    left: -8,
-    top: 6,
-    bottom: 6,
-    width: 4,
-    backgroundColor: PRIMARY,
-    borderTopRightRadius: 8,
-    borderBottomRightRadius: 8,
-  },
+  position: 'absolute',
+  left: 0,
+  top: 10,
+  bottom: 10,
+  width: 5,
+  backgroundColor: PRIMARY,
+  borderTopRightRadius: 8,
+  borderBottomRightRadius: 8,
+},
 
   middle: {
     flex: 1,
@@ -1620,6 +1653,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+
+  productGridWrap: {
+  flex: 1,
+},
 
   grid: {
     paddingHorizontal: 14,
