@@ -19,28 +19,30 @@ import { useFocusEffect } from 'expo-router';
 import { useLanguage } from '../../lib/LanguageContext';
 import { appFont } from '../../lib/fonts';
 import { printOrder, printZReport } from '../../lib/printer';
+import { colors, borders, radii, fontSizes, fontWeights } from '../../lib/theme';
 
 const BACKEND = 'https://foodup-order-alerts-backend.onrender.com';
 
-const PRIMARY = '#8B38CB';
-const PRIMARY_SOFT = '#F6EEFF';
-const PRIMARY_BORDER = '#E9D5FF';
+const PRIMARY = colors.primary;
+const PRIMARY_SOFT = colors.primarySoft;
+const PRIMARY_BORDER = colors.primaryBorder;
 
-const APP_BG = '#F5F5F5';
-const CARD_BG = '#FFFFFF';
-const BORDER = '#ECEEF3';
-const BORDER_SOFT = '#F1F3F8';
-const TEXT = '#111827';
-const MUTED = '#6B7280';
-const SOFT_TEXT = '#4B5563';
+const APP_BG = colors.appBg;
+const CARD_BG = colors.cardBg;
+const BORDER = colors.border;
+const BORDER_SOFT = colors.border;
+const TEXT = colors.text;
+const MUTED = colors.muted;
+const SOFT_TEXT = colors.softText;
 
-const GREEN = '#16A34A';
-const BLUE = '#2563EB';
-const ORANGE = '#F97316';
-const RED = '#EF4444';
+const GREEN = colors.success;
+const BLUE = colors.info;
+const ORANGE = colors.warning;
+const RED = colors.danger;
 
 const PAGE_PADDING = 16;
 const MAX_CONTENT_WIDTH = 1480;
+const thinBorder = borders.thin;
 const ANALYTICS_PANEL_RATIO = 0.35;
 
 interface POSOrder {
@@ -1003,7 +1005,7 @@ const styles = StyleSheet.create({
 
   loadingCard: {
     backgroundColor: CARD_BG,
-    borderRadius: 18,
+    borderRadius: radii.xxl,
     paddingHorizontal: 28,
     paddingVertical: 24,
     alignItems: 'center',
@@ -1014,30 +1016,30 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     color: MUTED,
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: fontSizes.md,
+    fontWeight: fontWeights.semibold,
     fontFamily: appFont,
   },
 
   headerOuter: {
-  height: 75,
-  backgroundColor: CARD_BG,
-  paddingHorizontal: PAGE_PADDING,
-  borderBottomWidth: 1,
-  borderBottomColor: BORDER,
-  justifyContent: 'center',
-},
+    height: 75,
+    backgroundColor: CARD_BG,
+    paddingHorizontal: PAGE_PADDING,
+    borderBottomWidth: thinBorder,
+    borderBottomColor: BORDER,
+    justifyContent: 'center',
+  },
 
   header: {
-  width: '100%',
-  maxWidth: MAX_CONTENT_WIDTH,
-  alignSelf: 'center',
-  height: 75,
-  flexDirection: 'row',
-  alignItems: 'center',
-  justifyContent: 'space-between',
-  gap: 12,
-},
+    width: '100%',
+    maxWidth: MAX_CONTENT_WIDTH,
+    alignSelf: 'center',
+    height: 75,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
 
   headerLeft: {
     flex: 1,
@@ -1045,8 +1047,8 @@ const styles = StyleSheet.create({
   },
 
   headerKicker: {
-    fontSize: 10,
-    fontWeight: '800',
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.extrabold,
     color: PRIMARY,
     textTransform: 'uppercase',
     letterSpacing: 0.7,
@@ -1054,16 +1056,16 @@ const styles = StyleSheet.create({
   },
 
   headerTitle: {
-  fontSize: 22,
-  fontWeight: '700',
-  color: TEXT,
-  fontFamily: appFont,
-},
+    fontSize: fontSizes.massive,
+    fontWeight: fontWeights.bold,
+    color: TEXT,
+    fontFamily: appFont,
+  },
 
   headerSubtitle: {
     marginTop: 2,
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: fontSizes.smd,
+    fontWeight: fontWeights.semibold,
     color: MUTED,
     fontFamily: appFont,
   },
@@ -1077,7 +1079,7 @@ const styles = StyleSheet.create({
   refreshBtn: {
     width: 38,
     height: 38,
-    borderRadius: 14,
+    borderRadius: radii.lg,
     backgroundColor: CARD_BG,
     borderWidth: 1,
     borderColor: BORDER,
@@ -1090,20 +1092,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 7,
     backgroundColor: PRIMARY,
-    borderRadius: 14,
+    borderRadius: radii.lg,
     paddingHorizontal: 13,
     paddingVertical: 10,
   },
 
   zReportBtnClosed: {
-    backgroundColor: '#ECEEF3',
+    backgroundColor: colors.border,
     borderWidth: 1,
     borderColor: BORDER,
   },
 
   zReportBtnText: {
-    fontSize: 12,
-    fontWeight: '800',
+    fontSize: fontSizes.smd,
+    fontWeight: fontWeights.extrabold,
     color: '#fff',
     fontFamily: appFont,
   },
@@ -1125,7 +1127,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F4EEFF',
     borderWidth: 1,
     borderColor: PRIMARY_BORDER,
-    borderRadius: 14,
+    borderRadius: radii.lg,
     paddingVertical: 9,
     paddingHorizontal: 12,
     flexDirection: 'row',
@@ -1136,8 +1138,8 @@ const styles = StyleSheet.create({
 
   dayClosedText: {
     color: '#5B3AA8',
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: fontSizes.smd,
+    fontWeight: fontWeights.bold,
     fontFamily: appFont,
   },
 
@@ -1159,20 +1161,20 @@ const styles = StyleSheet.create({
   },
 
   leftPane: {
-  minWidth: 0,
-},
+    minWidth: 0,
+  },
 
   rightPane: {},
 
   rightPaneContent: {
-  paddingTop: 16,
-  paddingBottom: 110,
-},
+    paddingTop: 16,
+    paddingBottom: 110,
+  },
 
   listContent: {
-  paddingTop: 16,
-  paddingBottom: 110,
-},
+    paddingTop: 16,
+    paddingBottom: 110,
+  },
 
   listContentEmpty: {
     flexGrow: 1,
@@ -1194,7 +1196,7 @@ const styles = StyleSheet.create({
     flexBasis: 180,
     minHeight: 64,
     backgroundColor: CARD_BG,
-    borderRadius: 16,
+    borderRadius: radii.xl,
     borderWidth: 1,
     borderColor: BORDER,
     paddingHorizontal: 12,
@@ -1212,7 +1214,7 @@ const styles = StyleSheet.create({
   statIconBox: {
     width: 34,
     height: 34,
-    borderRadius: 13,
+    borderRadius: radii.mdl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1223,28 +1225,27 @@ const styles = StyleSheet.create({
   },
 
   statValue: {
-    fontSize: 14,
-    fontWeight: '800',
+    fontSize: fontSizes.mdl,
+    fontWeight: fontWeights.extrabold,
     marginBottom: 2,
     lineHeight: 18,
     fontFamily: appFont,
   },
 
   statLabel: {
-    fontSize: 11,
+    fontSize: fontSizes.sm,
     color: MUTED,
-    fontWeight: '700',
+    fontWeight: fontWeights.bold,
     lineHeight: 14,
     fontFamily: appFont,
   },
 
   filtersCard: {
     backgroundColor: CARD_BG,
-    borderRadius: 18,
+    borderRadius: radii.xxl,
     borderWidth: 1,
     borderColor: BORDER,
     padding: 6,
-
   },
 
   filterRow: {
@@ -1258,7 +1259,7 @@ const styles = StyleSheet.create({
     minHeight: 34,
     minWidth: 76,
     paddingHorizontal: 14,
-    borderRadius: 999,
+    borderRadius: radii.full,
     backgroundColor: '#EEF1F6',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1269,8 +1270,8 @@ const styles = StyleSheet.create({
   },
 
   filterTabText: {
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: fontSizes.smd,
+    fontWeight: fontWeights.bold,
     color: '#555B66',
     fontFamily: appFont,
   },
@@ -1280,9 +1281,9 @@ const styles = StyleSheet.create({
   },
 
   columnWrapper: {
-  gap: 12,
-  alignItems: 'stretch',
-},
+    gap: 12,
+    alignItems: 'stretch',
+  },
 
   emptyCard: {
     minHeight: 260,
@@ -1295,15 +1296,15 @@ const styles = StyleSheet.create({
   emptyIconCircle: {
     width: 76,
     height: 76,
-    borderRadius: 28,
+    borderRadius: radii.giant,
     backgroundColor: '#EEF0F5',
     alignItems: 'center',
     justifyContent: 'center',
   },
 
   emptyTitle: {
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: fontSizes.mdl,
+    fontWeight: fontWeights.bold,
     color: MUTED,
     fontFamily: appFont,
   },
@@ -1312,12 +1313,11 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 112,
     backgroundColor: CARD_BG,
-    borderRadius: 18,
+    borderRadius: radii.xxl,
     padding: 13,
     borderWidth: 1,
     borderColor: BORDER,
     marginBottom: 12,
-
   },
 
   orderCardPlaceholder: {
@@ -1337,7 +1337,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 5,
     backgroundColor: PRIMARY_SOFT,
-    borderRadius: 999,
+    borderRadius: radii.full,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderWidth: 1,
@@ -1345,15 +1345,15 @@ const styles = StyleSheet.create({
   },
 
   orderNumberText: {
-    fontSize: 13,
-    fontWeight: '800',
+    fontSize: fontSizes.md,
+    fontWeight: fontWeights.extrabold,
     color: PRIMARY,
     fontFamily: appFont,
   },
 
   orderTotal: {
-    fontSize: 16,
-    fontWeight: '800',
+    fontSize: fontSizes.lgl,
+    fontWeight: fontWeights.extrabold,
     color: TEXT,
     fontFamily: appFont,
   },
@@ -1375,9 +1375,9 @@ const styles = StyleSheet.create({
   },
 
   orderMeta: {
-    fontSize: 12,
+    fontSize: fontSizes.smd,
     color: MUTED,
-    fontWeight: '600',
+    fontWeight: fontWeights.semibold,
     fontFamily: appFont,
   },
 
@@ -1385,26 +1385,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    borderRadius: 999,
+    borderRadius: radii.full,
     paddingHorizontal: 8,
     paddingVertical: 4,
   },
 
   payBadgeCash: {
-    backgroundColor: '#EAFBF1',
+    backgroundColor: colors.successSoft,
   },
 
   payBadgeCard: {
-    backgroundColor: '#EEF4FF',
+    backgroundColor: colors.infoSoft,
   },
 
   payBadgeTwint: {
-    backgroundColor: '#FFF1E8',
+    backgroundColor: colors.warningSoft,
   },
 
   payBadgeText: {
-    fontSize: 11,
-    fontWeight: '800',
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.extrabold,
     fontFamily: appFont,
   },
 
@@ -1429,23 +1429,23 @@ const styles = StyleSheet.create({
 
   orderPreview: {
     flex: 1,
-    fontSize: 12,
+    fontSize: fontSizes.smd,
     color: SOFT_TEXT,
-    fontWeight: '600',
+    fontWeight: fontWeights.semibold,
     fontFamily: appFont,
   },
 
   itemCountPill: {
     backgroundColor: '#EEF1F6',
-    borderRadius: 999,
+    borderRadius: radii.full,
     paddingHorizontal: 8,
     paddingVertical: 4,
   },
 
   orderItemCount: {
-    fontSize: 11,
+    fontSize: fontSizes.sm,
     color: '#555B66',
-    fontWeight: '800',
+    fontWeight: fontWeights.extrabold,
     fontFamily: appFont,
   },
 
@@ -1456,20 +1456,18 @@ const styles = StyleSheet.create({
 
   analyticsCard: {
     backgroundColor: CARD_BG,
-    borderRadius: 22,
+    borderRadius: radii.huge,
     borderWidth: 1,
     borderColor: BORDER,
     padding: 16,
-
   },
 
   summaryCard: {
     backgroundColor: CARD_BG,
-    borderRadius: 22,
+    borderRadius: radii.huge,
     borderWidth: 1,
     borderColor: BORDER,
     padding: 16,
-
   },
 
   sectionHeaderRow: {
@@ -1481,8 +1479,8 @@ const styles = StyleSheet.create({
   },
 
   sectionKicker: {
-    fontSize: 10,
-    fontWeight: '800',
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.extrabold,
     color: PRIMARY,
     textTransform: 'uppercase',
     letterSpacing: 0.7,
@@ -1491,9 +1489,9 @@ const styles = StyleSheet.create({
 
   sectionTitle: {
     marginTop: 2,
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#8B38CB',
+    fontSize: fontSizes.smd,
+    fontWeight: fontWeights.extrabold,
+    color: PRIMARY,
     textTransform: 'uppercase',
     letterSpacing: 0.7,
     fontFamily: appFont,
@@ -1502,7 +1500,7 @@ const styles = StyleSheet.create({
   sectionIconBox: {
     width: 36,
     height: 36,
-    borderRadius: 14,
+    borderRadius: radii.lg,
     backgroundColor: PRIMARY_SOFT,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1526,8 +1524,8 @@ const styles = StyleSheet.create({
 
   noProductsText: {
     color: MUTED,
-    fontSize: 13,
-    fontWeight: '700',
+    fontSize: fontSizes.md,
+    fontWeight: fontWeights.bold,
     fontFamily: appFont,
   },
 
@@ -1555,8 +1553,8 @@ const styles = StyleSheet.create({
   },
 
   topProductRank: {
-    fontSize: 12,
-    fontWeight: '800',
+    fontSize: fontSizes.smd,
+    fontWeight: fontWeights.extrabold,
     color: '#777D8A',
     fontFamily: appFont,
   },
@@ -1571,8 +1569,8 @@ const styles = StyleSheet.create({
   },
 
   topProductName: {
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: fontSizes.smd,
+    fontWeight: fontWeights.bold,
     color: TEXT,
     marginBottom: 6,
     fontFamily: appFont,
@@ -1581,14 +1579,14 @@ const styles = StyleSheet.create({
   barTrack: {
     height: 6,
     backgroundColor: '#EEF0F5',
-    borderRadius: 999,
+    borderRadius: radii.full,
     overflow: 'hidden',
   },
 
   barFill: {
     height: 6,
     backgroundColor: PRIMARY,
-    borderRadius: 999,
+    borderRadius: radii.full,
   },
 
   topProductRight: {
@@ -1597,16 +1595,16 @@ const styles = StyleSheet.create({
   },
 
   topProductCount: {
-    fontSize: 12,
-    fontWeight: '800',
+    fontSize: fontSizes.smd,
+    fontWeight: fontWeights.extrabold,
     color: PRIMARY,
     fontFamily: appFont,
   },
 
   topProductRevenue: {
-    fontSize: 10,
+    fontSize: fontSizes.xs,
     color: MUTED,
-    fontWeight: '600',
+    fontWeight: fontWeights.semibold,
     marginTop: 2,
     fontFamily: appFont,
   },
@@ -1622,23 +1620,23 @@ const styles = StyleSheet.create({
     flexBasis: 130,
     minHeight: 68,
     backgroundColor: '#F5F7FA',
-    borderRadius: 16,
+    borderRadius: radii.xl,
     padding: 12,
     borderWidth: 1,
     borderColor: BORDER_SOFT,
   },
 
   summaryLabel: {
-    fontSize: 12,
+    fontSize: fontSizes.smd,
     color: MUTED,
-    fontWeight: '700',
+    fontWeight: fontWeights.bold,
     marginBottom: 6,
     fontFamily: appFont,
   },
 
   summaryValue: {
-    fontSize: 16,
-    fontWeight: '800',
+    fontSize: fontSizes.lgl,
+    fontWeight: fontWeights.extrabold,
     color: TEXT,
     fontFamily: appFont,
   },
@@ -1667,7 +1665,7 @@ const styles = StyleSheet.create({
 
   modalBox: {
     backgroundColor: '#fff',
-    borderRadius: 24,
+    borderRadius: radii.massive,
     width: '92%',
     maxWidth: 500,
     maxHeight: '82%',
@@ -1689,8 +1687,8 @@ const styles = StyleSheet.create({
   },
 
   modalKicker: {
-    fontSize: 10,
-    fontWeight: '800',
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.extrabold,
     color: PRIMARY,
     textTransform: 'uppercase',
     letterSpacing: 0.7,
@@ -1699,24 +1697,24 @@ const styles = StyleSheet.create({
 
   modalOrderNumber: {
     marginTop: 3,
-    fontSize: 18,
-    fontWeight: '800',
+    fontSize: fontSizes.xxl,
+    fontWeight: fontWeights.extrabold,
     color: TEXT,
     fontFamily: appFont,
   },
 
   modalMeta: {
-    fontSize: 12,
+    fontSize: fontSizes.smd,
     color: MUTED,
     marginTop: 4,
-    fontWeight: '600',
+    fontWeight: fontWeights.semibold,
     fontFamily: appFont,
   },
 
   modalCloseBtn: {
     width: 34,
     height: 34,
-    borderRadius: 14,
+    borderRadius: radii.lg,
     backgroundColor: '#F0F1F5',
     justifyContent: 'center',
     alignItems: 'center',
@@ -1736,7 +1734,7 @@ const styles = StyleSheet.create({
   itemQtyBadge: {
     width: 28,
     height: 28,
-    borderRadius: 10,
+    borderRadius: radii.smd,
     backgroundColor: PRIMARY_SOFT,
     borderWidth: 1,
     borderColor: PRIMARY_BORDER,
@@ -1745,8 +1743,8 @@ const styles = StyleSheet.create({
   },
 
   itemQtyText: {
-    fontSize: 12,
-    fontWeight: '800',
+    fontSize: fontSizes.smd,
+    fontWeight: fontWeights.extrabold,
     color: PRIMARY,
     fontFamily: appFont,
   },
@@ -1756,23 +1754,23 @@ const styles = StyleSheet.create({
   },
 
   itemName: {
-    fontSize: 14,
-    fontWeight: '800',
+    fontSize: fontSizes.mdl,
+    fontWeight: fontWeights.extrabold,
     color: TEXT,
     fontFamily: appFont,
   },
 
   itemSub: {
-    fontSize: 12,
+    fontSize: fontSizes.smd,
     color: MUTED,
     marginTop: 2,
-    fontWeight: '600',
+    fontWeight: fontWeights.semibold,
     fontFamily: appFont,
   },
 
   itemTotal: {
-    fontSize: 13,
-    fontWeight: '800',
+    fontSize: fontSizes.md,
+    fontWeight: fontWeights.extrabold,
     color: TEXT,
     fontFamily: appFont,
   },
@@ -1782,7 +1780,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     backgroundColor: '#FFFBEB',
-    borderRadius: 14,
+    borderRadius: radii.lg,
     padding: 11,
     marginTop: 6,
     borderWidth: 1,
@@ -1790,10 +1788,10 @@ const styles = StyleSheet.create({
   },
 
   noteText: {
-    fontSize: 12,
+    fontSize: fontSizes.smd,
     color: '#92400E',
     flex: 1,
-    fontWeight: '700',
+    fontWeight: fontWeights.bold,
     fontFamily: appFont,
   },
 
@@ -1805,15 +1803,15 @@ const styles = StyleSheet.create({
   },
 
   totalLabel: {
-    fontSize: 13,
+    fontSize: fontSizes.md,
     color: MUTED,
-    fontWeight: '700',
+    fontWeight: fontWeights.bold,
     fontFamily: appFont,
   },
 
   totalValue: {
-    fontSize: 14,
-    fontWeight: '800',
+    fontSize: fontSizes.mdl,
+    fontWeight: fontWeights.extrabold,
     color: TEXT,
     fontFamily: appFont,
   },
@@ -1826,7 +1824,7 @@ const styles = StyleSheet.create({
     backgroundColor: PRIMARY_SOFT,
     borderWidth: 1,
     borderColor: PRIMARY_BORDER,
-    borderRadius: 16,
+    borderRadius: radii.xl,
     padding: 13,
     flexDirection: 'row',
     alignItems: 'center',
@@ -1834,15 +1832,15 @@ const styles = StyleSheet.create({
   },
 
   finalTotalLabel: {
-    fontSize: 14,
-    fontWeight: '800',
+    fontSize: fontSizes.mdl,
+    fontWeight: fontWeights.extrabold,
     color: TEXT,
     fontFamily: appFont,
   },
 
   finalTotalValue: {
-    fontSize: 20,
-    fontWeight: '800',
+    fontSize: fontSizes.xxxl,
+    fontWeight: fontWeights.extrabold,
     color: PRIMARY,
     fontFamily: appFont,
   },
@@ -1853,7 +1851,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     backgroundColor: PRIMARY_SOFT,
-    borderRadius: 16,
+    borderRadius: radii.xl,
     paddingHorizontal: 14,
     paddingVertical: 13,
     marginTop: 16,
@@ -1863,8 +1861,8 @@ const styles = StyleSheet.create({
   },
 
   reprintBtnText: {
-    fontSize: 13,
-    fontWeight: '800',
+    fontSize: fontSizes.md,
+    fontWeight: fontWeights.extrabold,
     color: PRIMARY,
     fontFamily: appFont,
   },
@@ -1887,28 +1885,28 @@ const styles = StyleSheet.create({
   },
 
   zModalTitle: {
-    fontSize: 17,
+    fontSize: fontSizes.xl,
     color: TEXT,
     marginBottom: 7,
-    fontWeight: '800',
+    fontWeight: fontWeights.extrabold,
     textAlign: 'center',
     fontFamily: appFont,
   },
 
   zModalSummary: {
-    fontSize: 13,
+    fontSize: fontSizes.md,
     color: '#555B66',
     marginBottom: 10,
-    fontWeight: '700',
+    fontWeight: fontWeights.bold,
     textAlign: 'center',
     fontFamily: appFont,
   },
 
   zModalNote: {
-    fontSize: 12,
+    fontSize: fontSizes.smd,
     color: MUTED,
     marginBottom: 20,
-    fontWeight: '600',
+    fontWeight: fontWeights.semibold,
     lineHeight: 18,
     textAlign: 'center',
     fontFamily: appFont,
@@ -1923,13 +1921,13 @@ const styles = StyleSheet.create({
   cancelBtn: {
     flex: 1,
     paddingVertical: 14,
-    borderRadius: 15,
-    backgroundColor: '#ECEEF3',
+    borderRadius: radii.lgl,
+    backgroundColor: colors.border,
     alignItems: 'center',
   },
 
   cancelBtnText: {
-    fontWeight: '800',
+    fontWeight: fontWeights.extrabold,
     color: '#555B66',
     fontFamily: appFont,
   },
@@ -1937,13 +1935,13 @@ const styles = StyleSheet.create({
   closeDayBtn: {
     flex: 1,
     paddingVertical: 14,
-    borderRadius: 15,
+    borderRadius: radii.lgl,
     backgroundColor: PRIMARY,
     alignItems: 'center',
   },
 
   closeDayBtnText: {
-    fontWeight: '800',
+    fontWeight: fontWeights.extrabold,
     color: '#fff',
     fontFamily: appFont,
   },

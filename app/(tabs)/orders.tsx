@@ -21,20 +21,21 @@ import { fetchRestaurantData } from '../../lib/api';
 import { printOrder } from '../../lib/printer';
 import { useLanguage } from '../../lib/LanguageContext';
 import { appFont } from '../../lib/fonts';
+import { colors, borders, radii, fontSizes, fontWeights, getCatColor } from '../../lib/theme';
 
-const PRIMARY = '#8B38CB';
-const PRIMARY_SOFT = '#F6EEFF';
+const PRIMARY = colors.primary;
+const PRIMARY_SOFT = colors.primarySoft;
 
-const APP_BG = '#F5F5F5';
-const CARD_BG = '#FFFFFF';
-const BORDER = '#EEF0F5';
-const TEXT = '#151521';
-const MUTED = '#7B7F8C';
+const APP_BG = colors.appBg;
+const CARD_BG = colors.cardBg;
+const BORDER = colors.borderStrong;
+const TEXT = colors.text;
+const MUTED = colors.muted;
 
-const DARK = '#17172A';
-const DARK_CARD = '#24243E';
-const DARK_CARD_2 = '#2B2B49';
-const DARK_BORDER = '#33334F';
+const DARK = colors.dark;
+const DARK_CARD = colors.darkCard;
+const DARK_CARD_2 = colors.darkCard2;
+const DARK_BORDER = colors.darkBorder;
 
 const getLayout = (width: number) => {
   const isCompact = width < 900;
@@ -81,33 +82,7 @@ const getLayout = (width: number) => {
   };
 };
 
-function getCatColor(name: string): string {
-  const colors = [
-    '#FF6B6B',
-    '#F97316',
-    '#FACC15',
-    '#22C55E',
-    '#14B8A6',
-    '#38BDF8',
-    '#8B5CF6',
-    '#EC4899',
-    '#06B6D4',
-    '#F59E0B',
-    '#84CC16',
-    '#64748B',
-    '#A855F7',
-    '#FB7185',
-    '#2DD4BF',
-  ];
-
-  let hash = 0;
-
-  for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  }
-
-  return colors[Math.abs(hash) % colors.length];
-}
+// getCatColor now imported from lib/theme
 
 function money(value: any): number {
   const n = parseFloat(String(value ?? 0).replace(',', '.'));
@@ -1481,7 +1456,7 @@ export default function NewOrderScreen() {
   );
 }
 
-const thinBorder = Platform.OS === 'web' ? 1 : StyleSheet.hairlineWidth;
+const thinBorder = borders.thin;
 
 const styles = StyleSheet.create({
   container: {
@@ -1501,7 +1476,7 @@ const styles = StyleSheet.create({
 
   loadingCard: {
     backgroundColor: '#fff',
-    borderRadius: 16,
+    borderRadius: radii.xl,
     paddingHorizontal: 26,
     paddingVertical: 22,
     alignItems: 'center',
@@ -1512,8 +1487,8 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     color: MUTED,
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: fontSizes.mdl,
+    fontWeight: fontWeights.medium,
     fontFamily: appFont,
   },
 
@@ -1537,15 +1512,15 @@ const styles = StyleSheet.create({
 
   emptyTitle: {
     color: TEXT,
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: fontSizes.lgl,
+    fontWeight: fontWeights.bold,
     fontFamily: appFont,
   },
 
   emptyText: {
     color: MUTED,
-    fontSize: 13,
-    fontWeight: '500',
+    fontSize: fontSizes.md,
+    fontWeight: fontWeights.medium,
     fontFamily: appFont,
     textAlign: 'center',
   },
@@ -1569,15 +1544,15 @@ const styles = StyleSheet.create({
   logoFallback: {
     width: 44,
     height: 44,
-    borderRadius: 13,
+    borderRadius: radii.mdl,
     backgroundColor: PRIMARY_SOFT,
     alignItems: 'center',
     justifyContent: 'center',
   },
 
   catLogoText: {
-    fontSize: 15,
-    fontWeight: '800',
+    fontSize: fontSizes.lg,
+    fontWeight: fontWeights.extrabold,
     color: PRIMARY,
     fontFamily: appFont,
   },
@@ -1593,7 +1568,7 @@ const styles = StyleSheet.create({
   alignItems: 'center',
   paddingVertical: 9,
   paddingHorizontal: 8,
-  borderRadius: 14,
+  borderRadius: radii.lg,
   position: 'relative',
   marginBottom: 6,
   minHeight: 54,
@@ -1613,7 +1588,7 @@ const styles = StyleSheet.create({
   catBadge: {
   width: 36,
   height: 36,
-  borderRadius: 13,
+  borderRadius: radii.mdl,
   justifyContent: 'center',
   alignItems: 'center',
   marginRight: 8,
@@ -1622,15 +1597,15 @@ const styles = StyleSheet.create({
 },
 
   catBadgeLetter: {
-    fontSize: 17,
-    fontWeight: '800',
+    fontSize: fontSizes.xl,
+    fontWeight: fontWeights.extrabold,
     fontFamily: appFont,
   },
 
   catItemText: {
     flex: 1,
     fontSize: 12.5,
-    fontWeight: '700',
+    fontWeight: fontWeights.bold,
     color: '#4A4D58',
     textAlign: 'left',
     lineHeight: 16,
@@ -1639,7 +1614,7 @@ const styles = StyleSheet.create({
 
   catItemTextActive: {
     color: PRIMARY,
-    fontWeight: '900',
+    fontWeight: fontWeights.black,
   },
 
   catActiveBar: {
@@ -1666,6 +1641,8 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'android' ? 8 : 10,
     paddingBottom: 10,
     backgroundColor: APP_BG,
+    borderBottomWidth: thinBorder,
+    borderBottomColor: BORDER,
   },
 
   searchWrap: {
@@ -1673,7 +1650,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: CARD_BG,
-    borderRadius: 15,
+    borderRadius: radii.lgl,
     paddingHorizontal: 14,
     gap: 9,
     borderWidth: thinBorder,
@@ -1683,17 +1660,17 @@ const styles = StyleSheet.create({
 
   searchInput: {
     flex: 1,
-    fontSize: 14,
+    fontSize: fontSizes.mdl,
     color: TEXT,
     padding: 0,
     fontFamily: appFont,
-    fontWeight: '500',
+    fontWeight: fontWeights.medium,
   },
 
   syncBtn: {
     width: 46,
     height: 46,
-    borderRadius: 15,
+    borderRadius: radii.lgl,
     backgroundColor: PRIMARY,
     justifyContent: 'center',
     alignItems: 'center',
@@ -1721,7 +1698,7 @@ const styles = StyleSheet.create({
 
   productCard: {
     backgroundColor: CARD_BG,
-    borderRadius: 15,
+    borderRadius: radii.lgl,
     padding: 14,
     minHeight: 104,
     justifyContent: 'space-between',
@@ -1730,8 +1707,8 @@ const styles = StyleSheet.create({
   },
 
   productName: {
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: fontSizes.mdl,
+    fontWeight: fontWeights.bold,
     color: TEXT,
     lineHeight: 19,
     fontFamily: appFont,
@@ -1746,8 +1723,8 @@ const styles = StyleSheet.create({
   },
 
     productPriceLabel: {
-    fontSize: 10,
-    fontWeight: '600',
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.semibold,
     color: '#B8BBC4',
     textTransform: 'uppercase',
     letterSpacing: 0.4,
@@ -1756,8 +1733,8 @@ const styles = StyleSheet.create({
   },
 
   productPrice: {
-    fontSize: 16,
-    fontWeight: '900',
+    fontSize: fontSizes.lgl,
+    fontWeight: fontWeights.black,
     color: PRIMARY,
     fontFamily: appFont,
   },
@@ -1765,7 +1742,7 @@ const styles = StyleSheet.create({
   productAddBtn: {
     width: 34,
     height: 34,
-    borderRadius: 13,
+    borderRadius: radii.mdl,
     backgroundColor: PRIMARY,
     justifyContent: 'center',
     alignItems: 'center',
@@ -1789,8 +1766,8 @@ const styles = StyleSheet.create({
   },
 
   orderKicker: {
-    fontSize: 10,
-    fontWeight: '900',
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.black,
     color: PRIMARY,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
@@ -1799,8 +1776,8 @@ const styles = StyleSheet.create({
 
   orderTitle: {
     marginTop: 2,
-    fontSize: 18,
-    fontWeight: '900',
+    fontSize: fontSizes.xxl,
+    fontWeight: fontWeights.black,
     color: '#FFFFFF',
     fontFamily: appFont,
   },
@@ -1810,7 +1787,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 5,
     backgroundColor: 'rgba(255,107,107,0.12)',
-    borderRadius: 10,
+    borderRadius: radii.smd,
     paddingHorizontal: 9,
     paddingVertical: 6,
     borderWidth: thinBorder,
@@ -1818,8 +1795,8 @@ const styles = StyleSheet.create({
   },
 
   clearBtnText: {
-    fontSize: 12,
-    fontWeight: '800',
+    fontSize: fontSizes.smd,
+    fontWeight: fontWeights.extrabold,
     color: '#FF8A8A',
     fontFamily: appFont,
   },
@@ -1829,7 +1806,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 9,
     backgroundColor: DARK_CARD,
-    borderRadius: 13,
+    borderRadius: radii.mdl,
     paddingHorizontal: 11,
     paddingVertical: 9,
     borderWidth: thinBorder,
@@ -1839,7 +1816,7 @@ const styles = StyleSheet.create({
   tableIconWrap: {
     width: 27,
     height: 27,
-    borderRadius: 10,
+    borderRadius: radii.smd,
     backgroundColor: 'rgba(139,56,203,0.15)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1847,8 +1824,8 @@ const styles = StyleSheet.create({
 
   tableSelectorText: {
     flex: 1,
-    fontSize: 13,
-    fontWeight: '700',
+    fontSize: fontSizes.md,
+    fontWeight: fontWeights.bold,
     color: '#B5B5C8',
     fontFamily: appFont,
   },
@@ -1868,7 +1845,7 @@ const styles = StyleSheet.create({
   emptyCartCircle: {
     width: 86,
     height: 86,
-    borderRadius: 30,
+    borderRadius: radii.giant2,
     backgroundColor: DARK_CARD,
     justifyContent: 'center',
     alignItems: 'center',
@@ -1878,16 +1855,16 @@ const styles = StyleSheet.create({
 
   emptyOrderTitle: {
     marginTop: 4,
-    fontSize: 14,
-    fontWeight: '800',
+    fontSize: fontSizes.mdl,
+    fontWeight: fontWeights.extrabold,
     color: '#C9C9D8',
     textAlign: 'center',
     fontFamily: appFont,
   },
 
   emptyOrderSub: {
-    fontSize: 12,
-    fontWeight: '500',
+    fontSize: fontSizes.smd,
+    fontWeight: fontWeights.medium,
     color: '#777792',
     textAlign: 'center',
     fontFamily: appFont,
@@ -1911,8 +1888,8 @@ const styles = StyleSheet.create({
   },
 
   itemsHeaderText: {
-    fontSize: 10,
-    fontWeight: '900',
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.black,
     color: '#85859B',
     textTransform: 'uppercase',
     letterSpacing: 0.6,
@@ -1942,7 +1919,7 @@ const styles = StyleSheet.create({
   qtyMiniBtn: {
     width: 22,
     height: 22,
-    borderRadius: 8,
+    borderRadius: radii.sm,
     backgroundColor: DARK_CARD_2,
     justifyContent: 'center',
     alignItems: 'center',
@@ -1953,8 +1930,8 @@ const styles = StyleSheet.create({
   },
 
   orderItemQty: {
-    fontSize: 13,
-    fontWeight: '900',
+    fontSize: fontSizes.md,
+    fontWeight: fontWeights.black,
     color: '#fff',
     minWidth: 14,
     textAlign: 'center',
@@ -1973,8 +1950,8 @@ const styles = StyleSheet.create({
   },
 
   orderItemName: {
-    fontSize: 13,
-    fontWeight: '700',
+    fontSize: fontSizes.md,
+    fontWeight: fontWeights.bold,
     color: '#F1F1F6',
     lineHeight: 18,
     flex: 1,
@@ -1982,8 +1959,8 @@ const styles = StyleSheet.create({
   },
 
   orderItemPrice: {
-    fontSize: 13,
-    fontWeight: '900',
+    fontSize: fontSizes.md,
+    fontWeight: fontWeights.black,
     color: '#FFFFFF',
     marginTop: 1,
     fontFamily: appFont,
@@ -1997,9 +1974,9 @@ const styles = StyleSheet.create({
   },
 
   orderItemSub: {
-    fontSize: 11,
+    fontSize: fontSizes.sm,
     color: '#9999AD',
-    fontWeight: '500',
+    fontWeight: fontWeights.medium,
     fontFamily: appFont,
   },
 
@@ -2009,10 +1986,10 @@ const styles = StyleSheet.create({
 
   noteInput: {
     backgroundColor: DARK_CARD,
-    borderRadius: 13,
+    borderRadius: radii.mdl,
     paddingHorizontal: 11,
     paddingVertical: 8,
-    fontSize: 13,
+    fontSize: fontSizes.md,
     color: '#F1F1F6',
     minHeight: 36,
     maxHeight: 68,
@@ -2021,7 +1998,7 @@ const styles = StyleSheet.create({
     borderWidth: thinBorder,
     borderColor: DARK_BORDER,
     fontFamily: appFont,
-    fontWeight: '500',
+    fontWeight: fontWeights.medium,
   },
 
   payRow: {
@@ -2037,7 +2014,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 5,
     paddingVertical: 8,
-    borderRadius: 12,
+    borderRadius: radii.md,
     backgroundColor: DARK_CARD,
     borderWidth: thinBorder,
     borderColor: DARK_BORDER,
@@ -2049,12 +2026,12 @@ const styles = StyleSheet.create({
   },
 
   payEmoji: {
-    fontSize: 14,
+    fontSize: fontSizes.mdl,
   },
 
   payBtnText: {
-    fontSize: 12,
-    fontWeight: '800',
+    fontSize: fontSizes.smd,
+    fontWeight: fontWeights.extrabold,
     color: '#B5B5C8',
     fontFamily: appFont,
   },
@@ -2065,7 +2042,7 @@ const styles = StyleSheet.create({
 
   totalsBox: {
     backgroundColor: DARK_CARD,
-    borderRadius: 14,
+    borderRadius: radii.lg,
     padding: 11,
     marginBottom: 9,
     borderWidth: thinBorder,
@@ -2081,25 +2058,25 @@ const styles = StyleSheet.create({
   },
 
   totalRowLabel: {
-    fontSize: 12,
+    fontSize: fontSizes.smd,
     color: '#B9B9CB',
-    fontWeight: '600',
+    fontWeight: fontWeights.semibold,
     fontFamily: appFont,
   },
 
   totalRowVal: {
-    fontSize: 12,
-    fontWeight: '800',
+    fontSize: fontSizes.smd,
+    fontWeight: fontWeights.extrabold,
     color: '#D6D6E2',
     fontFamily: appFont,
   },
 
   discountTotalLabel: {
-    color: '#4ADE80',
+    color: colors.successLight,
   },
 
   discountTotalValue: {
-    color: '#4ADE80',
+    color: colors.successLight,
   },
 
   totalDivider: {
@@ -2109,15 +2086,15 @@ const styles = StyleSheet.create({
   },
 
   grandTotalLabel: {
-    fontSize: 17,
-    fontWeight: '900',
+    fontSize: fontSizes.xl,
+    fontWeight: fontWeights.black,
     color: '#FFFFFF',
     fontFamily: appFont,
   },
 
   grandTotalAmt: {
-    fontSize: 18,
-    fontWeight: '900',
+    fontSize: fontSizes.xxl,
+    fontWeight: fontWeights.black,
     color: '#FFFFFF',
     fontFamily: appFont,
   },
@@ -2134,7 +2111,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 5,
     backgroundColor: 'rgba(245,158,11,0.12)',
-    borderRadius: 13,
+    borderRadius: radii.mdl,
     paddingHorizontal: 10,
     paddingVertical: 11,
     borderWidth: thinBorder,
@@ -2142,16 +2119,16 @@ const styles = StyleSheet.create({
   },
 
   discountBtnText: {
-    fontSize: 12,
-    fontWeight: '900',
-    color: '#F59E0B',
+    fontSize: fontSizes.smd,
+    fontWeight: fontWeights.black,
+    color: colors.warning,
     fontFamily: appFont,
   },
 
   placeBtn: {
     flex: 1,
     backgroundColor: PRIMARY,
-    borderRadius: 13,
+    borderRadius: radii.mdl,
     paddingVertical: 11,
     alignItems: 'center',
     justifyContent: 'center',
@@ -2163,8 +2140,8 @@ const styles = StyleSheet.create({
 
   placeBtnText: {
     color: '#fff',
-    fontSize: 14,
-    fontWeight: '900',
+    fontSize: fontSizes.mdl,
+    fontWeight: fontWeights.black,
     fontFamily: appFont,
   },
 
@@ -2188,24 +2165,24 @@ const styles = StyleSheet.create({
   },
 
   modalTitle: {
-    fontSize: 17,
-    fontWeight: '900',
+    fontSize: fontSizes.xl,
+    fontWeight: fontWeights.black,
     color: TEXT,
     fontFamily: appFont,
   },
 
   modalSubtitle: {
-    fontSize: 13,
+    fontSize: fontSizes.md,
     color: PRIMARY,
-    fontWeight: '800',
+    fontWeight: fontWeights.extrabold,
     marginTop: 3,
     fontFamily: appFont,
   },
 
   modalSubtitleLight: {
-    fontSize: 12,
+    fontSize: fontSizes.smd,
     color: MUTED,
-    fontWeight: '600',
+    fontWeight: fontWeights.semibold,
     marginTop: 3,
     fontFamily: appFont,
   },
@@ -2213,7 +2190,7 @@ const styles = StyleSheet.create({
   modalCloseBtn: {
   width: 34,
   height: 34,
-  borderRadius: 14,
+  borderRadius: radii.lg,
   backgroundColor: '#F7F8FA',
   justifyContent: 'center',
   alignItems: 'center',
@@ -2223,7 +2200,7 @@ const styles = StyleSheet.create({
 
   discountModalBox: {
   backgroundColor: '#fff',
-  borderRadius: 24,
+  borderRadius: radii.massive,
   overflow: 'hidden',
   borderWidth: thinBorder,
   borderColor: BORDER,
@@ -2234,10 +2211,10 @@ const styles = StyleSheet.create({
   },
 
   confirmText: {
-    fontSize: 14,
+    fontSize: fontSizes.mdl,
     color: '#555B66',
     lineHeight: 20,
-    fontWeight: '500',
+    fontWeight: fontWeights.medium,
     marginBottom: 18,
     fontFamily: appFont,
   },
@@ -2251,7 +2228,7 @@ const styles = StyleSheet.create({
   discountTypeBtn: {
   flex: 1,
   paddingVertical: 11,
-  borderRadius: 13,
+  borderRadius: radii.mdl,
   backgroundColor: '#F0F1F5',
   alignItems: 'center',
   borderWidth: thinBorder,
@@ -2264,8 +2241,8 @@ const styles = StyleSheet.create({
   },
 
   discountTypeBtnText: {
-    fontSize: 13,
-    fontWeight: '800',
+    fontSize: fontSizes.md,
+    fontWeight: fontWeights.extrabold,
     color: '#555B66',
     fontFamily: appFont,
   },
@@ -2284,7 +2261,7 @@ const styles = StyleSheet.create({
   presetBtn: {
   paddingHorizontal: 14,
   paddingVertical: 8,
-  borderRadius: 999,
+  borderRadius: radii.full,
   borderWidth: thinBorder,
   borderColor: BORDER,
   backgroundColor: '#FAFAFB',
@@ -2296,8 +2273,8 @@ const styles = StyleSheet.create({
   },
 
   presetBtnText: {
-    fontSize: 13,
-    fontWeight: '800',
+    fontSize: fontSizes.md,
+    fontWeight: fontWeights.extrabold,
     color: '#4B5563',
     fontFamily: appFont,
   },
@@ -2309,20 +2286,20 @@ const styles = StyleSheet.create({
   discountInput: {
   borderWidth: thinBorder,
   borderColor: BORDER,
-  borderRadius: 14,
+  borderRadius: radii.lg,
   paddingHorizontal: 13,
   paddingVertical: 12,
-  fontSize: 16,
+  fontSize: fontSizes.lgl,
   color: TEXT,
   marginBottom: 12,
   backgroundColor: '#FAFAFB',
   fontFamily: appFont,
-  fontWeight: '700',
+  fontWeight: fontWeights.bold,
 },
 
   discountPreview: {
     backgroundColor: '#ECFDF5',
-    borderRadius: 14,
+    borderRadius: radii.lg,
     padding: 13,
     marginBottom: 12,
     gap: 3,
@@ -2331,23 +2308,23 @@ const styles = StyleSheet.create({
   },
 
   discountPreviewLabel: {
-    fontSize: 12,
+    fontSize: fontSizes.smd,
     color: '#047857',
-    fontWeight: '700',
+    fontWeight: fontWeights.bold,
     fontFamily: appFont,
   },
 
   discountPreviewAmt: {
-    fontSize: 20,
-    fontWeight: '900',
-    color: '#16A34A',
+    fontSize: fontSizes.xxxl,
+    fontWeight: fontWeights.black,
+    color: colors.success,
     fontFamily: appFont,
   },
 
   discountPreviewTotal: {
-    fontSize: 13,
+    fontSize: fontSizes.md,
     color: '#166534',
-    fontWeight: '700',
+    fontWeight: fontWeights.bold,
     fontFamily: appFont,
   },
 
@@ -2359,7 +2336,7 @@ const styles = StyleSheet.create({
   discountClearBtn: {
     flex: 1,
     paddingVertical: 12,
-    borderRadius: 14,
+    borderRadius: radii.lg,
     backgroundColor: '#FEF2F2',
     alignItems: 'center',
     borderWidth: thinBorder,
@@ -2367,23 +2344,23 @@ const styles = StyleSheet.create({
   },
 
   discountClearBtnText: {
-    fontSize: 13,
-    fontWeight: '900',
-    color: '#EF4444',
+    fontSize: fontSizes.md,
+    fontWeight: fontWeights.black,
+    color: colors.danger,
     fontFamily: appFont,
   },
 
   discountApplyBtn: {
     flex: 1,
     paddingVertical: 12,
-    borderRadius: 14,
+    borderRadius: radii.lg,
     backgroundColor: PRIMARY,
     alignItems: 'center',
   },
 
   discountApplyBtnText: {
-    fontSize: 13,
-    fontWeight: '900',
+    fontSize: fontSizes.md,
+    fontWeight: fontWeights.black,
     color: '#fff',
     fontFamily: appFont,
   },
@@ -2404,7 +2381,7 @@ const styles = StyleSheet.create({
   alignItems: 'center',
   justifyContent: 'center',
   paddingVertical: 16,
-  borderRadius: 16,
+  borderRadius: radii.xl,
   backgroundColor: '#F0F1F5',
   gap: 7,
   borderWidth: thinBorder,
@@ -2417,8 +2394,8 @@ const styles = StyleSheet.create({
   },
 
   tableTypeBtnText: {
-    fontSize: 13,
-    fontWeight: '800',
+    fontSize: fontSizes.md,
+    fontWeight: fontWeights.extrabold,
     color: '#6F7280',
     fontFamily: appFont,
   },
@@ -2437,7 +2414,7 @@ const styles = StyleSheet.create({
   tableCard: {
   width: 76,
   height: 76,
-  borderRadius: 18,
+  borderRadius: radii.xxl,
   backgroundColor: '#F0F1F5',
   alignItems: 'center',
   justifyContent: 'center',
@@ -2452,8 +2429,8 @@ const styles = StyleSheet.create({
   },
 
   tableCardNum: {
-    fontSize: 21,
-    fontWeight: '900',
+    fontSize: fontSizes.huge,
+    fontWeight: fontWeights.black,
     color: TEXT,
     fontFamily: appFont,
   },
@@ -2463,8 +2440,8 @@ const styles = StyleSheet.create({
   },
 
   tableCardText: {
-    fontSize: 11,
-    fontWeight: '800',
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.extrabold,
     color: '#6F7280',
     fontFamily: appFont,
   },
@@ -2475,7 +2452,7 @@ const styles = StyleSheet.create({
 
  addonModalBox: {
   backgroundColor: '#fff',
-  borderRadius: 24,
+  borderRadius: radii.massive,
   maxHeight: '84%',
   overflow: 'hidden',
   borderWidth: thinBorder,
@@ -2492,8 +2469,8 @@ const styles = StyleSheet.create({
   },
 
   addonSectionTitle: {
-    fontSize: 11,
-    fontWeight: '900',
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.black,
     color: '#6B7280',
     textTransform: 'uppercase',
     letterSpacing: 0.8,
@@ -2510,7 +2487,7 @@ const styles = StyleSheet.create({
   chip: {
   paddingHorizontal: 14,
   paddingVertical: 9,
-  borderRadius: 999,
+  borderRadius: radii.full,
   borderWidth: thinBorder,
   borderColor: BORDER,
   backgroundColor: '#FAFAFB',
@@ -2522,9 +2499,9 @@ const styles = StyleSheet.create({
   },
 
   chipText: {
-    fontSize: 13,
+    fontSize: fontSizes.md,
     color: '#374151',
-    fontWeight: '800',
+    fontWeight: fontWeights.extrabold,
     fontFamily: appFont,
   },
 
@@ -2547,9 +2524,9 @@ const styles = StyleSheet.create({
   },
 
   addonErrorText: {
-    color: '#EF4444',
-    fontSize: 13,
-    fontWeight: '800',
+    color: colors.danger,
+    fontSize: fontSizes.md,
+    fontWeight: fontWeights.extrabold,
     flex: 1,
     fontFamily: appFont,
   },
@@ -2557,15 +2534,15 @@ const styles = StyleSheet.create({
   addToOrderBtn: {
     backgroundColor: PRIMARY,
     margin: 18,
-    borderRadius: 16,
+    borderRadius: radii.xl,
     paddingVertical: 14,
     alignItems: 'center',
   },
 
   addToOrderBtnText: {
     color: '#fff',
-    fontSize: 14,
-    fontWeight: '900',
+    fontSize: fontSizes.mdl,
+    fontWeight: fontWeights.black,
     fontFamily: appFont,
   },
 
@@ -2577,28 +2554,28 @@ const styles = StyleSheet.create({
     width: 340,
     paddingHorizontal: 14,
     paddingVertical: 13,
-    borderRadius: 16,
+    borderRadius: radii.xl,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
 
   toastSuccess: {
-    backgroundColor: '#17172A',
+    backgroundColor: DARK,
     borderLeftWidth: 4,
     borderLeftColor: PRIMARY,
   },
 
   toastError: {
-    backgroundColor: '#17172A',
+    backgroundColor: DARK,
     borderLeftWidth: 4,
-    borderLeftColor: '#EF4444',
+    borderLeftColor: colors.danger,
   },
 
   toastText: {
     color: '#fff',
-    fontSize: 13,
-    fontWeight: '800',
+    fontSize: fontSizes.md,
+    fontWeight: fontWeights.extrabold,
     flex: 1,
     fontFamily: appFont,
   },

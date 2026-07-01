@@ -5,9 +5,10 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 import { Ionicons } from '@expo/vector-icons';
 import { LanguageProvider } from '../lib/LanguageContext';
+import { colors } from '../lib/theme';
 
-const APP_BG = '#F7F8FB';
-const PRIMARY = '#8B38CB';
+const APP_BG = colors.appBg;
+const PRIMARY = colors.primary;
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({

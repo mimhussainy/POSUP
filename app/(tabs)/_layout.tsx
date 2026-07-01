@@ -3,10 +3,7 @@ import { Tabs } from 'expo-router';
 import { Platform, StyleSheet } from 'react-native';
 import { useLanguage } from '../../lib/LanguageContext';
 import { appFont } from '../../lib/fonts';
-
-const PRIMARY = '#8B38CB';
-const MUTED = '#7B7F8C';
-const BORDER = '#D8DCE5';
+import { colors, fontSizes, fontWeights } from '../../lib/theme';
 
 export default function TabsLayout() {
   const { t } = useLanguage();
@@ -17,8 +14,8 @@ export default function TabsLayout() {
         headerShown: false,
         tabBarStyle: styles.tabBar,
         tabBarItemStyle: styles.tabBarItem,
-        tabBarActiveTintColor: PRIMARY,
-        tabBarInactiveTintColor: MUTED,
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.muted,
         tabBarLabelStyle: styles.tabBarLabel,
       }}
     >
@@ -70,9 +67,9 @@ export default function TabsLayout() {
 const styles = StyleSheet.create({
   tabBar: {
     height: Platform.OS === 'ios' ? 78 : 80,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.white,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: BORDER,
+    borderTopColor: colors.borderStrong,
     paddingTop: Platform.OS === 'ios' ? 6 : 6,
     paddingBottom: Platform.OS === 'ios' ? 14 : 14,
     paddingHorizontal: 8,
@@ -92,8 +89,8 @@ const styles = StyleSheet.create({
   },
 
   tabBarLabel: {
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: fontSizes.lg,
+    fontWeight: fontWeights.semibold,
     fontFamily: appFont,
     textAlign: 'center',
     marginTop: 1,

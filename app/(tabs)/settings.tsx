@@ -19,29 +19,30 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useFocusEffect } from 'expo-router';
 import { useLanguage } from '../../lib/LanguageContext';
 import { appFont } from '../../lib/fonts';
+import { colors, borders, radii, fontSizes, fontWeights } from '../../lib/theme';
 
 import TcpSocket from 'react-native-tcp-socket';
 
 const BACKEND = 'https://foodup-order-alerts-backend.onrender.com';
 
-const PRIMARY = '#8B38CB';
-const PRIMARY_SOFT = '#F6EEFF';
-const PRIMARY_BORDER = '#E6D5FF';
+const PRIMARY = colors.primary;
+const PRIMARY_SOFT = colors.primarySoft;
+const PRIMARY_BORDER = colors.primaryBorder;
 
-const APP_BG = '#F5F5F5';
-const CARD_BG = '#FFFFFF';
-const BORDER = '#ECEEF3';
-const TEXT = '#171725';
-const MUTED = '#7A7F8C';
-const SOFT_TEXT = '#5F6572';
+const APP_BG = colors.appBg;
+const CARD_BG = colors.cardBg;
+const BORDER = colors.border;
+const TEXT = colors.text;
+const MUTED = colors.muted;
+const SOFT_TEXT = colors.softText;
 
-const GREEN = '#16A34A';
-const RED = '#EF4444';
-const ORANGE = '#F59E0B';
+const GREEN = colors.success;
+const RED = colors.danger;
+const ORANGE = colors.warning;
 
 const PAGE_PADDING = 16;
 const MAX_CONTENT_WIDTH = 760;
-const thinBorder = Platform.OS === 'web' ? 0.5 : StyleSheet.hairlineWidth;
+const thinBorder = borders.thin;
 
 
 function PrinterStatusCard({
@@ -550,7 +551,6 @@ export default function Settings() {
 
                 <View style={styles.infoText}>
                   <Text style={styles.logoutTitle}>{t.logout}</Text>
-                  <Text style={styles.logoutSub}>{t.logoutConfirm}</Text>
                 </View>
 
                 <Ionicons name="chevron-forward" size={17} color="#FCA5A5" />
@@ -854,7 +854,7 @@ const styles = StyleSheet.create({
 
   loadingCard: {
     backgroundColor: CARD_BG,
-    borderRadius: 20,
+    borderRadius: radii.xxxl,
     paddingHorizontal: 28,
     paddingVertical: 24,
     alignItems: 'center',
@@ -865,19 +865,19 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     color: MUTED,
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: fontSizes.md,
+    fontWeight: fontWeights.semibold,
     fontFamily: appFont,
   },
 
   headerOuter: {
-  height: 75,
-  backgroundColor: CARD_BG,
-  paddingHorizontal: PAGE_PADDING,
-  borderBottomWidth: thinBorder,
-  borderBottomColor: BORDER,
-  justifyContent: 'center',
-},
+    height: 75,
+    backgroundColor: CARD_BG,
+    paddingHorizontal: PAGE_PADDING,
+    borderBottomWidth: thinBorder,
+    borderBottomColor: BORDER,
+    justifyContent: 'center',
+  },
 
   headerInner: {
     width: '100%',
@@ -886,13 +886,13 @@ const styles = StyleSheet.create({
   },
 
   header: {
-  width: '100%',
-  height: 75,
-  flexDirection: 'row',
-  alignItems: 'center',
-  justifyContent: 'space-between',
-  gap: 12,
-},
+    width: '100%',
+    height: 75,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
 
   headerLeft: {
     flex: 1,
@@ -900,8 +900,8 @@ const styles = StyleSheet.create({
   },
 
   headerKicker: {
-    fontSize: 10,
-    fontWeight: '800',
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.extrabold,
     color: PRIMARY,
     textTransform: 'uppercase',
     letterSpacing: 0.7,
@@ -909,53 +909,50 @@ const styles = StyleSheet.create({
   },
 
   headerTitle: {
-  fontSize: 22,
-  fontWeight: '700',
-  color: TEXT,
-  fontFamily: appFont,
-},
+    fontSize: fontSizes.massive,
+    fontWeight: fontWeights.bold,
+    color: TEXT,
+    fontFamily: appFont,
+  },
 
   headerSub: {
     marginTop: 2,
-    fontSize: 12,
+    fontSize: fontSizes.smd,
     color: MUTED,
-    fontWeight: '600',
+    fontWeight: fontWeights.semibold,
     fontFamily: appFont,
   },
 
   aboutHeaderIcon: {
-  width: 24,
-  height: 24,
-  borderRadius: 0,
-},
+    width: 24,
+    height: 24,
+    borderRadius: 0,
+  },
 
   aboutHeaderBtn: {
-  width: 38,
-  height: 38,
-  borderRadius: 8,
-  backgroundColor: CARD_BG,
-  borderWidth: thinBorder,
-  borderColor: BORDER,
-  alignItems: 'center',
-  justifyContent: 'center',
-},
+    width: 38,
+    height: 38,
+    borderRadius: radii.sm,
+    backgroundColor: CARD_BG,
+    borderWidth: thinBorder,
+    borderColor: BORDER,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 
   section: {
     width: '100%',
   },
-
-
 
   sectionHeader: {
     marginBottom: 8,
     paddingHorizontal: 3,
   },
 
-
   sectionTitle: {
     marginTop: 2,
-    fontSize: 12,
-    fontWeight: '800',
+    fontSize: fontSizes.smd,
+    fontWeight: fontWeights.extrabold,
     color: '#555B66',
     textTransform: 'uppercase',
     letterSpacing: 0.7,
@@ -963,23 +960,23 @@ const styles = StyleSheet.create({
   },
 
   card: {
-  backgroundColor: CARD_BG,
-  borderRadius: 20,
-  borderWidth: thinBorder,
-  borderColor: BORDER,
-  overflow: 'hidden',
-},
+    backgroundColor: CARD_BG,
+    borderRadius: radii.xxxl,
+    borderWidth: thinBorder,
+    borderColor: BORDER,
+    overflow: 'hidden',
+  },
 
   infoRow: {
-  minHeight: 70,
-  flexDirection: 'row',
-  alignItems: 'center',
-  paddingHorizontal: 14,
-  paddingVertical: 13,
-  gap: 12,
-  borderBottomWidth: thinBorder,
-  borderBottomColor: BORDER,
-},
+    minHeight: 70,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    gap: 12,
+    borderBottomWidth: thinBorder,
+    borderBottomColor: BORDER,
+  },
 
   infoRowLast: {
     borderBottomWidth: 0,
@@ -988,7 +985,7 @@ const styles = StyleSheet.create({
   iconBox: {
     width: 38,
     height: 38,
-    borderRadius: 14,
+    borderRadius: radii.lg,
     backgroundColor: PRIMARY_SOFT,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1001,8 +998,8 @@ const styles = StyleSheet.create({
   greenIconBox: {
     width: 38,
     height: 38,
-    borderRadius: 14,
-    backgroundColor: '#EAFBF1',
+    borderRadius: radii.lg,
+    backgroundColor: colors.successSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1010,8 +1007,8 @@ const styles = StyleSheet.create({
   logoutIconBox: {
     width: 38,
     height: 38,
-    borderRadius: 14,
-    backgroundColor: '#FEF2F2',
+    borderRadius: radii.lg,
+    backgroundColor: colors.dangerSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1022,44 +1019,44 @@ const styles = StyleSheet.create({
   },
 
   infoLabel: {
-    fontSize: 11,
+    fontSize: fontSizes.sm,
     color: MUTED,
-    fontWeight: '700',
+    fontWeight: fontWeights.bold,
     marginBottom: 3,
     fontFamily: appFont,
   },
 
   infoValue: {
-    fontSize: 14,
+    fontSize: fontSizes.mdl,
     color: TEXT,
-    fontWeight: '800',
+    fontWeight: fontWeights.extrabold,
     fontFamily: appFont,
   },
 
   infoSubValue: {
-    fontSize: 12,
+    fontSize: fontSizes.smd,
     color: MUTED,
-    fontWeight: '600',
+    fontWeight: fontWeights.semibold,
     lineHeight: 16,
     fontFamily: appFont,
   },
 
   primarySmallBtn: {
     backgroundColor: PRIMARY,
-    borderRadius: 13,
+    borderRadius: radii.mdl,
     paddingHorizontal: 14,
     paddingVertical: 9,
   },
 
   primarySmallBtnText: {
     color: '#fff',
-    fontSize: 12,
-    fontWeight: '800',
+    fontSize: fontSizes.smd,
+    fontWeight: fontWeights.extrabold,
     fontFamily: appFont,
   },
 
   statusPill: {
-    borderRadius: 999,
+    borderRadius: radii.full,
     paddingHorizontal: 10,
     paddingVertical: 7,
     flexDirection: 'row',
@@ -1070,12 +1067,12 @@ const styles = StyleSheet.create({
   statusDot: {
     width: 7,
     height: 7,
-    borderRadius: 4,
+    borderRadius: radii.xs,
   },
 
   statusText: {
-    fontSize: 12,
-    fontWeight: '800',
+    fontSize: fontSizes.smd,
+    fontWeight: fontWeights.extrabold,
     fontFamily: appFont,
   },
 
@@ -1087,17 +1084,17 @@ const styles = StyleSheet.create({
   },
 
   actionTitle: {
-    fontSize: 15,
-    fontWeight: '800',
+    fontSize: fontSizes.lg,
+    fontWeight: fontWeights.extrabold,
     color: TEXT,
     fontFamily: appFont,
   },
 
   actionSub: {
-    fontSize: 12,
+    fontSize: fontSizes.smd,
     color: MUTED,
     marginTop: 3,
-    fontWeight: '600',
+    fontWeight: fontWeights.semibold,
     fontFamily: appFont,
   },
 
@@ -1110,7 +1107,7 @@ const styles = StyleSheet.create({
   languageBtn: {
     flex: 1,
     paddingVertical: 11,
-    borderRadius: 14,
+    borderRadius: radii.lg,
     backgroundColor: '#F3F4F8',
     alignItems: 'center',
   },
@@ -1120,8 +1117,8 @@ const styles = StyleSheet.create({
   },
 
   languageText: {
-    fontSize: 14,
-    fontWeight: '800',
+    fontSize: fontSizes.mdl,
+    fontWeight: fontWeights.extrabold,
     color: '#555B66',
     fontFamily: appFont,
   },
@@ -1131,28 +1128,28 @@ const styles = StyleSheet.create({
   },
 
   logoutBtn: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  backgroundColor: CARD_BG,
-  borderRadius: 20,
-  padding: 14,
-  gap: 12,
-  borderWidth: thinBorder,
-  borderColor: BORDER,
-},
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: CARD_BG,
+    borderRadius: radii.xxxl,
+    padding: 14,
+    gap: 12,
+    borderWidth: thinBorder,
+    borderColor: BORDER,
+  },
 
   logoutTitle: {
-    fontSize: 15,
-    fontWeight: '800',
+    fontSize: fontSizes.lg,
+    fontWeight: fontWeights.extrabold,
     color: RED,
     fontFamily: appFont,
   },
 
   logoutSub: {
-    fontSize: 12,
+    fontSize: fontSizes.smd,
     color: '#B45353',
     marginTop: 3,
-    fontWeight: '600',
+    fontWeight: fontWeights.semibold,
     fontFamily: appFont,
   },
 
@@ -1167,9 +1164,9 @@ const styles = StyleSheet.create({
   },
 
   footerText: {
-    fontSize: 12,
+    fontSize: fontSizes.smd,
     color: '#9CA3AF',
-    fontWeight: '600',
+    fontWeight: fontWeights.semibold,
     fontFamily: appFont,
   },
 
@@ -1182,14 +1179,14 @@ const styles = StyleSheet.create({
   },
 
   modalBox: {
-  backgroundColor: '#fff',
-  borderRadius: 24,
-  width: '92%',
-  maxWidth: 430,
-  overflow: 'hidden',
-  borderWidth: thinBorder,
-  borderColor: BORDER,
-},
+    backgroundColor: '#fff',
+    borderRadius: radii.massive,
+    width: '92%',
+    maxWidth: 430,
+    overflow: 'hidden',
+    borderWidth: thinBorder,
+    borderColor: BORDER,
+  },
 
   modalHeader: {
     flexDirection: 'row',
@@ -1201,25 +1198,24 @@ const styles = StyleSheet.create({
     gap: 14,
   },
 
-
   modalTitle: {
     marginTop: 3,
-    fontSize: 18,
-    fontWeight: '800',
+    fontSize: fontSizes.xxl,
+    fontWeight: fontWeights.extrabold,
     color: TEXT,
     fontFamily: appFont,
   },
 
   modalCloseBtn: {
-  width: 34,
-  height: 34,
-  borderRadius: 14,
-  backgroundColor: '#F7F8FA',
-  justifyContent: 'center',
-  alignItems: 'center',
-  borderWidth: thinBorder,
-  borderColor: BORDER,
-},
+    width: 34,
+    height: 34,
+    borderRadius: radii.lg,
+    backgroundColor: '#F7F8FA',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: thinBorder,
+    borderColor: BORDER,
+  },
 
   modalBody: {
     padding: 18,
@@ -1229,7 +1225,7 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 26,
-    backgroundColor: '#EAFBF1',
+    backgroundColor: colors.successSoft,
     alignSelf: 'center',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1237,11 +1233,11 @@ const styles = StyleSheet.create({
   },
 
   modalMessage: {
-    fontSize: 14,
+    fontSize: fontSizes.mdl,
     color: SOFT_TEXT,
     marginBottom: 20,
     lineHeight: 20,
-    fontWeight: '600',
+    fontWeight: fontWeights.semibold,
     textAlign: 'center',
     fontFamily: appFont,
   },
@@ -1254,13 +1250,13 @@ const styles = StyleSheet.create({
   cancelBtn: {
     flex: 1,
     paddingVertical: 14,
-    borderRadius: 15,
-    backgroundColor: '#ECEEF3',
+    borderRadius: radii.lgl,
+    backgroundColor: colors.border,
     alignItems: 'center',
   },
 
   cancelBtnText: {
-    fontWeight: '800',
+    fontWeight: fontWeights.extrabold,
     color: '#555B66',
     fontFamily: appFont,
   },
@@ -1268,20 +1264,20 @@ const styles = StyleSheet.create({
   dangerBtn: {
     flex: 1,
     paddingVertical: 14,
-    borderRadius: 15,
+    borderRadius: radii.lgl,
     backgroundColor: RED,
     alignItems: 'center',
   },
 
   dangerBtnText: {
-    fontWeight: '800',
+    fontWeight: fontWeights.extrabold,
     color: '#fff',
     fontFamily: appFont,
   },
 
   fieldLabel: {
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: fontSizes.smd,
+    fontWeight: fontWeights.bold,
     color: '#555B66',
     marginBottom: 7,
     marginTop: 12,
@@ -1289,21 +1285,21 @@ const styles = StyleSheet.create({
   },
 
   pinInput: {
-  borderWidth: thinBorder,
-  borderColor: BORDER,
-  borderRadius: 14,
-  paddingHorizontal: 13,
-  paddingVertical: 12,
-  fontSize: 15,
-  color: TEXT,
-  backgroundColor: '#FAFAFB',
-  fontFamily: appFont,
-  fontWeight: '600',
-},
+    borderWidth: thinBorder,
+    borderColor: BORDER,
+    borderRadius: radii.lg,
+    paddingHorizontal: 13,
+    paddingVertical: 12,
+    fontSize: fontSizes.lg,
+    color: TEXT,
+    backgroundColor: '#FAFAFB',
+    fontFamily: appFont,
+    fontWeight: fontWeights.semibold,
+  },
 
   saveBtn: {
     backgroundColor: PRIMARY,
-    borderRadius: 15,
+    borderRadius: radii.lgl,
     paddingVertical: 14,
     alignItems: 'center',
     marginTop: 20,
@@ -1315,8 +1311,8 @@ const styles = StyleSheet.create({
 
   saveBtnText: {
     color: '#fff',
-    fontSize: 14,
-    fontWeight: '800',
+    fontSize: fontSizes.mdl,
+    fontWeight: fontWeights.extrabold,
     fontFamily: appFont,
   },
 
@@ -1343,7 +1339,7 @@ const styles = StyleSheet.create({
   contactIconBox: {
     width: 38,
     height: 38,
-    borderRadius: 14,
+    borderRadius: radii.lg,
     backgroundColor: PRIMARY_SOFT,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1354,9 +1350,9 @@ const styles = StyleSheet.create({
   },
 
   contactText: {
-    fontSize: 14,
+    fontSize: fontSizes.mdl,
     color: TEXT,
-    fontWeight: '800',
+    fontWeight: fontWeights.extrabold,
     fontFamily: appFont,
   },
 });

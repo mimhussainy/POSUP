@@ -15,19 +15,21 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import { useLanguage } from '../lib/LanguageContext';
+import { appFont } from '../lib/fonts';
+import { colors, borders, radii, fontSizes, fontWeights } from '../lib/theme';
 
 const BACKEND = 'https://foodup-order-alerts-backend.onrender.com';
 
-const PRIMARY = '#8B38CB';
-const APP_BG = '#F6F7F9';
-const CARD_BG = '#FFFFFF';
-const BORDER = '#D8DCE5';
-const FIELD_BORDER = '#CDD3DE';
-const BORDER_FOCUS = '#B982EA';
-const FIELD_BG = '#F8F9FB';
-const TEXT = '#1D1D1F';
-const MUTED = '#6F7682';
-const PLACEHOLDER = '#9DA4AF';
+const PRIMARY = colors.primary;
+const APP_BG = colors.appBg;
+const CARD_BG = colors.cardBg;
+const BORDER = colors.borderStrong;
+const FIELD_BORDER = colors.fieldBorder;
+const BORDER_FOCUS = colors.borderFocus;
+const FIELD_BG = colors.fieldBg;
+const TEXT = colors.text;
+const MUTED = colors.muted;
+const PLACEHOLDER = colors.placeholder;
 
 export default function LoginScreen() {
   const { t } = useLanguage();
@@ -229,7 +231,7 @@ const styles = StyleSheet.create({
   loadingBox: {
     width: 64,
     height: 64,
-    borderRadius: 22,
+    borderRadius: radii.huge,
     backgroundColor: CARD_BG,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: BORDER,
@@ -241,7 +243,7 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 400,
     backgroundColor: CARD_BG,
-    borderRadius: 28,
+    borderRadius: radii.giant,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: BORDER,
     paddingHorizontal: 26,
@@ -262,19 +264,21 @@ const styles = StyleSheet.create({
   },
 
   title: {
-    fontSize: 25,
-    fontWeight: '700',
+    fontSize: fontSizes.giant,
+    fontWeight: fontWeights.bold,
     color: TEXT,
     textAlign: 'center',
     letterSpacing: -0.35,
+    fontFamily: appFont,
   },
 
   subtitle: {
-    fontSize: 15,
+    fontSize: fontSizes.lg,
     color: MUTED,
     marginTop: 8,
     textAlign: 'center',
-    fontWeight: '400',
+    fontWeight: fontWeights.regular,
+    fontFamily: appFont,
   },
 
   form: {
@@ -282,22 +286,23 @@ const styles = StyleSheet.create({
   },
 
   label: {
-    fontSize: 13,
+    fontSize: fontSizes.md,
     color: MUTED,
-    fontWeight: '500',
+    fontWeight: fontWeights.medium,
     marginBottom: 8,
     marginLeft: 2,
+    fontFamily: appFont,
   },
 
   inputBox: {
-  minHeight: 54,
-  backgroundColor: FIELD_BG,
-  borderRadius: 16,
-  borderWidth: StyleSheet.hairlineWidth,
-  borderColor: BORDER,
-  marginBottom: 17,
-  justifyContent: 'center',
-},
+    minHeight: 54,
+    backgroundColor: FIELD_BG,
+    borderRadius: radii.xl,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: BORDER,
+    marginBottom: 17,
+    justifyContent: 'center',
+  },
 
   inputBoxFocused: {
     backgroundColor: CARD_BG,
@@ -308,14 +313,15 @@ const styles = StyleSheet.create({
     minHeight: 54,
     paddingHorizontal: 16,
     paddingVertical: Platform.OS === 'ios' ? 15 : 12,
-    fontSize: 16,
+    fontSize: fontSizes.lgl,
     color: TEXT,
-    fontWeight: '400',
+    fontWeight: fontWeights.regular,
+    fontFamily: appFont,
   },
 
   button: {
     minHeight: 54,
-    borderRadius: 16,
+    borderRadius: radii.xl,
     backgroundColor: PRIMARY,
     alignItems: 'center',
     justifyContent: 'center',
@@ -328,7 +334,8 @@ const styles = StyleSheet.create({
 
   buttonText: {
     color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: fontSizes.lgl,
+    fontWeight: fontWeights.semibold,
+    fontFamily: appFont,
   },
 });
