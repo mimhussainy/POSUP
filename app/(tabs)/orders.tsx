@@ -27,7 +27,7 @@ const PRIMARY_SOFT = '#F6EEFF';
 
 const APP_BG = '#F5F5F5';
 const CARD_BG = '#FFFFFF';
-const BORDER = '#ECEEF3';
+const BORDER = '#EEF0F5';
 const TEXT = '#151521';
 const MUTED = '#7B7F8C';
 
@@ -1481,7 +1481,7 @@ export default function NewOrderScreen() {
   );
 }
 
-const thinBorder = Platform.OS === 'web' ? 0 : StyleSheet.hairlineWidth;
+const thinBorder = Platform.OS === 'web' ? 1 : StyleSheet.hairlineWidth;
 
 const styles = StyleSheet.create({
   container: {
