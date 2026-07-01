@@ -26,7 +26,7 @@ const PRIMARY_SOFT = '#F6EEFF';
 
 const APP_BG = '#F7F8FB';
 const CARD_BG = '#FFFFFF';
-const BORDER = '#E7EAF1';
+const BORDER = '#D8DCE5';
 const TEXT = '#151521';
 const MUTED = '#7B7F8C';
 
@@ -1534,14 +1534,15 @@ const styles = StyleSheet.create({
   },
 
   catBadge: {
-    width: 36,
-    height: 36,
-    borderRadius: 13,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 8,
-    borderWidth: thinBorder,
-  },
+  width: 36,
+  height: 36,
+  borderRadius: 13,
+  justifyContent: 'center',
+  alignItems: 'center',
+  marginRight: 8,
+  borderWidth: thinBorder,
+  borderColor: BORDER,
+},
 
   catBadgeLetter: {
     fontSize: 17,
@@ -2162,14 +2163,14 @@ const styles = StyleSheet.create({
   },
 
   discountTypeBtn: {
-    flex: 1,
-    paddingVertical: 11,
-    borderRadius: 13,
-    backgroundColor: '#F0F1F5',
-    alignItems: 'center',
-    borderWidth: thinBorder,
-    borderColor: '#E2E4EA',
-  },
+  flex: 1,
+  paddingVertical: 11,
+  borderRadius: 13,
+  backgroundColor: '#F0F1F5',
+  alignItems: 'center',
+  borderWidth: thinBorder,
+  borderColor: BORDER,
+},
 
   discountTypeBtnActive: {
     backgroundColor: PRIMARY,
@@ -2195,13 +2196,13 @@ const styles = StyleSheet.create({
   },
 
   presetBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 999,
-    borderWidth: thinBorder,
-    borderColor: '#D9DCE4',
-    backgroundColor: '#FAFAFB',
-  },
+  paddingHorizontal: 14,
+  paddingVertical: 8,
+  borderRadius: 999,
+  borderWidth: thinBorder,
+  borderColor: BORDER,
+  backgroundColor: '#FAFAFB',
+},
 
   presetBtnActive: {
     backgroundColor: PRIMARY,
@@ -2220,18 +2221,18 @@ const styles = StyleSheet.create({
   },
 
   discountInput: {
-    borderWidth: thinBorder,
-    borderColor: '#D9DCE4',
-    borderRadius: 14,
-    paddingHorizontal: 13,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: TEXT,
-    marginBottom: 12,
-    backgroundColor: '#FAFAFB',
-    fontFamily: appFont,
-    fontWeight: '700',
-  },
+  borderWidth: thinBorder,
+  borderColor: BORDER,
+  borderRadius: 14,
+  paddingHorizontal: 13,
+  paddingVertical: 12,
+  fontSize: 16,
+  color: TEXT,
+  marginBottom: 12,
+  backgroundColor: '#FAFAFB',
+  fontFamily: appFont,
+  fontWeight: '700',
+},
 
   discountPreview: {
     backgroundColor: '#ECFDF5',
@@ -2313,16 +2314,16 @@ const styles = StyleSheet.create({
   },
 
   tableTypeBtn: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    borderRadius: 16,
-    backgroundColor: '#F0F1F5',
-    gap: 7,
-    borderWidth: thinBorder,
-    borderColor: '#E2E4EA',
-  },
+  flex: 1,
+  alignItems: 'center',
+  justifyContent: 'center',
+  paddingVertical: 16,
+  borderRadius: 16,
+  backgroundColor: '#F0F1F5',
+  gap: 7,
+  borderWidth: thinBorder,
+  borderColor: BORDER,
+},
 
   tableTypeBtnActive: {
     backgroundColor: PRIMARY,
@@ -2348,16 +2349,16 @@ const styles = StyleSheet.create({
   },
 
   tableCard: {
-    width: 76,
-    height: 76,
-    borderRadius: 18,
-    backgroundColor: '#F0F1F5',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 3,
-    borderWidth: thinBorder,
-    borderColor: '#E2E4EA',
-  },
+  width: 76,
+  height: 76,
+  borderRadius: 18,
+  backgroundColor: '#F0F1F5',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: 3,
+  borderWidth: thinBorder,
+  borderColor: BORDER,
+},
 
   tableCardActive: {
     backgroundColor: PRIMARY,
@@ -2419,13 +2420,13 @@ const styles = StyleSheet.create({
   },
 
   chip: {
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    borderRadius: 999,
-    borderWidth: thinBorder,
-    borderColor: '#D9DCE4',
-    backgroundColor: '#FAFAFB',
-  },
+  paddingHorizontal: 14,
+  paddingVertical: 9,
+  borderRadius: 999,
+  borderWidth: thinBorder,
+  borderColor: BORDER,
+  backgroundColor: '#FAFAFB',
+},
 
   chipActive: {
     backgroundColor: PRIMARY,
