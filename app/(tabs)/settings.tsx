@@ -31,7 +31,7 @@ const PRIMARY_BORDER = colors.primaryBorder;
 
 const APP_BG = colors.appBg;
 const CARD_BG = colors.cardBg;
-const BORDER = colors.border;
+const BORDER = colors.borderStrong;
 const TEXT = colors.text;
 const MUTED = colors.muted;
 const SOFT_TEXT = colors.softText;
@@ -910,7 +910,7 @@ const styles = StyleSheet.create({
 
   headerTitle: {
     fontSize: fontSizes.massive,
-    fontWeight: fontWeights.bold,
+    fontWeight: fontWeights.black,
     color: TEXT,
     fontFamily: appFont,
   },

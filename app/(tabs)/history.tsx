@@ -1057,7 +1057,7 @@ const styles = StyleSheet.create({
 
   headerTitle: {
     fontSize: fontSizes.massive,
-    fontWeight: fontWeights.bold,
+    fontWeight: fontWeights.black,
     color: TEXT,
     fontFamily: appFont,
   },
