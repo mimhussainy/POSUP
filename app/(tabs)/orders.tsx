@@ -1734,7 +1734,7 @@ const styles = StyleSheet.create({
 
   productPrice: {
     fontSize: fontSizes.lgl,
-    fontWeight: fontWeights.black,
+    fontWeight: fontWeights.bold,
     color: PRIMARY,
     fontFamily: appFont,
   },
