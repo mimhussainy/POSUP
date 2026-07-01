@@ -150,10 +150,12 @@ export const fontWeights = {
   semibold: '600' as const,
   // Inter's 700/800/900 cuts render visually heavier on web than the
   // native OS system font does at the same nominal weight — so each
-  // is capped down a notch on web only. Native (iOS/Android) is
-  // unaffected since Platform.OS !== 'web' there.
+  // is capped down on web only. Native (iOS/Android) is unaffected
+  // since Platform.OS !== 'web' there.
   bold: (Platform.OS === 'web' ? '600' : '700') as '600' | '700',
-  extrabold: (Platform.OS === 'web' ? '700' : '800') as '700' | '800',
+  // Collapsed to the same web value as `bold` — Inter's 800 cut still
+  // read too heavy even one step down from black.
+  extrabold: (Platform.OS === 'web' ? '600' : '800') as '600' | '800',
   black: (Platform.OS === 'web' ? '800' : '900') as '800' | '900',
 };
 
