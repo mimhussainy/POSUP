@@ -908,7 +908,7 @@ const styles = StyleSheet.create({
   aboutHeaderBtn: {
   width: 38,
   height: 38,
-  borderRadius: 14,
+  borderRadius: 8,
   backgroundColor: CARD_BG,
   borderWidth: thinBorder,
   borderColor: BORDER,
