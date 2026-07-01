@@ -1235,7 +1235,7 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: fontSizes.sm,
     color: MUTED,
-    fontWeight: fontWeights.bold,
+    fontWeight: fontWeights.black,
     lineHeight: 14,
     fontFamily: appFont,
   },
@@ -1313,9 +1313,9 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 112,
     backgroundColor: CARD_BG,
-    borderRadius: radii.xxl,
-    padding: 13,
-    borderWidth: 1,
+    borderRadius: radii.lgl,
+    padding: 14,
+    borderWidth: thinBorder,
     borderColor: BORDER,
     marginBottom: 12,
   },
@@ -1346,14 +1346,14 @@ const styles = StyleSheet.create({
 
   orderNumberText: {
     fontSize: fontSizes.md,
-    fontWeight: fontWeights.extrabold,
+    fontWeight: fontWeights.black,
     color: PRIMARY,
     fontFamily: appFont,
   },
 
   orderTotal: {
     fontSize: fontSizes.lgl,
-    fontWeight: fontWeights.extrabold,
+    fontWeight: fontWeights.black,
     color: TEXT,
     fontFamily: appFont,
   },
