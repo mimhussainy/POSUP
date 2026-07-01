@@ -12,7 +12,7 @@ import {
   Linking,
   Modal,
   Dimensions,
-  StatusBar,
+
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -28,9 +28,9 @@ const PRIMARY = '#8B38CB';
 const PRIMARY_SOFT = '#F6EEFF';
 const PRIMARY_BORDER = '#E6D5FF';
 
-const APP_BG = '#F3F4F8';
+const APP_BG = '#F5F5F5';
 const CARD_BG = '#FFFFFF';
-const BORDER = '#E0E3EA';
+const BORDER = '#D8DCE5';
 const TEXT = '#171725';
 const MUTED = '#7A7F8C';
 const SOFT_TEXT = '#5F6572';
@@ -41,12 +41,8 @@ const ORANGE = '#F59E0B';
 
 const PAGE_PADDING = 16;
 const MAX_CONTENT_WIDTH = 760;
-const HEADER_TOP_PADDING =
-  Platform.OS === 'android'
-    ? (StatusBar.currentHeight || 0) + 8
-    : Platform.OS === 'web'
-      ? 14
-      : 12;
+const thinBorder = StyleSheet.hairlineWidth;
+
 
 function PrinterStatusCard({
   t,
@@ -375,14 +371,8 @@ export default function Settings() {
         <View style={styles.headerInner}>
           <View style={styles.header}>
             <View style={styles.headerLeft}>
-              <Text style={styles.headerKicker}>POSUP</Text>
-              <Text style={styles.headerTitle}>{t.settings}</Text>
-              <Text style={styles.headerSub} numberOfLines={1}>
-                {restaurantName
-                  ? `${restaurantName}${restaurantCode ? ` · ${restaurantCode}` : ''}`
-                  : restaurantCode || 'Restaurant'}
-              </Text>
-            </View>
+  <Text style={styles.headerTitle}>{t.settings}</Text>
+</View>
 
             <TouchableOpacity
               style={styles.aboutHeaderBtn}
@@ -853,13 +843,13 @@ const styles = StyleSheet.create({
   },
 
   headerOuter: {
-    backgroundColor: APP_BG,
-    paddingHorizontal: PAGE_PADDING,
-    paddingTop: HEADER_TOP_PADDING,
-    paddingBottom: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E7EAF0',
-  },
+  height: 75,
+  backgroundColor: CARD_BG,
+  paddingHorizontal: PAGE_PADDING,
+  borderBottomWidth: thinBorder,
+  borderBottomColor: BORDER,
+  justifyContent: 'center',
+},
 
   headerInner: {
     width: '100%',
@@ -868,13 +858,13 @@ const styles = StyleSheet.create({
   },
 
   header: {
-    width: '100%',
-    minHeight: 54,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
+  width: '100%',
+  height: 75,
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  gap: 12,
+},
 
   headerLeft: {
     flex: 1,
@@ -891,12 +881,11 @@ const styles = StyleSheet.create({
   },
 
   headerTitle: {
-    marginTop: 1,
-    fontSize: 20,
-    fontWeight: '800',
-    color: TEXT,
-    fontFamily: appFont,
-  },
+  fontSize: 22,
+  fontWeight: '700',
+  color: TEXT,
+  fontFamily: appFont,
+},
 
   headerSub: {
     marginTop: 2,
@@ -907,20 +896,15 @@ const styles = StyleSheet.create({
   },
 
   aboutHeaderBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 14,
-    backgroundColor: CARD_BG,
-    borderWidth: 1,
-    borderColor: BORDER,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#111827',
-    shadowOpacity: 0.025,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 1,
-  },
+  width: 38,
+  height: 38,
+  borderRadius: 14,
+  backgroundColor: CARD_BG,
+  borderWidth: thinBorder,
+  borderColor: BORDER,
+  alignItems: 'center',
+  justifyContent: 'center',
+},
 
   section: {
     width: '100%',
@@ -951,29 +935,23 @@ const styles = StyleSheet.create({
   },
 
   card: {
-    backgroundColor: CARD_BG,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: BORDER,
-    overflow: 'hidden',
-
-    shadowColor: '#111827',
-    shadowOpacity: 0.018,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 1,
-  },
+  backgroundColor: CARD_BG,
+  borderRadius: 20,
+  borderWidth: thinBorder,
+  borderColor: BORDER,
+  overflow: 'hidden',
+},
 
   infoRow: {
-    minHeight: 70,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 13,
-    gap: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EEF0F5',
-  },
+  minHeight: 70,
+  flexDirection: 'row',
+  alignItems: 'center',
+  paddingHorizontal: 14,
+  paddingVertical: 13,
+  gap: 12,
+  borderBottomWidth: thinBorder,
+  borderBottomColor: BORDER,
+},
 
   infoRowLast: {
     borderBottomWidth: 0,
@@ -1125,21 +1103,15 @@ const styles = StyleSheet.create({
   },
 
   logoutBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: CARD_BG,
-    borderRadius: 20,
-    padding: 14,
-    gap: 12,
-    borderWidth: 1,
-    borderColor: '#FAD0D0',
-
-    shadowColor: '#111827',
-    shadowOpacity: 0.012,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 1,
-  },
+  flexDirection: 'row',
+  alignItems: 'center',
+  backgroundColor: CARD_BG,
+  borderRadius: 20,
+  padding: 14,
+  gap: 12,
+  borderWidth: thinBorder,
+  borderColor: BORDER,
+},
 
   logoutTitle: {
     fontSize: 15,
@@ -1182,12 +1154,14 @@ const styles = StyleSheet.create({
   },
 
   modalBox: {
-    backgroundColor: '#fff',
-    borderRadius: 24,
-    width: '92%',
-    maxWidth: 430,
-    overflow: 'hidden',
-  },
+  backgroundColor: '#fff',
+  borderRadius: 24,
+  width: '92%',
+  maxWidth: 430,
+  overflow: 'hidden',
+  borderWidth: thinBorder,
+  borderColor: BORDER,
+},
 
   modalHeader: {
     flexDirection: 'row',
@@ -1217,13 +1191,15 @@ const styles = StyleSheet.create({
   },
 
   modalCloseBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 14,
-    backgroundColor: '#F0F1F5',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  width: 34,
+  height: 34,
+  borderRadius: 14,
+  backgroundColor: '#F7F8FA',
+  justifyContent: 'center',
+  alignItems: 'center',
+  borderWidth: thinBorder,
+  borderColor: BORDER,
+},
 
   modalBody: {
     padding: 18,
@@ -1293,17 +1269,17 @@ const styles = StyleSheet.create({
   },
 
   pinInput: {
-    borderWidth: 1,
-    borderColor: '#D9DCE4',
-    borderRadius: 14,
-    paddingHorizontal: 13,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: TEXT,
-    backgroundColor: '#FAFAFB',
-    fontFamily: appFont,
-    fontWeight: '600',
-  },
+  borderWidth: thinBorder,
+  borderColor: BORDER,
+  borderRadius: 14,
+  paddingHorizontal: 13,
+  paddingVertical: 12,
+  fontSize: 15,
+  color: TEXT,
+  backgroundColor: '#FAFAFB',
+  fontFamily: appFont,
+  fontWeight: '600',
+},
 
   saveBtn: {
     backgroundColor: PRIMARY,
