@@ -24,7 +24,7 @@ import { appFont } from '../../lib/fonts';
 const PRIMARY = '#8B38CB';
 const PRIMARY_SOFT = '#F6EEFF';
 
-const APP_BG = '#F7F8FB';
+const APP_BG = '#F5F5F5';
 const CARD_BG = '#FFFFFF';
 const BORDER = '#D8DCE5';
 const TEXT = '#151521';
