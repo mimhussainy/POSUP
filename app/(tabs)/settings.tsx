@@ -371,7 +371,15 @@ export default function Settings() {
         <View style={styles.headerInner}>
           <View style={styles.header}>
             <View style={styles.headerLeft}>
-  <Text style={styles.headerTitle}>{t.settings}</Text>
+  <View style={styles.headerTitleRow}>
+    <Image
+      source={require('../../assets/favicon-dashboard.png')}
+      style={styles.headerIcon}
+      resizeMode="contain"
+    />
+
+    <Text style={styles.headerTitle}>{t.settings}</Text>
+  </View>
 </View>
 
             <TouchableOpacity
@@ -870,6 +878,18 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
   },
+
+headerTitleRow: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  gap: 10,
+},
+
+headerIcon: {
+  width: 32,
+  height: 32,
+  borderRadius: 10,
+},
 
   headerKicker: {
     fontSize: 10,
