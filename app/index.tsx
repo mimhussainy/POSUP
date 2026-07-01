@@ -15,18 +15,17 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import { useLanguage } from '../lib/LanguageContext';
-import { appFont } from '../lib/fonts';
 
 const BACKEND = 'https://foodup-order-alerts-backend.onrender.com';
 
 const PRIMARY = '#8B38CB';
-const PRIMARY_SOFT = '#F6EEFF';
-const APP_BG = '#F1F3F7';
-const CARD_BG = '#FFFFFF';
-const BORDER = '#DEE3EC';
-const TEXT = '#171725';
-const MUTED = '#7A7F8C';
-const SOFT_TEXT = '#5F6572';
+const APP_BG = '#F6F7F9';
+const FIELD_BG = '#FFFFFF';
+const FIELD_BORDER = '#E5E7EE';
+const FIELD_FOCUSED = '#CDAAF0';
+const TEXT = '#1D1D1F';
+const MUTED = '#737985';
+const PLACEHOLDER = '#A5ABB5';
 
 export default function LoginScreen() {
   const { t } = useLanguage();
@@ -35,6 +34,7 @@ export default function LoginScreen() {
   const [pin, setPin] = useState('');
   const [loading, setLoading] = useState(true);
   const [logging, setLogging] = useState(false);
+  const [focusedField, setFocusedField] = useState<'code' | 'pin' | null>(null);
 
   useEffect(() => {
     AsyncStorage.getItem('prefill_restaurant_code').then(prefill => {
@@ -111,9 +111,7 @@ export default function LoginScreen() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <View style={styles.loadingCard}>
-          <ActivityIndicator size="large" color={PRIMARY} />
-        </View>
+        <ActivityIndicator size="large" color={PRIMARY} />
       </View>
     );
   }
@@ -128,45 +126,56 @@ export default function LoginScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.loginCard}>
-          <View style={styles.logoWrap}>
-            <Image
-              source={require('../assets/FoodupPOS-logo.png')}
-              style={styles.logo}
-              resizeMode="contain"
-            />
-          </View>
+        <View style={styles.content}>
+          <Image
+            source={require('../assets/FoodupPOS-logo.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
 
           <View style={styles.titleBlock}>
-            <Text style={styles.kicker}>POSUP</Text>
             <Text style={styles.title}>Restaurant Login</Text>
-            <Text style={styles.sub}>Sign in to your restaurant POS system</Text>
+            <Text style={styles.sub}>Sign in to continue</Text>
           </View>
 
           <View style={styles.form}>
             <Text style={styles.label}>{t.restaurantCode}</Text>
-            <View style={styles.inputWrap}>
+            <View
+              style={[
+                styles.inputWrap,
+                focusedField === 'code' && styles.inputWrapFocused,
+              ]}
+            >
               <TextInput
                 style={styles.input}
                 value={code}
                 onChangeText={setCode}
                 placeholder={t.restaurantCode}
-                placeholderTextColor="#9BA1AE"
+                placeholderTextColor={PLACEHOLDER}
                 autoCapitalize="none"
                 autoCorrect={false}
+                onFocus={() => setFocusedField('code')}
+                onBlur={() => setFocusedField(null)}
               />
             </View>
 
             <Text style={styles.label}>{t.ownerPin}</Text>
-            <View style={styles.inputWrap}>
+            <View
+              style={[
+                styles.inputWrap,
+                focusedField === 'pin' && styles.inputWrapFocused,
+              ]}
+            >
               <TextInput
                 style={styles.input}
                 value={pin}
                 onChangeText={setPin}
                 placeholder={t.ownerPin || 'PIN'}
-                placeholderTextColor="#9BA1AE"
+                placeholderTextColor={PLACEHOLDER}
                 secureTextEntry
                 keyboardType="default"
+                onFocus={() => setFocusedField('pin')}
+                onBlur={() => setFocusedField(null)}
               />
             </View>
 
@@ -174,7 +183,7 @@ export default function LoginScreen() {
               style={[styles.btn, logging && styles.btnDisabled]}
               onPress={handleLogin}
               disabled={logging}
-              activeOpacity={0.82}
+              activeOpacity={0.9}
             >
               {logging ? (
                 <ActivityIndicator color="#fff" />
@@ -182,10 +191,6 @@ export default function LoginScreen() {
                 <Text style={styles.btnText}>{t.signIn}</Text>
               )}
             </TouchableOpacity>
-          </View>
-
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>Powered by FoodUp.ch</Text>
           </View>
         </View>
       </ScrollView>
@@ -203,8 +208,8 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 18,
-    paddingVertical: 28,
+    paddingHorizontal: 24,
+    paddingVertical: Platform.OS === 'android' ? 24 : 32,
   },
 
   center: {
@@ -214,84 +219,37 @@ const styles = StyleSheet.create({
     backgroundColor: APP_BG,
   },
 
-  loadingCard: {
-    width: 72,
-    height: 72,
-    borderRadius: 24,
-    backgroundColor: CARD_BG,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: BORDER,
-
-    shadowColor: '#111827',
-    shadowOpacity: 0.05,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 4,
-  },
-
-  loginCard: {
+  content: {
     width: '100%',
-    maxWidth: 430,
-    backgroundColor: CARD_BG,
-    borderRadius: 26,
-    paddingHorizontal: 26,
-    paddingTop: 28,
-    paddingBottom: 22,
-    borderWidth: 1,
-    borderColor: BORDER,
-
-    shadowColor: '#111827',
-    shadowOpacity: 0.08,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 7,
-  },
-
-  logoWrap: {
-    alignSelf: 'center',
-    width: 190,
-    height: 76,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
+    maxWidth: 360,
+    alignItems: 'stretch',
   },
 
   logo: {
-    width: 180,
-    height: 72,
+    alignSelf: 'center',
+    width: 174,
+    height: 70,
+    marginBottom: 24,
   },
 
   titleBlock: {
     alignItems: 'center',
-    marginBottom: 26,
-  },
-
-  kicker: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: PRIMARY,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    fontFamily: appFont,
-    marginBottom: 4,
+    marginBottom: 30,
   },
 
   title: {
-    fontSize: 22,
-    fontWeight: '800',
+    fontSize: 24,
+    fontWeight: '700',
     color: TEXT,
     textAlign: 'center',
-    fontFamily: appFont,
+    letterSpacing: -0.3,
   },
 
   sub: {
-    fontSize: 13,
+    fontSize: 15,
     color: MUTED,
-    marginTop: 6,
-    fontWeight: '600',
-    fontFamily: appFont,
+    marginTop: 8,
+    fontWeight: '400',
     textAlign: 'center',
   },
 
@@ -300,66 +258,50 @@ const styles = StyleSheet.create({
   },
 
   label: {
-    fontSize: 11,
-    fontWeight: '800',
+    fontSize: 13,
+    fontWeight: '500',
     color: MUTED,
-    marginBottom: 7,
-    textTransform: 'uppercase',
-    letterSpacing: 0.7,
-    fontFamily: appFont,
+    marginBottom: 8,
+    marginLeft: 2,
   },
 
   inputWrap: {
-    backgroundColor: '#FAFAFC',
-    borderWidth: 1,
-    borderColor: BORDER,
-    borderRadius: 16,
-    marginBottom: 15,
+    backgroundColor: FIELD_BG,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: FIELD_BORDER,
+    borderRadius: 14,
+    marginBottom: 17,
+  },
+
+  inputWrapFocused: {
+    borderColor: FIELD_FOCUSED,
   },
 
   input: {
-    paddingHorizontal: 14,
-    paddingVertical: Platform.OS === 'ios' ? 14 : 12,
-    fontSize: 15,
+    minHeight: 52,
+    paddingHorizontal: 16,
+    paddingVertical: Platform.OS === 'ios' ? 15 : 12,
+    fontSize: 16,
     color: TEXT,
-    fontFamily: appFont,
-    fontWeight: '700',
+    fontWeight: '400',
   },
 
   btn: {
     backgroundColor: PRIMARY,
-    borderRadius: 16,
-    paddingVertical: 15,
+    borderRadius: 14,
+    minHeight: 54,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 6,
-    minHeight: 52,
   },
 
   btnDisabled: {
-    opacity: 0.72,
+    opacity: 0.65,
   },
 
   btnText: {
-    color: '#fff',
-    fontSize: 15,
-    fontWeight: '800',
-    fontFamily: appFont,
-  },
-
-  footer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 22,
-    paddingTop: 16,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#EEF0F5',
-  },
-
-  footerText: {
-    fontSize: 12,
-    color: '#A0A4AE',
-    fontWeight: '700',
-    fontFamily: appFont,
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
