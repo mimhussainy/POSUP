@@ -21,7 +21,7 @@ import { fetchRestaurantData } from '../../lib/api';
 import { printOrder } from '../../lib/printer';
 import { useLanguage } from '../../lib/LanguageContext';
 import { appFont } from '../../lib/fonts';
-import { colors, borders, radii, fontSizes, fontWeights, getCatColor } from '../../lib/theme';
+import { colors, borders, radii, fontSizes, fontWeights } from '../../lib/theme';
 
 const PRIMARY = colors.primary;
 const PRIMARY_SOFT = colors.primarySoft;
@@ -36,6 +36,24 @@ const DARK = colors.dark;
 const DARK_CARD = colors.darkCard;
 const DARK_CARD_2 = colors.darkCard2;
 const DARK_BORDER = colors.darkBorder;
+
+const CATEGORY_COLORS = [
+  '#EF4444',
+  '#F97316',
+  '#EAB308',
+  '#22C55E',
+  '#06B6D4',
+  '#3B82F6',
+  '#8B5CF6',
+  '#EC4899',
+  '#14B8A6',
+  '#F59E0B',
+  '#84CC16',
+  '#64748B',
+  '#A855F7',
+  '#F43F5E',
+  '#10B981',
+];
 
 const getLayout = (width: number) => {
   const isCompact = width < 900;
@@ -168,8 +186,8 @@ function CategoryButton({
         style={[
           styles.catBadge,
           {
-            backgroundColor: active ? PRIMARY : `${color}16`,
-            borderColor: active ? PRIMARY : `${color}28`,
+            backgroundColor: active ? PRIMARY : `${color}24`,
+            borderColor: active ? PRIMARY : `${color}45`,
             transform: [{ scale: badgeScale }],
           },
         ]}
@@ -632,10 +650,10 @@ export default function NewOrderScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.catSidebarContent}
         >
-          {categories.map(cat => {
+          {categories.map((cat, index) => {
             const active = selectedCategory === cat.id && !searchQuery;
             const letter = cat.name.trim()[0]?.toUpperCase() || '?';
-            const color = getCatColor(cat.name);
+            const color = CATEGORY_COLORS[index % CATEGORY_COLORS.length];
 
             return (
               <CategoryButton
@@ -1634,12 +1652,11 @@ const styles = StyleSheet.create({
   },
 
   topBar: {
+    height: 70,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
     paddingHorizontal: 14,
-    paddingTop: 12,
-    paddingBottom: 12,
     backgroundColor: APP_BG,
     borderBottomWidth: thinBorder,
     borderBottomColor: BORDER,
