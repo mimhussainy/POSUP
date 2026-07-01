@@ -69,12 +69,12 @@ export default function TabsLayout() {
 
 const styles = StyleSheet.create({
   tabBar: {
-    height: Platform.OS === 'ios' ? 78 : 64,
+    height: Platform.OS === 'ios' ? 78 : 80,
     backgroundColor: '#FFFFFF',
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: BORDER,
-    paddingTop: Platform.OS === 'ios' ? 6 : 5,
-    paddingBottom: Platform.OS === 'ios' ? 14 : 6,
+    paddingTop: Platform.OS === 'ios' ? 6 : 6,
+    paddingBottom: Platform.OS === 'ios' ? 14 : 14,
     paddingHorizontal: 8,
 
     shadowColor: 'transparent',
