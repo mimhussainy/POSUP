@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
   },
 
   tabBarLabel: {
-    fontSize: 12,
+    fontSize: 15,
     fontWeight: '600',
     fontFamily: appFont,
     textAlign: 'center',
