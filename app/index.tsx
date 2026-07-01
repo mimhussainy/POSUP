@@ -19,14 +19,15 @@ import { useLanguage } from '../lib/LanguageContext';
 const BACKEND = 'https://foodup-order-alerts-backend.onrender.com';
 
 const PRIMARY = '#8B38CB';
-const APP_BG = '#F5F6F8';
+const APP_BG = '#F6F7F9';
 const CARD_BG = '#FFFFFF';
-const BORDER = '#E6E8EF';
+const BORDER = '#EEF0F4';
+const FIELD_BORDER = '#DDE1E8';
 const BORDER_FOCUS = '#B982EA';
-const FIELD_BG = '#FAFAFB';
+const FIELD_BG = '#F8F9FB';
 const TEXT = '#1D1D1F';
-const MUTED = '#747A86';
-const PLACEHOLDER = '#A8AFBA';
+const MUTED = '#6F7682';
+const PLACEHOLDER = '#9DA4AF';
 
 export default function LoginScreen() {
   const { t } = useLanguage();
@@ -289,14 +290,14 @@ const styles = StyleSheet.create({
   },
 
   inputBox: {
-    minHeight: 54,
-    backgroundColor: FIELD_BG,
-    borderRadius: 16,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: BORDER,
-    marginBottom: 17,
-    justifyContent: 'center',
-  },
+  minHeight: 54,
+  backgroundColor: FIELD_BG,
+  borderRadius: 16,
+  borderWidth: 1,
+  borderColor: FIELD_BORDER,
+  marginBottom: 17,
+  justifyContent: 'center',
+},
 
   inputBoxFocused: {
     backgroundColor: CARD_BG,
