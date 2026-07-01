@@ -19,13 +19,14 @@ import { useLanguage } from '../lib/LanguageContext';
 const BACKEND = 'https://foodup-order-alerts-backend.onrender.com';
 
 const PRIMARY = '#8B38CB';
-const APP_BG = '#F6F7F9';
-const FIELD_BG = '#FFFFFF';
-const FIELD_BORDER = '#E5E7EE';
-const FIELD_FOCUSED = '#CDAAF0';
+const APP_BG = '#F5F6F8';
+const CARD_BG = '#FFFFFF';
+const BORDER = '#E6E8EF';
+const BORDER_FOCUS = '#B982EA';
+const FIELD_BG = '#FAFAFB';
 const TEXT = '#1D1D1F';
-const MUTED = '#737985';
-const PLACEHOLDER = '#A5ABB5';
+const MUTED = '#747A86';
+const PLACEHOLDER = '#A8AFBA';
 
 export default function LoginScreen() {
   const { t } = useLanguage();
@@ -111,7 +112,9 @@ export default function LoginScreen() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color={PRIMARY} />
+        <View style={styles.loadingBox}>
+          <ActivityIndicator size="large" color={PRIMARY} />
+        </View>
       </View>
     );
   }
@@ -126,7 +129,7 @@ export default function LoginScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.content}>
+        <View style={styles.card}>
           <Image
             source={require('../assets/FoodupPOS-logo.png')}
             style={styles.logo}
@@ -135,15 +138,15 @@ export default function LoginScreen() {
 
           <View style={styles.titleBlock}>
             <Text style={styles.title}>Restaurant Login</Text>
-            <Text style={styles.sub}>Sign in to continue</Text>
+            <Text style={styles.subtitle}>Sign in to your POS system</Text>
           </View>
 
           <View style={styles.form}>
             <Text style={styles.label}>{t.restaurantCode}</Text>
             <View
               style={[
-                styles.inputWrap,
-                focusedField === 'code' && styles.inputWrapFocused,
+                styles.inputBox,
+                focusedField === 'code' && styles.inputBoxFocused,
               ]}
             >
               <TextInput
@@ -154,6 +157,7 @@ export default function LoginScreen() {
                 placeholderTextColor={PLACEHOLDER}
                 autoCapitalize="none"
                 autoCorrect={false}
+                returnKeyType="next"
                 onFocus={() => setFocusedField('code')}
                 onBlur={() => setFocusedField(null)}
               />
@@ -162,8 +166,8 @@ export default function LoginScreen() {
             <Text style={styles.label}>{t.ownerPin}</Text>
             <View
               style={[
-                styles.inputWrap,
-                focusedField === 'pin' && styles.inputWrapFocused,
+                styles.inputBox,
+                focusedField === 'pin' && styles.inputBoxFocused,
               ]}
             >
               <TextInput
@@ -173,22 +177,24 @@ export default function LoginScreen() {
                 placeholder={t.ownerPin || 'PIN'}
                 placeholderTextColor={PLACEHOLDER}
                 secureTextEntry
-                keyboardType="default"
+                autoCorrect={false}
+                returnKeyType="done"
+                onSubmitEditing={handleLogin}
                 onFocus={() => setFocusedField('pin')}
                 onBlur={() => setFocusedField(null)}
               />
             </View>
 
             <TouchableOpacity
-              style={[styles.btn, logging && styles.btnDisabled]}
+              style={[styles.button, logging && styles.buttonDisabled]}
               onPress={handleLogin}
               disabled={logging}
-              activeOpacity={0.9}
+              activeOpacity={0.88}
             >
               {logging ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color="#FFFFFF" />
               ) : (
-                <Text style={styles.btnText}>{t.signIn}</Text>
+                <Text style={styles.buttonText}>{t.signIn}</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -208,28 +214,45 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 24,
+    paddingHorizontal: 22,
     paddingVertical: Platform.OS === 'android' ? 24 : 32,
   },
 
   center: {
     flex: 1,
+    backgroundColor: APP_BG,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: APP_BG,
   },
 
-  content: {
+  loadingBox: {
+    width: 64,
+    height: 64,
+    borderRadius: 22,
+    backgroundColor: CARD_BG,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: BORDER,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  card: {
     width: '100%',
-    maxWidth: 360,
-    alignItems: 'stretch',
+    maxWidth: 400,
+    backgroundColor: CARD_BG,
+    borderRadius: 28,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: BORDER,
+    paddingHorizontal: 26,
+    paddingTop: 30,
+    paddingBottom: 28,
   },
 
   logo: {
     alignSelf: 'center',
-    width: 174,
-    height: 70,
-    marginBottom: 24,
+    width: 178,
+    height: 72,
+    marginBottom: 22,
   },
 
   titleBlock: {
@@ -238,19 +261,19 @@ const styles = StyleSheet.create({
   },
 
   title: {
-    fontSize: 24,
+    fontSize: 25,
     fontWeight: '700',
     color: TEXT,
     textAlign: 'center',
-    letterSpacing: -0.3,
+    letterSpacing: -0.35,
   },
 
-  sub: {
+  subtitle: {
     fontSize: 15,
     color: MUTED,
     marginTop: 8,
-    fontWeight: '400',
     textAlign: 'center',
+    fontWeight: '400',
   },
 
   form: {
@@ -259,26 +282,29 @@ const styles = StyleSheet.create({
 
   label: {
     fontSize: 13,
-    fontWeight: '500',
     color: MUTED,
+    fontWeight: '500',
     marginBottom: 8,
     marginLeft: 2,
   },
 
-  inputWrap: {
+  inputBox: {
+    minHeight: 54,
     backgroundColor: FIELD_BG,
+    borderRadius: 16,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: FIELD_BORDER,
-    borderRadius: 14,
+    borderColor: BORDER,
     marginBottom: 17,
+    justifyContent: 'center',
   },
 
-  inputWrapFocused: {
-    borderColor: FIELD_FOCUSED,
+  inputBoxFocused: {
+    backgroundColor: CARD_BG,
+    borderColor: BORDER_FOCUS,
   },
 
   input: {
-    minHeight: 52,
+    minHeight: 54,
     paddingHorizontal: 16,
     paddingVertical: Platform.OS === 'ios' ? 15 : 12,
     fontSize: 16,
@@ -286,20 +312,20 @@ const styles = StyleSheet.create({
     fontWeight: '400',
   },
 
-  btn: {
-    backgroundColor: PRIMARY,
-    borderRadius: 14,
+  button: {
     minHeight: 54,
+    borderRadius: 16,
+    backgroundColor: PRIMARY,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 6,
   },
 
-  btnDisabled: {
+  buttonDisabled: {
     opacity: 0.65,
   },
 
-  btnText: {
+  buttonText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
