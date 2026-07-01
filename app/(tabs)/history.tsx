@@ -407,15 +407,7 @@ const numColumns = getNumColumns(listWidth);
     return (
       <View style={styles.listHeader}>
         <View style={styles.statsGrid}>
-          {renderStatCard(
-            t.orders,
-            String(filteredOrders.length),
-            'receipt-outline',
-            TEXT,
-            false,
-            () => setPaymentFilter('all')
-          )}
-
+          
           {renderStatCard(
             t.revenue,
             formatMoney(revenue),
@@ -1290,10 +1282,9 @@ const styles = StyleSheet.create({
   },
 
   columnWrapper: {
-    gap: 12,
-    marginBottom: 12,
-    alignItems: 'stretch',
-  },
+  gap: 12,
+  alignItems: 'stretch',
+},
 
   emptyCard: {
     minHeight: 260,
