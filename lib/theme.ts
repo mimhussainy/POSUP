@@ -46,8 +46,10 @@ export const colors = {
   // / #ECEEF3 (history, settings) — kept as two tokens: a soft default
   // and a slightly stronger one for inputs/cards on native.
   border: '#ECEEF3',
-  // Darkened from #D8DCE5 for better visibility on native hairline borders
-  borderStrong: '#C4CAD6',
+  // Native gets a darker value for better visibility with the hairline
+  // width; web keeps the original lighter value since its 1px width
+  // already reads clearly at the original shade.
+  borderStrong: Platform.OS === 'web' ? '#D8DCE5' : '#C4CAD6',
   fieldBorder: '#CDD3DE',
 
   // Text
