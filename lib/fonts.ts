@@ -1,5 +1,5 @@
 import { Platform } from 'react-native';
 
 export const appFont = Platform.OS === 'web'
-  ? 'Segoe UI, Arial, sans-serif'
+  ? 'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
   : undefined;
