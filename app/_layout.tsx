@@ -6,10 +6,8 @@ import { useFonts } from 'expo-font';
 import { Ionicons } from '@expo/vector-icons';
 import { LanguageProvider } from '../lib/LanguageContext';
 import { colors } from '../lib/theme';
-import { AppRegistry } from 'react-native';
+import ExternalDisplay, { useExternalDisplay } from 'react-native-external-display';
 import CustomerDisplay from '../components/CustomerDisplay';
-
-AppRegistry.registerComponent('CustomerDisplay', () => CustomerDisplay);
 
 const APP_BG = colors.appBg;
 const PRIMARY = colors.primary;
@@ -18,6 +16,9 @@ export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
     ...Ionicons.font,
   });
+
+  const externalScreens = useExternalDisplay();
+  const externalScreenId = Object.keys(externalScreens)[0];
 
   if (!fontsLoaded && !fontError) {
     return (
@@ -33,6 +34,12 @@ export default function RootLayout() {
 
   return (
     <LanguageProvider>
+      {externalScreenId && (
+        <ExternalDisplay screen={externalScreenId}>
+          <CustomerDisplay />
+        </ExternalDisplay>
+      )}
+
       <SafeAreaProvider>
         <GestureHandlerRootView style={styles.root}>
           <StatusBar

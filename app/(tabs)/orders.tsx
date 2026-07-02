@@ -23,7 +23,6 @@ import { useLanguage } from '../../lib/LanguageContext';
 import { appFont } from '../../lib/fonts';
 import { colors, borders, radii, fontSizes, fontWeights } from '../../lib/theme';
 import { publishDisplayState } from '../../lib/customerDisplayStore';
-import { showCustomerDisplay, hideCustomerDisplay } from '../../lib/nativeCustomerDisplay';
 
 const PRIMARY = colors.primary;
 const PRIMARY_SOFT = colors.primarySoft;
@@ -270,13 +269,6 @@ export default function NewOrderScreen() {
     });
 
     return () => sub?.remove();
-  }, []);
-
-  useEffect(() => {
-    showCustomerDisplay();
-    return () => {
-      hideCustomerDisplay();
-    };
   }, []);
 
   useEffect(() => {

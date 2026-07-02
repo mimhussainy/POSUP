@@ -22,8 +22,7 @@
     "plugins": [
       "expo-router",
       "expo-font",
-      "expo-screen-orientation",
-      "./plugins/withCustomerDisplay"
+      "expo-screen-orientation"
     ],
     "experiments": {
       "typedRoutes": true
