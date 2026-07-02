@@ -1,4 +1,4 @@
-const { withDangerousMod, withMainApplication } = require('@expo/config-plugins');
+const { withDangerousMod, withMainApplication, withAppBuildGradle } = require('@expo/config-plugins');
 const fs = require('fs');
 const path = require('path');
 
@@ -34,6 +34,21 @@ function withSunmiFiles(config) {
   ]);
 }
 
+function withAidlBuildFeature(config) {
+  return withAppBuildGradle(config, (config) => {
+    const contents = config.modResults.contents;
+
+    if (!contents.includes('aidl = true') && !contents.includes('aidl true')) {
+      config.modResults.contents = contents.replace(
+        /(android\s*\{)/,
+        `$1\n    buildFeatures {\n        aidl = true\n    }`
+      );
+    }
+
+    return config;
+  });
+}
+
 function withSunmiRegistration(config) {
   return withMainApplication(config, (config) => {
     const contents = config.modResults.contents;
@@ -51,6 +66,7 @@ function withSunmiRegistration(config) {
 
 module.exports = function withSunmiPrinter(config) {
   config = withSunmiFiles(config);
+  config = withAidlBuildFeature(config);
   config = withSunmiRegistration(config);
   return config;
 };
