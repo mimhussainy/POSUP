@@ -38,5 +38,12 @@
   "private": true,
   "devDependencies": {
     "typescript": "~6.0.3"
+  },
+  "expo": {
+    "doctor": {
+      "reactNativeDirectoryCheck": {
+        "exclude": ["react-native-tcp-socket"]
+      }
+    }
   }
 }
