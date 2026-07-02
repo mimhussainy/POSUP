@@ -6,6 +6,10 @@ import { useFonts } from 'expo-font';
 import { Ionicons } from '@expo/vector-icons';
 import { LanguageProvider } from '../lib/LanguageContext';
 import { colors } from '../lib/theme';
+import { AppRegistry } from 'react-native';
+import CustomerDisplay from '../components/CustomerDisplay';
+
+AppRegistry.registerComponent('CustomerDisplay', () => CustomerDisplay);
 
 const APP_BG = colors.appBg;
 const PRIMARY = colors.primary;

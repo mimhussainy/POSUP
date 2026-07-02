@@ -22,6 +22,8 @@ import { printOrder } from '../../lib/printer';
 import { useLanguage } from '../../lib/LanguageContext';
 import { appFont } from '../../lib/fonts';
 import { colors, borders, radii, fontSizes, fontWeights } from '../../lib/theme';
+import { publishDisplayState } from '../../lib/customerDisplayStore';
+import { showCustomerDisplay, hideCustomerDisplay } from '../../lib/nativeCustomerDisplay';
 
 const PRIMARY = colors.primary;
 const PRIMARY_SOFT = colors.primarySoft;
@@ -187,7 +189,8 @@ function CategoryButton({
           styles.catBadge,
           {
             backgroundColor: active ? PRIMARY : `${color}24`,
-            borderColor: active ? PRIMARY : `${color}45`,
+            borderColor: active ? PRIMARY : `${color}55`,
+            borderWidth: 1,
             transform: [{ scale: badgeScale }],
           },
         ]}
@@ -267,6 +270,13 @@ export default function NewOrderScreen() {
     });
 
     return () => sub?.remove();
+  }, []);
+
+  useEffect(() => {
+    showCustomerDisplay();
+    return () => {
+      hideCustomerDisplay();
+    };
   }, []);
 
   useEffect(() => {
@@ -528,6 +538,24 @@ export default function NewOrderScreen() {
   };
 
   const orderTotal = subtotal - discountAmount();
+
+  useEffect(() => {
+    publishDisplayState({
+      restaurantName: restaurantCode,
+      logoUrl: restaurantLogo,
+      items: cart.map(i => ({
+        id: i.id,
+        name: i.product.name,
+        variationName: i.variation?.name,
+        quantity: i.quantity,
+        price: money(i.price),
+        addons: i.addons.map(a => ({ name: a.name, price: money(a.price) })),
+      })),
+      subtotal,
+      discount: discountAmount(),
+      total: orderTotal,
+    });
+  }, [cart, subtotal, orderTotal, restaurantCode, restaurantLogo]);
 
   function clearOrder() {
     setClearModal(true);
@@ -1618,6 +1646,8 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.xl,
     fontWeight: fontWeights.extrabold,
     fontFamily: appFont,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
 
   catItemText: {
@@ -1628,6 +1658,8 @@ const styles = StyleSheet.create({
     textAlign: 'left',
     lineHeight: 16,
     fontFamily: appFont,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
 
   catItemTextActive: {
@@ -1768,7 +1800,7 @@ const styles = StyleSheet.create({
   orderPanel: {
     backgroundColor: DARK,
     padding: 12,
-    paddingTop: Platform.OS === 'android' ? 10 : 12,
+        paddingTop: Platform.OS === 'android' ? 10 : 12,
     paddingBottom: 12,
     justifyContent: 'space-between',
     borderLeftWidth: thinBorder,

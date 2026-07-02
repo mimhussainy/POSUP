@@ -177,12 +177,10 @@ export const spacing = {
 // Helper used by CategoryButton to assign a stable color per category
 // ---------------------------------------------------------------------
 
-export function getCatColor(name: string): string {
-  let hash = 0;
-
-  for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  }
-
-  return catPalette[Math.abs(hash) % catPalette.length];
+// Assigns colors by position in the list rather than by hashing the
+// name — this guarantees neighboring categories in the sidebar never
+// get the same or a visually-similar color, since consecutive indices
+// always land on different palette entries.
+export function getCategoryColorByPosition(index: number): string {
+  return catPalette[index % catPalette.length];
 }
