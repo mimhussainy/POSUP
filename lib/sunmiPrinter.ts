@@ -369,7 +369,7 @@ async function printFooter(tr: ReceiptTranslation): Promise<void> {
     fontSize: 16,
   });
 
-  await SunmiPrinterLibrary.printText('\n\n\n');
+  await SunmiPrinterLibrary.lineWrap(5);
 }
 
 export async function printReceiptViaSunmi(
