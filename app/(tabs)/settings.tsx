@@ -20,7 +20,6 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useFocusEffect } from 'expo-router';
 import { useLanguage } from '../../lib/LanguageContext';
 import { appFont } from '../../lib/fonts';
-import { printSunmiDiagnosticTest } from '../../lib/sunmiPrinter';
 import { colors, borders, radii, fontSizes, fontWeights } from '../../lib/theme';
 
 import TcpSocket from 'react-native-tcp-socket';
@@ -209,26 +208,7 @@ function PrinterStatusCard({
           </View>
         )}
 
-        {Platform.OS !== 'web' && (
-          <View style={[styles.infoRow, styles.infoRowLast]}>
-            <TouchableOpacity
-              style={styles.primarySmallBtn}
-              onPress={() => {
-                printSunmiDiagnosticTest()
-                  .then(() => {
-                    Alert.alert('Sunmi Test', 'Test print sent.');
-                  })
-                  .catch(e => {
-                    console.log('Sunmi diagnostic test failed:', e);
-                    Alert.alert('Sunmi Test Failed', String(e?.message || e));
-                  });
-              }}
-              activeOpacity={0.78}
-            >
-              <Text style={styles.primarySmallBtnText}>Test Sunmi Print</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+        
       </View>
     </View>
   );

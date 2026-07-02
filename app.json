@@ -23,7 +23,8 @@
       "expo-router",
       "expo-font",
       "expo-screen-orientation",
-      "expo-updates"
+      "expo-updates",
+      "./plugins/withSunmiPrinter"
     ],
     "experiments": {
       "typedRoutes": true

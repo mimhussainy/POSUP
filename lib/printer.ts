@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Print from 'expo-print';
 import { Platform } from 'react-native';
-import { printReceiptViaSunmi } from './sunmiPrinter';
+// Sunmi printing now goes through the native AIDL module (lib/nativeSunmiPrinter.ts)
 
 const receiptTranslations: { [key: string]: { total: string; payment: string; cash: string; card: string; note: string; thank: string; subtotal: string; discount: string; table: string; } } = {
   de: { total: 'TOTAL', payment: 'Zahlung', cash: 'Bar', card: 'Karte', note: 'Notiz', thank: 'Danke & auf Wiedersehen!', subtotal: 'Zwischensumme', discount: 'Rabatt', table: 'Tisch' },
@@ -348,10 +348,40 @@ export async function printOrder(order: any, restaurantCode: string): Promise<vo
   if (printerModel.includes('sunmi')) {
     try {
       const tr = receiptTranslations[language] || receiptTranslations['de'];
-      await printReceiptViaSunmi(order, restaurantName, tr, logoUrl);
-      return;
+      const date = new Date(order.created_at);
+
+      let logoBase64 = '';
+      if (logoUrl) {
+        try {
+          const FileSystem = await import('expo-file-system/legacy');
+          const fileUri = FileSystem.cacheDirectory + 'receipt-logo.png';
+          await FileSystem.downloadAsync(logoUrl, fileUri);
+          logoBase64 = await FileSystem.readAsStringAsync(fileUri, {
+            encoding: FileSystem.EncodingType.Base64,
+          });
+        } catch (e) {
+          console.log('Logo download failed for native Sunmi print:', e);
+        }
+      }
+
+      const nativeOrder = {
+        ...order,
+        dateTimeLabel: `${date.toLocaleDateString('de-CH')} ${date.toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' })}`,
+        tableLabel: `${tr.table}: ${order.table}`,
+        subtotalLabel: tr.subtotal,
+        discountLabel: tr.discount,
+        totalLabel: tr.total,
+        paymentLabel: tr.payment,
+        paymentValueLabel: order.payment_method === 'cash' ? tr.cash : tr.card,
+        noteLabel: tr.note,
+        thankLabel: tr.thank,
+      };
+
+      const { printSunmiReceiptNative } = await import('./nativeSunmiPrinter');
+      const ok = await printSunmiReceiptNative(nativeOrder, { name: restaurantName, logoBase64 });
+      if (ok) return;
     } catch (e) {
-      console.log('Sunmi built-in print failed, falling back:', e);
+      console.log('Sunmi native print failed, falling back:', e);
     }
   }
 
