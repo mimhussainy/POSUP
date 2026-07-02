@@ -11,3 +11,7 @@ export async function printReceiptViaSunmi(
 ): Promise<void> {
   throw new Error('Sunmi built-in printer is not available on web');
 }
+
+export async function printSunmiDiagnosticTest(): Promise<void> {
+  throw new Error('Sunmi built-in printer is not available on web');
+}
