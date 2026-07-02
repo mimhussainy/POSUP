@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Print from 'expo-print';
 import { Platform } from 'react-native';
+import { printReceiptViaSunmi } from './sunmiPrinter';
 
 const receiptTranslations: { [key: string]: { total: string; payment: string; cash: string; card: string; note: string; thank: string; subtotal: string; discount: string; table: string; } } = {
   de: { total: 'TOTAL', payment: 'Zahlung', cash: 'Bar', card: 'Karte', note: 'Notiz', thank: 'Danke & auf Wiedersehen!', subtotal: 'Zwischensumme', discount: 'Rabatt', table: 'Tisch' },
@@ -324,12 +325,13 @@ async function printZReportViaTCP(data: any, restaurantName: string, language: s
     setTimeout(() => { client.destroy(); reject(new Error('Print timeout')); }, 6000);
   });
 }
-
+ 
 export async function printOrder(order: any, restaurantCode: string): Promise<void> {
   const restaurantName = await AsyncStorage.getItem('restaurant_name') || restaurantCode;
   const logoUrl = await AsyncStorage.getItem('restaurant_logo') || '';
   const language = await AsyncStorage.getItem('app_language') || 'de';
   const printerIp = await AsyncStorage.getItem('printer_ip');
+  const printerModel = (await AsyncStorage.getItem('printer_model') || '').toLowerCase();
 
   if (Platform.OS === 'web') {
     const html = buildReceiptHTML(order, restaurantName, logoUrl, language);
@@ -341,6 +343,16 @@ export async function printOrder(order: any, restaurantCode: string): Promise<vo
       setTimeout(() => { win.print(); win.close(); }, 500);
     }
     return;
+  }
+
+  if (printerModel.includes('sunmi')) {
+    try {
+      const tr = receiptTranslations[language] || receiptTranslations['de'];
+      await printReceiptViaSunmi(order, restaurantName, tr);
+      return;
+    } catch (e) {
+      console.log('Sunmi built-in print failed, falling back:', e);
+    }
   }
 
   if (printerIp) {
