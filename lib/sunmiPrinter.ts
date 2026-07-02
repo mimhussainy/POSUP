@@ -9,6 +9,12 @@
 // outside this file (and its .web.ts counterpart).
 
 import * as SunmiPrinterLibrary from '@mitsuharu/react-native-sunmi-printer-library';
+import * as FileSystem from 'expo-file-system/legacy';
+import { Buffer } from 'buffer';
+
+const RECEIPT_WIDTH = 42;
+const PRICE_WIDTH = 10;
+const QTY_WIDTH = 4;
 
 interface ReceiptTranslation {
   total: string;
@@ -22,69 +28,374 @@ interface ReceiptTranslation {
   table: string;
 }
 
-export async function printReceiptViaSunmi(
-  order: any,
-  restaurantName: string,
-  tr: ReceiptTranslation
-): Promise<void> {
-  const date = new Date(order.created_at);
-  const dateStr = date.toLocaleDateString('de-CH');
-  const timeStr = date.toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' });
+function safeText(value: any): string {
+  if (value === null || value === undefined) return '';
+  return String(value).trim();
+}
 
-  await SunmiPrinterLibrary.prepare();
+function parseAmount(value: any): number {
+  const n = parseFloat(String(value ?? '0'));
+  return Number.isFinite(n) ? n : 0;
+}
 
-  await SunmiPrinterLibrary.setAlignment('center');
-  await SunmiPrinterLibrary.setTextStyle('bold', true);
-  await SunmiPrinterLibrary.setFontSize(32);
-  await SunmiPrinterLibrary.printText(restaurantName.toUpperCase() + '\n');
-  await SunmiPrinterLibrary.setFontSize(24);
-  await SunmiPrinterLibrary.printText((order.order_number || '') + '\n');
-  await SunmiPrinterLibrary.setTextStyle('bold', false);
-  await SunmiPrinterLibrary.setFontSize(20);
-  await SunmiPrinterLibrary.printText(`${dateStr} ${timeStr}\n`);
-  if (order.table && order.table !== 'Walk-in') {
-    await SunmiPrinterLibrary.printText(`${tr.table}: ${order.table}\n`);
+function formatCHF(value: any): string {
+  return `CHF ${parseAmount(value).toFixed(2)}`;
+}
+
+function line(char = '-'): string {
+  return char.repeat(RECEIPT_WIDTH);
+}
+
+function centerText(text: string): string {
+  const clean = safeText(text);
+  if (clean.length >= RECEIPT_WIDTH) return clean;
+  const left = Math.floor((RECEIPT_WIDTH - clean.length) / 2);
+  return ' '.repeat(left) + clean;
+}
+
+function fitText(text: string, width: number): string {
+  const clean = safeText(text);
+  if (clean.length <= width) return clean;
+  return clean.slice(0, Math.max(0, width - 1)) + '…';
+}
+
+function wrapText(text: string, width: number): string[] {
+  const clean = safeText(text).replace(/\s+/g, ' ');
+  if (!clean) return [''];
+
+  const words = clean.split(' ');
+  const lines: string[] = [];
+  let current = '';
+
+  for (const word of words) {
+    if (!current) {
+      current = word;
+      continue;
+    }
+
+    if ((current + ' ' + word).length <= width) {
+      current += ' ' + word;
+    } else {
+      lines.push(current);
+      current = word;
+    }
   }
 
+  if (current) lines.push(current);
+
+  const finalLines: string[] = [];
+  for (const l of lines) {
+    if (l.length <= width) {
+      finalLines.push(l);
+    } else {
+      for (let i = 0; i < l.length; i += width) {
+        finalLines.push(l.slice(i, i + width));
+      }
+    }
+  }
+
+  return finalLines.length ? finalLines : [''];
+}
+
+function makeAmountRow(label: string, amount: string): string {
+  const cleanLabel = safeText(label);
+  const cleanAmount = safeText(amount);
+  const leftWidth = Math.max(1, RECEIPT_WIDTH - cleanAmount.length);
+  return fitText(cleanLabel, leftWidth).padEnd(leftWidth) + cleanAmount;
+}
+
+function makeItemFirstRow(qty: any, name: string, price: string): string {
+  const qtyText = `${safeText(qty) || '1'}x`;
+  const safeQty = fitText(qtyText, QTY_WIDTH).padEnd(QTY_WIDTH);
+  const safePrice = fitText(price, PRICE_WIDTH).padStart(PRICE_WIDTH);
+  const nameWidth = RECEIPT_WIDTH - QTY_WIDTH - PRICE_WIDTH;
+
+  return safeQty + fitText(name, nameWidth).padEnd(nameWidth) + safePrice;
+}
+
+async function printLogoImage(logoUrl: string): Promise<boolean> {
+  try {
+    const fileUri = FileSystem.cacheDirectory + 'receipt-logo.png';
+    await FileSystem.downloadAsync(logoUrl, fileUri);
+
+    const base64 = await FileSystem.readAsStringAsync(fileUri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+
+    await SunmiPrinterLibrary.printImage(`data:image/png;base64,${base64}`, 384, 'binary');
+    return true;
+  } catch (e) {
+    console.log('Sunmi logo print failed, falling back to text:', e);
+    return false;
+  }
+}
+
+async function printCentered(
+  text: string,
+  options?: {
+    bold?: boolean;
+    fontSize?: number;
+  }
+): Promise<void> {
+  await SunmiPrinterLibrary.setAlignment('center');
+  await SunmiPrinterLibrary.setTextStyle('bold', !!options?.bold);
+  await SunmiPrinterLibrary.setFontSize(options?.fontSize ?? 20);
+  await SunmiPrinterLibrary.printText(text + '\n');
+}
+
+async function printLeft(
+  text: string,
+  options?: {
+    bold?: boolean;
+    fontSize?: number;
+  }
+): Promise<void> {
   await SunmiPrinterLibrary.setAlignment('left');
-  await SunmiPrinterLibrary.printText('--------------------------------\n');
+  await SunmiPrinterLibrary.setTextStyle('bold', !!options?.bold);
+  await SunmiPrinterLibrary.setFontSize(options?.fontSize ?? 20);
+  await SunmiPrinterLibrary.printText(text + '\n');
+}
+
+async function printWrappedLeft(
+  text: string,
+  width = RECEIPT_WIDTH,
+  indent = '',
+  options?: {
+    bold?: boolean;
+    fontSize?: number;
+  }
+): Promise<void> {
+  const lines = wrapText(text, width);
+
+  for (const l of lines) {
+    await printLeft(indent + l, options);
+  }
+}
+
+async function printHeader(
+  order: any,
+  restaurantName: string,
+  tr: ReceiptTranslation,
+  logoUrl?: string
+): Promise<void> {
+  const createdAt = order.created_at ? new Date(order.created_at) : new Date();
+  const isValidDate = !Number.isNaN(createdAt.getTime());
+
+  const date = isValidDate ? createdAt : new Date();
+  const dateStr = date.toLocaleDateString('de-CH');
+  const timeStr = date.toLocaleTimeString('de-CH', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
+  await SunmiPrinterLibrary.setAlignment('center');
+
+  let logoPrinted = false;
+  if (logoUrl) {
+    logoPrinted = await printLogoImage(logoUrl);
+  }
+
+  if (!logoPrinted) {
+    await printCentered(restaurantName.toUpperCase(), {
+      bold: true,
+      fontSize: 32,
+    });
+  }
+
+  await printCentered(safeText(order.order_number || order.order_id || ''), {
+    bold: true,
+    fontSize: 26,
+  });
+
+  await printCentered(`${dateStr} ${timeStr}`, {
+    bold: false,
+    fontSize: 20,
+  });
+
+  if (order.table && order.table !== 'Walk-in') {
+    await printCentered(`${tr.table}: ${order.table}`, {
+      bold: false,
+      fontSize: 20,
+    });
+  }
+
+  if (order.customer_name && order.customer_name !== 'Walk-in Customer') {
+    await printCentered(safeText(order.customer_name), {
+      bold: false,
+      fontSize: 20,
+    });
+  }
+}
+
+async function printItems(order: any): Promise<void> {
+  let lastCategory = '';
 
   for (const item of order.items || []) {
-    const left = `${item.quantity}x ${item.name}`;
-    const right = `CHF ${parseFloat(item.total).toFixed(2)}`;
-    await SunmiPrinterLibrary.printText(left.padEnd(32 - right.length) + right + '\n');
+    const category = safeText(item.category);
 
-    if (item.variation) {
-      await SunmiPrinterLibrary.printText(`   -> ${item.variation}\n`);
+    if (category && category !== lastCategory) {
+      lastCategory = category;
+
+      await printLeft('');
+      await printLeft(fitText(category, RECEIPT_WIDTH).toUpperCase(), {
+        bold: true,
+        fontSize: 18,
+      });
+      await printLeft(line('-'), {
+        bold: false,
+        fontSize: 18,
+      });
+    }
+
+    const variation = safeText(item.variation);
+    const itemName = variation
+      ? `${safeText(item.name)} (${variation})`
+      : safeText(item.name);
+
+    const price = formatCHF(item.total);
+    const qtyText = `${safeText(item.quantity) || '1'}x`;
+    const nameWidth = RECEIPT_WIDTH - QTY_WIDTH - PRICE_WIDTH;
+
+    const wrappedName = wrapText(itemName, nameWidth);
+
+    await printLeft(makeItemFirstRow(item.quantity, wrappedName[0], price), {
+      bold: true,
+      fontSize: 20,
+    });
+
+    for (let i = 1; i < wrappedName.length; i++) {
+      await printLeft(' '.repeat(QTY_WIDTH) + wrappedName[i], {
+        bold: true,
+        fontSize: 20,
+      });
     }
 
     for (const addon of item.addons || []) {
-      await SunmiPrinterLibrary.printText(`   + ${addon.label || addon.name}\n`);
+      const addonText = `+ ${safeText(addon.label || addon.name)}`;
+      await printWrappedLeft(addonText, RECEIPT_WIDTH - QTY_WIDTH, ' '.repeat(QTY_WIDTH), {
+        bold: false,
+        fontSize: 20,
+      });
     }
+
+    await printLeft(line('-'), {
+      bold: false,
+      fontSize: 18,
+    });
+  }
+}
+
+async function printTotals(order: any, tr: ReceiptTranslation): Promise<void> {
+  if (order.discount && parseAmount(order.discount) > 0) {
+    await printLeft(makeAmountRow(tr.subtotal, formatCHF(order.subtotal)), {
+      bold: false,
+      fontSize: 20,
+    });
+
+    await printLeft(makeAmountRow(tr.discount, `- ${formatCHF(order.discount)}`), {
+      bold: true,
+      fontSize: 20,
+    });
   }
 
-  await SunmiPrinterLibrary.printText('--------------------------------\n');
+  await printLeft(line('='), {
+    bold: true,
+    fontSize: 20,
+  });
 
-  if (order.discount && parseFloat(order.discount) > 0) {
-    const sub = `CHF ${parseFloat(order.subtotal).toFixed(2)}`;
-    await SunmiPrinterLibrary.printText(`${tr.subtotal.padEnd(32 - sub.length)}${sub}\n`);
-    const disc = `-CHF ${parseFloat(order.discount).toFixed(2)}`;
-    await SunmiPrinterLibrary.printText(`${tr.discount.padEnd(32 - disc.length)}${disc}\n`);
-  }
+  await printLeft(makeAmountRow(tr.total, formatCHF(order.total)), {
+    bold: true,
+    fontSize: 26,
+  });
 
-  const total = `CHF ${parseFloat(order.total).toFixed(2)}`;
-  await SunmiPrinterLibrary.setTextStyle('bold', true);
-  await SunmiPrinterLibrary.printText(`${tr.total.padEnd(32 - total.length)}${total}\n`);
-  await SunmiPrinterLibrary.setTextStyle('bold', false);
-  await SunmiPrinterLibrary.printText(`${tr.payment}: ${order.payment_method === 'cash' ? tr.cash : tr.card}\n`);
+  await printLeft(line('='), {
+    bold: true,
+    fontSize: 20,
+  });
 
-  if (order.note) {
-    await SunmiPrinterLibrary.printText(`${tr.note}: ${order.note}\n`);
-  }
+  const paymentLabel = tr.payment;
+  const paymentValue = order.payment_method === 'cash' ? tr.cash : tr.card;
 
-  await SunmiPrinterLibrary.printText('--------------------------------\n');
-  await SunmiPrinterLibrary.setAlignment('center');
-  await SunmiPrinterLibrary.printText(tr.thank + '\n');
-  await SunmiPrinterLibrary.setFontSize(16);
-  await SunmiPrinterLibrary.printText('Powered by FoodUp.ch\n\n\n');
+  await printLeft(makeAmountRow(paymentLabel, paymentValue), {
+    bold: true,
+    fontSize: 24,
+  });
+}
+
+async function printNote(order: any, tr: ReceiptTranslation): Promise<void> {
+  const note = safeText(order.note);
+  if (!note) return;
+
+  await printLeft('');
+  await printLeft(line('='), {
+    bold: true,
+    fontSize: 18,
+  });
+
+  await printLeft(tr.note.toUpperCase(), {
+    bold: true,
+    fontSize: 20,
+  });
+
+  await printWrappedLeft(note, RECEIPT_WIDTH - 4, '  ', {
+    bold: false,
+    fontSize: 20,
+  });
+
+  await printLeft(line('='), {
+    bold: true,
+    fontSize: 18,
+  });
+}
+
+async function printFooter(tr: ReceiptTranslation): Promise<void> {
+  await printLeft(line('-'), {
+    bold: false,
+    fontSize: 18,
+  });
+
+  await printCentered(tr.thank, {
+    bold: true,
+    fontSize: 20,
+  });
+
+  await printLeft(line('-'), {
+    bold: false,
+    fontSize: 18,
+  });
+
+  await printCentered('Powered by: FoodUp.ch', {
+    bold: false,
+    fontSize: 16,
+  });
+
+  await SunmiPrinterLibrary.printText('\n\n\n');
+}
+
+export async function printReceiptViaSunmi(
+  order: any,
+  restaurantName: string,
+  tr: ReceiptTranslation,
+  logoUrl?: string
+): Promise<void> {
+  await SunmiPrinterLibrary.prepare();
+
+  await printHeader(order, restaurantName, tr, logoUrl);
+
+  await printLeft(line('-'), {
+    bold: false,
+    fontSize: 18,
+  });
+
+  await printItems(order);
+
+  await printTotals(order, tr);
+
+  await printNote(order, tr);
+
+  await printFooter(tr);
+
+  const cutCommand = new Uint8Array([0x1d, 0x56, 0x00]);
+  const cutCommandBase64 = Buffer.from(cutCommand).toString('base64');
+  await SunmiPrinterLibrary.sendRAWData(cutCommandBase64);
 }

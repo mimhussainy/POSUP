@@ -485,12 +485,16 @@ export default function NewOrderScreen() {
 
     const totalPrice = basePrice + addonTotal;
 
+    const cleanedVariation = selectedVariation
+      ? { ...selectedVariation, name: selectedVariation.name.replace(/^.*?-\s*-\s*-\s*/, '').trim() }
+      : null;
+
     setCart(prev => [
       ...prev,
       {
         id: `${Date.now()}-${Math.random()}`,
         product: selectedProduct,
-        variation: selectedVariation,
+        variation: cleanedVariation,
         addons: chosenAddons,
         note: '',
         price: totalPrice,
@@ -573,17 +577,23 @@ export default function NewOrderScreen() {
         restaurant_code: restaurantCode,
         table: selectedTable ? `Table ${selectedTable}` : orderType === 'walkIn' ? 'Walk-in' : 'Not specified',
         order_type: orderType || 'walkIn',
-        items: cart.map(i => ({
-          name: i.product.name,
-          quantity: i.quantity,
-          price: money(i.price).toFixed(2),
-          total: (money(i.price) * i.quantity).toFixed(2),
-          variation: i.variation?.name || '',
-          addons: i.addons.map(a => ({
-            label: a.name,
-            price: money(a.price),
-          })),
-        })),
+        items: cart.map(i => {
+          const firstCategoryId = (i.product.category_ids || [])[0];
+          const category = categories.find(c => c.id === firstCategoryId);
+
+          return {
+            name: i.product.name,
+            quantity: i.quantity,
+            price: money(i.price).toFixed(2),
+            total: (money(i.price) * i.quantity).toFixed(2),
+            variation: i.variation?.name || '',
+            category: category?.name || '',
+            addons: i.addons.map(a => ({
+              label: a.name,
+              price: money(a.price),
+            })),
+          };
+        }),
         subtotal: subtotal.toFixed(2),
         discount: discountAmount().toFixed(2),
         discount_type: discountType,

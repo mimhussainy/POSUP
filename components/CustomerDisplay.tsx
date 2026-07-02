@@ -4,11 +4,13 @@
 // screen (logo, welcome message, live clock) when the cart is empty,
 // and switches to a live order summary as items are added.
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { View, Text, Image, StyleSheet } from 'react-native';
 import { colors, radii, fontSizes, fontWeights } from '../lib/theme';
 import { appFont } from '../lib/fonts';
 import { subscribeDisplayState, DisplayState } from '../lib/customerDisplayStore';
+
+const THANK_YOU_DURATION_MS = 6000;
 
 function formatTime(date: Date) {
   return date.toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' });
@@ -29,6 +31,9 @@ export default function CustomerDisplay() {
   });
 
   const [now, setNow] = useState(new Date());
+  const [showThankYou, setShowThankYou] = useState(false);
+  const prevItemCount = useRef(0);
+  const thankYouTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const unsubscribe = subscribeDisplayState(setState);
@@ -40,7 +45,41 @@ export default function CustomerDisplay() {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    const currentCount = state.items.length;
+
+    if (prevItemCount.current > 0 && currentCount === 0) {
+      setShowThankYou(true);
+
+      if (thankYouTimer.current) clearTimeout(thankYouTimer.current);
+      thankYouTimer.current = setTimeout(() => {
+        setShowThankYou(false);
+      }, THANK_YOU_DURATION_MS);
+    }
+
+    prevItemCount.current = currentCount;
+
+    return () => {
+      if (thankYouTimer.current) clearTimeout(thankYouTimer.current);
+    };
+  }, [state.items.length]);
+
   const hasOrder = state.items.length > 0;
+
+  if (showThankYou) {
+    return (
+      <View style={styles.idleRoot}>
+        <View style={styles.idleCenter}>
+          <View style={styles.thankYouCheckCircle}>
+            <Text style={styles.thankYouCheckMark}>✓</Text>
+          </View>
+
+          <Text style={styles.thankYouTitle}>Vielen Dank!</Text>
+          <Text style={styles.thankYouSubtitle}>Ihre Bestellung wurde aufgenommen.</Text>
+        </View>
+      </View>
+    );
+  }
 
   if (!hasOrder) {
     return (
@@ -159,6 +198,38 @@ const styles = StyleSheet.create({
     fontWeight: fontWeights.medium,
     color: colors.primary,
     fontFamily: appFont,
+  },
+
+  thankYouCheckCircle: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: colors.successSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
+  },
+
+  thankYouCheckMark: {
+    fontSize: 64,
+    fontWeight: fontWeights.black,
+    color: colors.success,
+  },
+
+  thankYouTitle: {
+    fontSize: fontSizes.giant,
+    fontWeight: fontWeights.black,
+    color: '#fff',
+    fontFamily: appFont,
+  },
+
+  thankYouSubtitle: {
+    marginTop: 10,
+    fontSize: fontSizes.xxl,
+    fontWeight: fontWeights.medium,
+    color: '#B5B5C8',
+    fontFamily: appFont,
+    textAlign: 'center',
   },
 
   idleClockBox: {

@@ -325,7 +325,7 @@ async function printZReportViaTCP(data: any, restaurantName: string, language: s
     setTimeout(() => { client.destroy(); reject(new Error('Print timeout')); }, 6000);
   });
 }
- 
+
 export async function printOrder(order: any, restaurantCode: string): Promise<void> {
   const restaurantName = await AsyncStorage.getItem('restaurant_name') || restaurantCode;
   const logoUrl = await AsyncStorage.getItem('restaurant_logo') || '';
@@ -348,7 +348,7 @@ export async function printOrder(order: any, restaurantCode: string): Promise<vo
   if (printerModel.includes('sunmi')) {
     try {
       const tr = receiptTranslations[language] || receiptTranslations['de'];
-      await printReceiptViaSunmi(order, restaurantName, tr);
+      await printReceiptViaSunmi(order, restaurantName, tr, logoUrl);
       return;
     } catch (e) {
       console.log('Sunmi built-in print failed, falling back:', e);
