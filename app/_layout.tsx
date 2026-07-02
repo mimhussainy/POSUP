@@ -6,7 +6,7 @@ import { useFonts } from 'expo-font';
 import { Ionicons } from '@expo/vector-icons';
 import { LanguageProvider } from '../lib/LanguageContext';
 import { colors } from '../lib/theme';
-import ExternalDisplay, { useExternalDisplay } from 'react-native-external-display';
+import ExternalDisplay, { useExternalDisplay } from '../lib/externalDisplay';
 import CustomerDisplay from '../components/CustomerDisplay';
 
 const APP_BG = colors.appBg;
