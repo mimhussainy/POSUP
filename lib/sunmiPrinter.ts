@@ -119,12 +119,6 @@ async function printLogoImage(logoUrl: string): Promise<boolean> {
   }
 }
 
-async function cutPaper(): Promise<void> {
-  const cutCommand = new Uint8Array([0x1d, 0x56, 0x00]);
-  const cutCommandBase64 = Buffer.from(cutCommand).toString('base64');
-  await SunmiPrinterLibrary.sendRAWData(cutCommandBase64);
-}
-
 export async function printReceiptViaSunmi(
   order: any,
   restaurantName: string,
@@ -132,7 +126,6 @@ export async function printReceiptViaSunmi(
   logoUrl?: string
 ): Promise<void> {
   await SunmiPrinterLibrary.prepare();
-  await SunmiPrinterLibrary.enterPrinterBuffer(true);
 
   const p = new ThermalPrinter();
 
@@ -197,9 +190,6 @@ export async function printReceiptViaSunmi(
   await p.line('Powered by: FoodUp.ch', { align: 'center', bold: false, fontSize: 16 });
 
   await SunmiPrinterLibrary.lineWrap(5);
-  await SunmiPrinterLibrary.exitPrinterBuffer(true);
-
-  await cutPaper();
 }
 
 // ---------------------------------------------------------------------
@@ -210,7 +200,6 @@ export async function printReceiptViaSunmi(
 
 export async function printSunmiDiagnosticTest(): Promise<void> {
   await SunmiPrinterLibrary.prepare();
-  await SunmiPrinterLibrary.enterPrinterBuffer(true);
 
   const p = new ThermalPrinter();
 
@@ -223,7 +212,4 @@ export async function printSunmiDiagnosticTest(): Promise<void> {
   await p.divider();
 
   await SunmiPrinterLibrary.lineWrap(5);
-  await SunmiPrinterLibrary.exitPrinterBuffer(true);
-
-  await cutPaper();
 }

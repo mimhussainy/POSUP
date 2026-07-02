@@ -1,7 +1,9 @@
 // lib/sunmiPrinter.web.ts
 //
-// Web stub. This keeps Vercel/web builds safe.
-// The real Sunmi printer code only exists in lib/sunmiPrinter.ts.
+// Web build stub. Metro's platform-extension resolution automatically
+// uses THIS file instead of sunmiPrinter.ts when bundling for web, so
+// the native '@mitsuharu/react-native-sunmi-printer-library' import
+// never gets pulled into the web bundle at all.
 
 export async function printReceiptViaSunmi(
   _order: any,

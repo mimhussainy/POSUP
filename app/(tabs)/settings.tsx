@@ -12,6 +12,7 @@ import {
   Linking,
   Modal,
   Dimensions,
+  Alert,
 
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -19,6 +20,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useFocusEffect } from 'expo-router';
 import { useLanguage } from '../../lib/LanguageContext';
 import { appFont } from '../../lib/fonts';
+import { printSunmiDiagnosticTest } from '../../lib/sunmiPrinter';
 import { colors, borders, radii, fontSizes, fontWeights } from '../../lib/theme';
 
 import TcpSocket from 'react-native-tcp-socket';
@@ -166,7 +168,7 @@ function PrinterStatusCard({
         </View>
 
         {printerIp ? (
-          <View style={[styles.infoRow, styles.infoRowLast]}>
+          <View style={Platform.OS !== 'web' ? styles.infoRow : [styles.infoRow, styles.infoRowLast]}>
             <View style={styles.iconBox}>
               <Ionicons name="wifi-outline" size={19} color={PRIMARY} />
             </View>
@@ -193,7 +195,7 @@ function PrinterStatusCard({
             </TouchableOpacity>
           </View>
         ) : (
-          <View style={[styles.infoRow, styles.infoRowLast]}>
+          <View style={Platform.OS !== 'web' ? styles.infoRow : [styles.infoRow, styles.infoRowLast]}>
             <View style={[styles.iconBox, styles.iconBoxMuted]}>
               <Ionicons name="alert-circle-outline" size={19} color="#9CA3AF" />
             </View>
@@ -204,6 +206,27 @@ function PrinterStatusCard({
                 {printerSetIpLabel}
               </Text>
             </View>
+          </View>
+        )}
+
+        {Platform.OS !== 'web' && (
+          <View style={[styles.infoRow, styles.infoRowLast]}>
+            <TouchableOpacity
+              style={styles.primarySmallBtn}
+              onPress={() => {
+                printSunmiDiagnosticTest()
+                  .then(() => {
+                    Alert.alert('Sunmi Test', 'Test print sent.');
+                  })
+                  .catch(e => {
+                    console.log('Sunmi diagnostic test failed:', e);
+                    Alert.alert('Sunmi Test Failed', String(e?.message || e));
+                  });
+              }}
+              activeOpacity={0.78}
+            >
+              <Text style={styles.primarySmallBtnText}>Test Sunmi Print</Text>
+            </TouchableOpacity>
           </View>
         )}
       </View>
