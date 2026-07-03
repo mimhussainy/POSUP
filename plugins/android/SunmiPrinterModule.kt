@@ -32,7 +32,7 @@ class SunmiPrinterModule(reactContext: ReactApplicationContext) :
         return "CHF " + String.format("%.2f", v)
     }
 
-    private fun textStyle(bold: Boolean = false, size: Float? = null, align: Align = Align.LEFT): TextStyle {
+    private fun textStyle(bold: Boolean = false, size: Int? = null, align: Align = Align.LEFT): TextStyle {
         var style = TextStyle.getStyle().setAlign(align).enableBold(bold)
         if (size != null) style = style.setTextSize(size)
         return style
@@ -105,15 +105,15 @@ class SunmiPrinterModule(reactContext: ReactApplicationContext) :
         }
 
         if (!logoPrinted) {
-            api.printText(restaurantName.uppercase(), textStyle(bold = true, size = 32f, align = Align.CENTER))
+            api.printText(restaurantName.uppercase(), textStyle(bold = true, size = 32, align = Align.CENTER))
         }
 
-        api.printText(order.optString("order_number", ""), textStyle(bold = true, size = 24f, align = Align.CENTER))
-        api.printText(order.optString("dateTimeLabel", ""), textStyle(size = 20f, align = Align.CENTER))
+        api.printText(order.optString("order_number", ""), textStyle(bold = true, size = 24, align = Align.CENTER))
+        api.printText(order.optString("dateTimeLabel", ""), textStyle(size = 20, align = Align.CENTER))
 
         val table = order.optString("table", "")
         if (table.isNotEmpty() && table != "Walk-in" && table != "Not specified") {
-            api.printText(order.optString("tableLabel", ""), textStyle(size = 20f, align = Align.CENTER))
+            api.printText(order.optString("tableLabel", ""), textStyle(size = 20, align = Align.CENTER))
         }
 
         api.initLine(BaseStyle.getStyle().setAlign(Align.LEFT))
@@ -141,7 +141,7 @@ class SunmiPrinterModule(reactContext: ReactApplicationContext) :
             val addons = item.optJSONArray("addons") ?: JSONArray()
             for (j in 0 until addons.length()) {
                 val addon = addons.getJSONObject(j)
-                api.printText("   + " + addon.optString("label", ""), textStyle(size = 18f, align = Align.LEFT))
+                api.printText("   + " + addon.optString("label", ""), textStyle(size = 18, align = Align.LEFT))
             }
         }
 
@@ -163,8 +163,8 @@ class SunmiPrinterModule(reactContext: ReactApplicationContext) :
             arrayOf(order.optString("totalLabel", "TOTAL"), formatCHF(order.optDouble("total", 0.0))),
             intArrayOf(3, 1),
             arrayOf(
-                textStyle(bold = true, size = 26f, align = Align.LEFT),
-                textStyle(bold = true, size = 26f, align = Align.RIGHT)
+                textStyle(bold = true, size = 26, align = Align.LEFT),
+                textStyle(bold = true, size = 26, align = Align.RIGHT)
             )
         )
 
@@ -177,14 +177,14 @@ class SunmiPrinterModule(reactContext: ReactApplicationContext) :
 
         val note = order.optString("note", "")
         if (note.isNotEmpty()) {
-            api.printText(order.optString("noteLabel", "Note") + ": " + note, textStyle(size = 18f, align = Align.LEFT))
+            api.printText(order.optString("noteLabel", "Note") + ": " + note, textStyle(size = 18, align = Align.LEFT))
         }
 
         api.printDividingLine(DividingLine.SOLID, 1)
         api.initLine(BaseStyle.getStyle().setAlign(Align.CENTER))
-        api.printText(order.optString("thankLabel", ""), textStyle(size = 20f, align = Align.CENTER))
+        api.printText(order.optString("thankLabel", ""), textStyle(size = 20, align = Align.CENTER))
         api.printDividingLine(DividingLine.SOLID, 1)
-        api.printText("Powered by: FoodUp.ch", textStyle(size = 16f, align = Align.CENTER))
+        api.printText("Powered by: FoodUp.ch", textStyle(size = 16, align = Align.CENTER))
 
         api.autoOut()
     }
