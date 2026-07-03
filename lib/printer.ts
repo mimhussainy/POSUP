@@ -199,8 +199,8 @@ const SUNMI_GAP = 18;
 const SUNMI_LINE_AIR = 7;
 const SUNMI_DIVIDER_GAP_TOP = 18;
 const SUNMI_DIVIDER_GAP_BOTTOM = 18;
-const SUNMI_SECTION_GAP = 22;
-const SUNMI_BOTTOM_FEED = 140;
+const SUNMI_SECTION_GAP = 12;
+const SUNMI_BOTTOM_FEED = 90;
 
 function sunmiClean(value: any): string {
   if (value === null || value === undefined) return '';
@@ -263,11 +263,7 @@ function buildSunmiInstructions(
       align,
     });
 
-    instructions.push({
-      type: 'blank',
-      size: SUNMI_LINE_AIR,
-      align,
-    });
+    pushBlank(SUNMI_LINE_AIR, align);
   };
 
   const pushBlank = (
@@ -309,19 +305,15 @@ function buildSunmiInstructions(
       size,
     });
 
-    instructions.push({
-      type: 'blank',
-      size: SUNMI_LINE_AIR,
-      align: 'left',
-    });
+    pushBlank(SUNMI_LINE_AIR, 'left');
   };
 
   pushText(restaurantName.toUpperCase(), true, SUNMI_SIZE_RESTAURANT, 'center');
 
-  pushText(order.order_number || order.order_id || '', true, SUNMI_SIZE_HEADER, 'center');
+  pushText(order.order_number || order.order_id || '', true, SUNMI_SIZE_HEADER + 4, 'center');
 
   if (dateTimeLabel) {
-    pushText(dateTimeLabel, false, SUNMI_SIZE_META, 'center');
+    pushText(dateTimeLabel, false, SUNMI_SIZE_META + 4, 'center');
   }
 
   if (order.table && order.table !== 'Walk-in' && order.table !== 'Not specified') {
@@ -348,7 +340,7 @@ function buildSunmiInstructions(
       [1, 5, 2],
       ['left', 'left', 'right'],
       true,
-      SUNMI_SIZE_BODY
+      SUNMI_SIZE_BODY + 3
     );
 
     (item.addons || []).forEach((addon: any) => {
@@ -398,6 +390,8 @@ function buildSunmiInstructions(
     true,
     SUNMI_SIZE_TOTAL
   );
+
+  pushBlank(SUNMI_GAP_SMALL, 'left');
 
   pushColumns(
     [tr.payment, paymentValueLabel],
