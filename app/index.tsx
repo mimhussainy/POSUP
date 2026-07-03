@@ -138,61 +138,65 @@ export default function LoginScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.card}>
-          <Image
-            source={require('../assets/FoodupPOS-logo.png')}
-            style={styles.logo}
-            resizeMode="contain"
-          />
+        <Image
+          source={require('../assets/FoodupPOS-logo.png')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
 
+        <View style={styles.card}>
           <View style={styles.titleBlock}>
             <Text style={styles.title}>{loginTitle}</Text>
             <Text style={styles.subtitle}>{loginSubtitle}</Text>
           </View>
 
           <View style={styles.form}>
-            <View
-              style={[
-                styles.inputBox,
-                focusedField === 'code' && styles.inputBoxFocused,
-              ]}
-            >
-              <TextInput
-                style={styles.input}
-                value={code}
-                onChangeText={setCode}
-                placeholder={t.restaurantCode}
-                placeholderTextColor={PLACEHOLDER}
-                autoCapitalize="none"
-                autoCorrect={false}
-                returnKeyType="next"
-                blurOnSubmit={false}
-                onSubmitEditing={() => pinInputRef.current?.focus()}
-                onFocus={() => setFocusedField('code')}
-                onBlur={() => setFocusedField(null)}
-              />
-            </View>
+            <View style={styles.inputRow}>
+              <View
+                style={[
+                  styles.inputBox,
+                  styles.inputHalf,
+                  focusedField === 'code' && styles.inputBoxFocused,
+                ]}
+              >
+                <TextInput
+                  style={styles.input}
+                  value={code}
+                  onChangeText={setCode}
+                  placeholder={t.restaurantCode}
+                  placeholderTextColor={PLACEHOLDER}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  returnKeyType="next"
+                  blurOnSubmit={false}
+                  onSubmitEditing={() => pinInputRef.current?.focus()}
+                  onFocus={() => setFocusedField('code')}
+                  onBlur={() => setFocusedField(null)}
+                />
+              </View>
 
-            <View
-              style={[
-                styles.inputBox,
-                focusedField === 'pin' && styles.inputBoxFocused,
-              ]}
-            >
-              <TextInput
-                ref={pinInputRef}
-                style={styles.input}
-                value={pin}
-                onChangeText={setPin}
-                placeholder={t.ownerPin || 'PIN'}
-                placeholderTextColor={PLACEHOLDER}
-                secureTextEntry
-                autoCorrect={false}
-                returnKeyType="done"
-                onSubmitEditing={handleLogin}
-                onFocus={() => setFocusedField('pin')}
-                onBlur={() => setFocusedField(null)}
-              />
+              <View
+                style={[
+                  styles.inputBox,
+                  styles.inputHalf,
+                  focusedField === 'pin' && styles.inputBoxFocused,
+                ]}
+              >
+                <TextInput
+                  ref={pinInputRef}
+                  style={styles.input}
+                  value={pin}
+                  onChangeText={setPin}
+                  placeholder={t.ownerPin || 'PIN'}
+                  placeholderTextColor={PLACEHOLDER}
+                  secureTextEntry
+                  autoCorrect={false}
+                  returnKeyType="done"
+                  onSubmitEditing={handleLogin}
+                  onFocus={() => setFocusedField('pin')}
+                  onBlur={() => setFocusedField(null)}
+                />
+              </View>
             </View>
 
             <TouchableOpacity
@@ -248,26 +252,26 @@ const styles = StyleSheet.create({
 
   card: {
     width: '100%',
-    maxWidth: 400,
+    maxWidth: 520,
     backgroundColor: CARD_BG,
     borderRadius: radii.giant,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: BORDER,
-    paddingHorizontal: 26,
-    paddingTop: 26,
-    paddingBottom: 24,
+    paddingHorizontal: 24,
+    paddingTop: 22,
+    paddingBottom: 22,
   },
 
   logo: {
     alignSelf: 'center',
-    width: 178,
-    height: 72,
-    marginBottom: 18,
+    width: 125,
+    height: 50,
+    marginBottom: 16,
   },
 
   titleBlock: {
     alignItems: 'center',
-    marginBottom: 22,
+    marginBottom: 18,
   },
 
   title: {
@@ -302,13 +306,22 @@ const styles = StyleSheet.create({
   },
 
   inputBox: {
-    minHeight: 46,
+    minHeight: 44,
     backgroundColor: FIELD_BG,
     borderRadius: radii.lg,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: BORDER,
-    marginBottom: 13,
     justifyContent: 'center',
+  },
+
+  inputRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 13,
+  },
+
+  inputHalf: {
+    flex: 1,
   },
 
   inputBoxFocused: {
@@ -317,22 +330,22 @@ const styles = StyleSheet.create({
   },
 
   input: {
-    minHeight: 46,
-    paddingHorizontal: 15,
-    paddingVertical: Platform.OS === 'ios' ? 10 : 7,
-    fontSize: fontSizes.lg,
+    minHeight: 44,
+    paddingHorizontal: 14,
+    paddingVertical: Platform.OS === 'ios' ? 9 : 6,
+    fontSize: fontSizes.md,
     color: TEXT,
     fontWeight: fontWeights.regular,
     fontFamily: appFont,
   },
 
   button: {
-    minHeight: 54,
-    borderRadius: radii.xl,
+    minHeight: 44,
+    borderRadius: radii.lg,
     backgroundColor: PRIMARY,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 6,
+    marginTop: 2,
   },
 
   buttonDisabled: {
