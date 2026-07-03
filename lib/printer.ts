@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Print from 'expo-print';
 import { Platform } from 'react-native';
+import { sunmiReceiptConfig } from './sunmiReceiptConfig';
 
 export let lastSunmiError: string | null = null;
 // Sunmi printing now goes through the native PrinterX module (lib/nativeSunmiPrinter.ts)
@@ -186,21 +187,23 @@ function buildZReportHTML(data: any, restaurantName: string, logoUrl: string, la
 // All Sunmi receipt layout lives here.
 // Sunmi D3 layout: native text + native columns.
 // No bitmap logo for now, because bitmap/image printing was the slow/light part.
-const SUNMI_SIZE_RESTAURANT = 30;
-const SUNMI_SIZE_HEADER = 26;
-const SUNMI_SIZE_META = 20;
-const SUNMI_SIZE_BODY = 22;
-const SUNMI_SIZE_TOTAL = 30;
-const SUNMI_SIZE_PAYMENT = 26;
-const SUNMI_SIZE_THANK = 22;
-const SUNMI_SIZE_FOOTER = 18;
-const SUNMI_GAP_SMALL = 10;
-const SUNMI_GAP = 18;
-const SUNMI_LINE_AIR = 7;
-const SUNMI_DIVIDER_GAP_TOP = 18;
-const SUNMI_DIVIDER_GAP_BOTTOM = 18;
-const SUNMI_SECTION_GAP = 12;
-const SUNMI_BOTTOM_FEED = 90;
+const SUNMI_SIZE_RESTAURANT = sunmiReceiptConfig.font.restaurant;
+const SUNMI_SIZE_HEADER = sunmiReceiptConfig.font.header;
+const SUNMI_SIZE_META = sunmiReceiptConfig.font.meta;
+const SUNMI_SIZE_BODY = sunmiReceiptConfig.font.body;
+const SUNMI_SIZE_ADDON = sunmiReceiptConfig.font.addon;
+const SUNMI_SIZE_TOTAL = sunmiReceiptConfig.font.total;
+const SUNMI_SIZE_PAYMENT = sunmiReceiptConfig.font.payment;
+const SUNMI_SIZE_THANK = sunmiReceiptConfig.font.thank;
+const SUNMI_SIZE_FOOTER = sunmiReceiptConfig.font.footer;
+
+const SUNMI_GAP_SMALL = sunmiReceiptConfig.spacing.gapSmall;
+const SUNMI_GAP = sunmiReceiptConfig.spacing.gap;
+const SUNMI_LINE_AIR = sunmiReceiptConfig.spacing.lineAir;
+const SUNMI_DIVIDER_GAP_TOP = sunmiReceiptConfig.spacing.dividerGapTop;
+const SUNMI_DIVIDER_GAP_BOTTOM = sunmiReceiptConfig.spacing.dividerGapBottom;
+const SUNMI_SECTION_GAP = sunmiReceiptConfig.spacing.sectionGap;
+const SUNMI_TOTAL_PAYMENT_GAP = sunmiReceiptConfig.spacing.totalToPaymentGap;
 
 function sunmiClean(value: any): string {
   if (value === null || value === undefined) return '';
@@ -226,7 +229,7 @@ function buildSunmiInstructions(
   logoBase64: string,
   language: string
 ): any[] {
-  const hasLogo = !!logoBase64;
+  const hasLogo = !!logoBase64 && sunmiReceiptConfig.logo.enabled;
 
   const tr = receiptTranslations[language] || receiptTranslations['de'];
 
@@ -306,17 +309,24 @@ function buildSunmiInstructions(
   };
 
   if (hasLogo) {
-    instructions.push({
+    const logoInstruction: any = {
       type: 'bitmap',
       base64: logoBase64,
-      width: 180,
       align: 'center',
+      preserveAspect: sunmiReceiptConfig.logo.preserveAspect,
       fallbackText: restaurantName.toUpperCase(),
       fallbackBold: true,
       fallbackSize: SUNMI_SIZE_RESTAURANT,
-    });
+    };
 
-    pushBlank(12, 'center');
+    if (sunmiReceiptConfig.logo.mode === 'height') {
+      logoInstruction.height = sunmiReceiptConfig.logo.height;
+    } else {
+      logoInstruction.width = sunmiReceiptConfig.logo.width;
+    }
+
+    instructions.push(logoInstruction);
+    pushBlank(sunmiReceiptConfig.logo.gapAfter, 'center');
   } else {
     pushText(restaurantName.toUpperCase(), true, SUNMI_SIZE_RESTAURANT, 'center');
   }
@@ -348,7 +358,7 @@ function buildSunmiInstructions(
 
     pushColumns(
       [`${item.quantity || 1}x`, name, sunmiMoney(item.total)],
-      [1, 5, 2],
+      sunmiReceiptConfig.columns.product,
       ['left', 'left', 'right'],
       true,
       SUNMI_SIZE_BODY + 3
@@ -360,10 +370,10 @@ function buildSunmiInstructions(
 
       pushColumns(
         ['', `+ ${addonName}`, ''],
-        [1, 6, 1],
+        sunmiReceiptConfig.columns.addon,
         ['left', 'left', 'right'],
         false,
-        SUNMI_SIZE_BODY
+        SUNMI_SIZE_ADDON
       );
     });
 
@@ -396,17 +406,17 @@ function buildSunmiInstructions(
 
   pushColumns(
     [tr.total, sunmiMoney(order.total)],
-    [1, 1],
+    sunmiReceiptConfig.columns.total,
     ['left', 'right'],
     true,
     SUNMI_SIZE_TOTAL
   );
 
-  pushBlank(SUNMI_GAP_SMALL, 'left');
+  pushBlank(SUNMI_TOTAL_PAYMENT_GAP, 'left');
 
   pushColumns(
     [tr.payment, paymentValueLabel],
-    [1, 1],
+    sunmiReceiptConfig.columns.payment,
     ['left', 'right'],
     true,
     SUNMI_SIZE_PAYMENT
@@ -426,7 +436,9 @@ function buildSunmiInstructions(
   pushBlank(SUNMI_SECTION_GAP, 'center');
   pushText('Powered by: FoodUp.ch', false, SUNMI_SIZE_FOOTER, 'center');
 
-  pushBlank(SUNMI_BOTTOM_FEED, 'left');
+  for (let i = 0; i < sunmiReceiptConfig.spacing.bottomFeedLines; i++) {
+    pushBlank(sunmiReceiptConfig.spacing.bottomFeedSize, 'left');
+  }
 
   return instructions;
 }

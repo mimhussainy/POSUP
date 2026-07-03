@@ -120,45 +120,86 @@ class SunmiPrinterModule(reactContext: ReactApplicationContext) :
     }
 
     private fun printBitmapInstruction(api: LineApi, instr: JSONObject) {
-        val base64 = instr.optString("base64", "")
-        val width = instr.optInt("width", 220)
-        val align = parseAlign(instr.optString("align", "center"))
+    val base64 = instr.optString("base64", "")
+    val width = if (instr.has("width")) instr.optInt("width") else -1
+    val height = if (instr.has("height")) instr.optInt("height") else -1
+    val preserveAspect = instr.optBoolean("preserveAspect", true)
+    val align = parseAlign(instr.optString("align", "center"))
 
-        var printed = false
-        if (base64.isNotEmpty()) {
-            try {
-                val bytes = Base64.decode(base64, Base64.DEFAULT)
-                val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-                if (bitmap != null) {
-                    val flattened = flattenBitmapOnWhite(bitmap)
-                    api.printBitmap(
-                        flattened,
-                        BitmapStyle.getStyle()
-                            .setAlign(align)
-                            .setAlgorithm(ImageAlgorithm.BINARIZATION)
-                            .setWidth(width)
-                    )
-                    printed = true
+    var printed = false
+
+    if (base64.isNotEmpty()) {
+        try {
+            val bytes = Base64.decode(base64, Base64.DEFAULT)
+            val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+
+            if (bitmap != null) {
+                val flattened = flattenBitmapOnWhite(bitmap)
+
+                val resized = when {
+                    width > 0 && height > 0 && preserveAspect -> {
+                        val scale = minOf(
+                            width.toFloat() / flattened.width.toFloat(),
+                            height.toFloat() / flattened.height.toFloat()
+                        )
+
+                        val targetWidth = (flattened.width * scale).toInt().coerceAtLeast(1)
+                        val targetHeight = (flattened.height * scale).toInt().coerceAtLeast(1)
+
+                        Bitmap.createScaledBitmap(flattened, targetWidth, targetHeight, true)
+                    }
+
+                    width > 0 && height > 0 -> {
+                        Bitmap.createScaledBitmap(flattened, width, height, true)
+                    }
+
+                    width > 0 -> {
+                        val targetHeight = (
+                            flattened.height.toFloat() / flattened.width.toFloat() * width
+                        ).toInt().coerceAtLeast(1)
+
+                        Bitmap.createScaledBitmap(flattened, width, targetHeight, true)
+                    }
+
+                    height > 0 -> {
+                        val targetWidth = (
+                            flattened.width.toFloat() / flattened.height.toFloat() * height
+                        ).toInt().coerceAtLeast(1)
+
+                        Bitmap.createScaledBitmap(flattened, targetWidth, height, true)
+                    }
+
+                    else -> flattened
                 }
-            } catch (e: Exception) {
-                // falls through to fallbackText below
-            }
-        }
 
-        if (!printed) {
-            val fallbackText = instr.optString("fallbackText", "")
-            if (fallbackText.isNotEmpty()) {
-                api.printText(
-                    fallbackText,
-                    textStyle(
-                        bold = instr.optBoolean("fallbackBold", true),
-                        size = if (instr.has("fallbackSize")) instr.optInt("fallbackSize") else null,
-                        align = align
-                    )
+                api.printBitmap(
+                    resized,
+                    BitmapStyle.getStyle()
+                        .setAlign(align)
+                        .setAlgorithm(ImageAlgorithm.BINARIZATION)
                 )
+
+                printed = true
             }
+        } catch (e: Exception) {
+            // falls through to fallbackText below
         }
     }
+
+    if (!printed) {
+        val fallbackText = instr.optString("fallbackText", "")
+        if (fallbackText.isNotEmpty()) {
+            api.printText(
+                fallbackText,
+                textStyle(
+                    bold = instr.optBoolean("fallbackBold", true),
+                    size = if (instr.has("fallbackSize")) instr.optInt("fallbackSize") else null,
+                    align = align
+                )
+            )
+        }
+    }
+}
 
     private fun printColumnsInstruction(api: LineApi, instr: JSONObject) {
         val contentArr = instr.optJSONArray("content") ?: JSONArray()
@@ -221,8 +262,25 @@ class SunmiPrinterModule(reactContext: ReactApplicationContext) :
                 }
                 "blank" -> {
                     val align = parseAlign(instr.optString("align", "left"))
+                    val size = instr.optInt("size", 10)
+                    val lines = instr.optInt("lines", 1).coerceAtLeast(1)
+
                     ensureAlign(align)
-                    api.printText("", textStyle(size = instr.optInt("size", 10), align = align))
+
+                    repeat(lines) {
+                        api.printText(" ", textStyle(size = size, align = align))
+                    }
+                }
+                "feed" -> {
+                    val align = parseAlign(instr.optString("align", "left"))
+                    val size = instr.optInt("size", 24)
+                    val lines = instr.optInt("lines", 4).coerceAtLeast(1)
+
+                    ensureAlign(align)
+
+                    repeat(lines) {
+                        api.printText(" ", textStyle(size = size, align = align))
+                    }
                 }
                 "bitmap" -> {
                     val align = parseAlign(instr.optString("align", "center"))

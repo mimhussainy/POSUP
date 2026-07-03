@@ -36,7 +36,7 @@ export const colors = {
   // Backgrounds
   // CONSOLIDATED: APP_BG was #F5F5F5 (order/history/settings) /
   // #F7F8FB (root layout) / #F6F7F9 (login) — 3 near-identical variants
-  appBg: '#000',
+  appBg: '#F5F5F5',
   cardBg: '#FFFFFF',
   // Login screen's slightly-tinted input background
   fieldBg: '#F8F9FB',
