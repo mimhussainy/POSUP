@@ -335,6 +335,8 @@ export async function printOrder(order: any, restaurantCode: string): Promise<vo
   const printerIp = await AsyncStorage.getItem('printer_ip');
   const printerModel = (await AsyncStorage.getItem('printer_model') || '').toLowerCase();
 
+  console.log('PRINT DEBUG: printerModel=', JSON.stringify(printerModel), 'printerIp=', JSON.stringify(printerIp));
+
   if (Platform.OS === 'web') {
     const html = buildReceiptHTML(order, restaurantName, logoUrl, language);
     const win = (window as any).open('', '_blank', 'width=800,height=900');
