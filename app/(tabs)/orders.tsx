@@ -708,7 +708,8 @@ export default function NewOrderScreen() {
     return Math.min(money(discount), subtotal);
   };
 
-  const orderTotal = subtotal - discountAmount();
+  const currentDiscount = discountAmount();
+  const orderTotal = subtotal - currentDiscount;
 
   useEffect(() => {
     publishDisplayState({
@@ -723,10 +724,10 @@ export default function NewOrderScreen() {
         addons: i.addons.map(a => ({ name: a.name, price: money(a.price) })),
       })),
       subtotal,
-      discount: discountAmount(),
+      discount: currentDiscount,
       total: orderTotal,
     });
-  }, [cart, subtotal, orderTotal, restaurantCode, restaurantLogo]);
+  }, [cart, subtotal, currentDiscount, orderTotal, restaurantCode, restaurantLogo]);
 
   function clearOrder() {
     setClearModal(true);
@@ -734,6 +735,17 @@ export default function NewOrderScreen() {
 
   async function placeOrder() {
     if (cart.length === 0) return;
+
+    if (!orderType) {
+      showToast((t as any).selectOrderTypeRequired || `${t.orderType} auswählen`, 'error');
+      return;
+    }
+
+    if (orderType === 'table' && !selectedTable) {
+      setTableModal(true);
+      showToast(t.selectTable, 'error');
+      return;
+    }
 
     const dayClosedDate = await AsyncStorage.getItem('day_closed_date');
     const todayStr = new Date().toLocaleDateString('de-CH', { timeZone: 'Europe/Zurich' });
@@ -783,7 +795,7 @@ export default function NewOrderScreen() {
           : orderType === 'phone'
             ? phoneOrderMode === 'delivery' ? t.phoneDelivery : t.phonePickup
             : t.walkIn,
-        order_type: orderType === 'phone' ? phoneOrderMode : orderType || 'takeaway',
+        order_type: orderType === 'phone' ? phoneOrderMode : orderType,
         phone_order: orderType === 'phone',
         phone_order_mode: orderType === 'phone' ? phoneOrderMode : null,
         customer: orderType === 'phone' ? cleanedPhoneCustomer : null,
@@ -840,6 +852,9 @@ export default function NewOrderScreen() {
         setCart([]);
         setNote('');
         setDiscount('');
+        setSelectedTable(null);
+        setOrderType(null);
+        setPhoneOrderMode('pickup');
         setPhoneCustomer(emptyPhoneCustomer);
         setPhoneCustomerError('');
 
@@ -1036,45 +1051,103 @@ export default function NewOrderScreen() {
             )}
           </View>
 
-          <TouchableOpacity
-            style={styles.tableSelector}
-            onPress={() => setTableModal(true)}
-            activeOpacity={0.78}
-          >
-            <View style={styles.tableIconWrap}>
-              <Ionicons
-                name={
-                  selectedTable
-                    ? 'grid-outline'
-                    : orderType === 'takeaway'
-                      ? 'bag-handle-outline'
-                      : orderType === 'phone'
-                        ? 'call-outline'
-                        : 'albums-outline'
-                }
-                size={15}
-                color={PRIMARY}
-              />
-            </View>
-
-            <Text
-              style={[
-                styles.tableSelectorText,
-                (selectedTable || orderType) && styles.tableSelectorTextActive,
-              ]}
-              numberOfLines={1}
-            >
-              {selectedTable
-                ? `${t.table} ${selectedTable}`
-                : orderType === 'takeaway'
-                  ? `🥡 ${t.takeaway}`
-                  : orderType === 'phone'
-                    ? phoneOrderMode === 'delivery' ? `☎️ ${t.phoneDelivery}` : `☎️ ${t.phonePickup}`
-                    : `${t.takeaway} / ${t.phone} / ${t.table}`}
+          <View style={styles.orderTypeDirectWrap}>
+            <Text style={styles.orderTypeDirectLabel}>
+              {t.orderType}
             </Text>
 
-            <Ionicons name="chevron-down" size={15} color="#A8A8BC" />
-          </TouchableOpacity>
+            <View style={styles.orderTypeDirectRow}>
+              <TouchableOpacity
+                style={[
+                  styles.orderTypeDirectBtn,
+                  orderType === 'takeaway' && styles.orderTypeDirectBtnActive,
+                ]}
+                onPress={() => {
+                  setOrderType('takeaway');
+                  setSelectedTable(null);
+                  setPhoneModal(false);
+                  setTableModal(false);
+                }}
+                activeOpacity={0.78}
+              >
+                <Ionicons
+                  name="bag-handle-outline"
+                  size={16}
+                  color={orderType === 'takeaway' ? '#fff' : '#B5B5C8'}
+                />
+                <Text
+                  style={[
+                    styles.orderTypeDirectBtnText,
+                    orderType === 'takeaway' && styles.orderTypeDirectBtnTextActive,
+                  ]}
+                  numberOfLines={1}
+                >
+                  {t.takeaway}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.orderTypeDirectBtn,
+                  orderType === 'phone' && styles.orderTypeDirectBtnActive,
+                ]}
+                onPress={() => {
+                  setOrderType(null);
+                  setSelectedTable(null);
+                  setPhoneCustomer(emptyPhoneCustomer);
+                  setPhoneCustomerError('');
+                  setPhoneOrderMode('pickup');
+                  setTableModal(false);
+                  setPhoneModal(true);
+                }}
+                activeOpacity={0.78}
+              >
+                <Ionicons
+                  name="call-outline"
+                  size={16}
+                  color={orderType === 'phone' ? '#fff' : '#B5B5C8'}
+                />
+                <Text
+                  style={[
+                    styles.orderTypeDirectBtnText,
+                    orderType === 'phone' && styles.orderTypeDirectBtnTextActive,
+                  ]}
+                  numberOfLines={1}
+                >
+                  {t.phone}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.orderTypeDirectBtn,
+                  orderType === 'table' && styles.orderTypeDirectBtnActive,
+                ]}
+                onPress={() => {
+                  setOrderType(null);
+                  setSelectedTable(null);
+                  setPhoneModal(false);
+                  setTableModal(true);
+                }}
+                activeOpacity={0.78}
+              >
+                <Ionicons
+                  name="grid-outline"
+                  size={16}
+                  color={orderType === 'table' ? '#fff' : '#B5B5C8'}
+                />
+                <Text
+                  style={[
+                    styles.orderTypeDirectBtnText,
+                    orderType === 'table' && styles.orderTypeDirectBtnTextActive,
+                  ]}
+                  numberOfLines={1}
+                >
+                  {selectedTable ? `${t.table} ${selectedTable}` : t.table}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
 
         {cart.length === 0 ? (
@@ -1269,10 +1342,10 @@ export default function NewOrderScreen() {
             <TouchableOpacity
               style={[
                 styles.placeBtn,
-                (cart.length === 0 || placingOrder) && styles.placeBtnDisabled,
+                (cart.length === 0 || !orderType || (orderType === 'table' && !selectedTable) || placingOrder) && styles.placeBtnDisabled,
               ]}
               onPress={placeOrder}
-              disabled={cart.length === 0 || placingOrder}
+              disabled={cart.length === 0 || !orderType || (orderType === 'table' && !selectedTable) || placingOrder}
               activeOpacity={0.82}
             >
               {placingOrder ? (
@@ -1321,6 +1394,11 @@ export default function NewOrderScreen() {
                     setCart([]);
                     setNote('');
                     setDiscount('');
+                    setSelectedTable(null);
+                    setOrderType(null);
+                    setPhoneOrderMode('pickup');
+                    setPhoneCustomer(emptyPhoneCustomer);
+                    setPhoneCustomerError('');
                     setClearModal(false);
                   }}
                   activeOpacity={0.8}
@@ -1338,8 +1416,8 @@ export default function NewOrderScreen() {
           <View style={[styles.addonModalBox, { width: layout.addonModalWidth }]}>
             <View style={styles.modalHeader}>
               <View>
-                <Text style={styles.modalTitle}>{t.orderType}</Text>
-                <Text style={styles.modalSubtitleLight}>{t.orderTypeSubtitle}</Text>
+                <Text style={styles.modalTitle}>{t.selectTable}</Text>
+                <Text style={styles.modalSubtitleLight}>{t.table}</Text>
               </View>
 
               <TouchableOpacity
@@ -1352,126 +1430,42 @@ export default function NewOrderScreen() {
             </View>
 
             <ScrollView style={styles.tableModalScroll}>
-              <Text style={styles.addonSectionTitle}>{t.orderType}</Text>
+              <Text style={styles.addonSectionTitle}>{t.selectTable}</Text>
 
-              <View style={styles.tableTypeRow}>
-                <TouchableOpacity
-                  style={[
-                    styles.tableTypeBtn,
-                    orderType === 'takeaway' && styles.tableTypeBtnActive,
-                  ]}
-                  onPress={() => {
-                    setOrderType('takeaway');
-                    setSelectedTable(null);
-                    setTableModal(false);
-                  }}
-                  activeOpacity={0.78}
-                >
-                  <Ionicons
-                    name="bag-handle-outline"
-                    size={22}
-                    color={orderType === 'takeaway' ? '#fff' : '#6F7280'}
-                  />
-                  <Text
+              <View style={styles.tableGrid}>
+                {Array.from({ length: 12 }, (_, i) => String(i + 1)).map(tNum => (
+                  <TouchableOpacity
+                    key={tNum}
                     style={[
-                      styles.tableTypeBtnText,
-                      orderType === 'takeaway' && styles.tableTypeBtnTextActive,
+                      styles.tableCard,
+                      selectedTable === tNum && styles.tableCardActive,
                     ]}
+                    onPress={() => {
+                      setOrderType('table');
+                      setSelectedTable(tNum);
+                      setTableModal(false);
+                    }}
+                    activeOpacity={0.78}
                   >
-                    {t.takeaway}
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[
-                    styles.tableTypeBtn,
-                    orderType === 'phone' && styles.tableTypeBtnActive,
-                  ]}
-                  onPress={() => {
-                    setSelectedTable(null);
-                    setTableModal(false);
-                    setPhoneModal(true);
-                  }}
-                  activeOpacity={0.78}
-                >
-                  <Ionicons
-                    name="call-outline"
-                    size={22}
-                    color={orderType === 'phone' ? '#fff' : '#6F7280'}
-                  />
-                  <Text
-                    style={[
-                      styles.tableTypeBtnText,
-                      orderType === 'phone' && styles.tableTypeBtnTextActive,
-                    ]}
-                  >
-                    {t.phone}
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[
-                    styles.tableTypeBtn,
-                    orderType === 'table' && styles.tableTypeBtnActive,
-                  ]}
-                  onPress={() => setOrderType('table')}
-                  activeOpacity={0.78}
-                >
-                  <Ionicons
-                    name="grid-outline"
-                    size={22}
-                    color={orderType === 'table' ? '#fff' : '#6F7280'}
-                  />
-                  <Text
-                    style={[
-                      styles.tableTypeBtnText,
-                      orderType === 'table' && styles.tableTypeBtnTextActive,
-                    ]}
-                  >
-                    {t.table}
-                  </Text>
-                </TouchableOpacity>
+                    <Text
+                      style={[
+                        styles.tableCardNum,
+                        selectedTable === tNum && styles.tableCardNumActive,
+                      ]}
+                    >
+                      {tNum}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.tableCardText,
+                        selectedTable === tNum && styles.tableCardTextActive,
+                      ]}
+                    >
+                      {t.table}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
               </View>
-
-              {orderType === 'table' && (
-                <>
-                  <Text style={styles.addonSectionTitle}>{t.selectTable}</Text>
-
-                  <View style={styles.tableGrid}>
-                    {Array.from({ length: 12 }, (_, i) => String(i + 1)).map(tNum => (
-                      <TouchableOpacity
-                        key={tNum}
-                        style={[
-                          styles.tableCard,
-                          selectedTable === tNum && styles.tableCardActive,
-                        ]}
-                        onPress={() => {
-                          setSelectedTable(tNum);
-                          setTableModal(false);
-                        }}
-                        activeOpacity={0.78}
-                      >
-                        <Text
-                          style={[
-                            styles.tableCardNum,
-                            selectedTable === tNum && styles.tableCardNumActive,
-                          ]}
-                        >
-                          {tNum}
-                        </Text>
-                        <Text
-                          style={[
-                            styles.tableCardText,
-                            selectedTable === tNum && styles.tableCardTextActive,
-                          ]}
-                        >
-                          {t.table}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </>
-              )}
             </ScrollView>
           </View>
         </View>
@@ -2444,6 +2438,55 @@ const styles = StyleSheet.create({
   },
 
   tableSelectorTextActive: {
+    color: '#FFFFFF',
+  },
+
+  orderTypeDirectWrap: {
+    marginTop: 10,
+    marginBottom: 10,
+  },
+
+  orderTypeDirectLabel: {
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.black,
+    color: '#85859B',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    marginBottom: 7,
+    fontFamily: appFont,
+  },
+
+  orderTypeDirectRow: {
+    flexDirection: 'row',
+    gap: 7,
+  },
+
+  orderTypeDirectBtn: {
+    flex: 1,
+    minHeight: 44,
+    borderRadius: radii.mdl,
+    backgroundColor: DARK_CARD,
+    borderWidth: thinBorder,
+    borderColor: DARK_BORDER,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+    gap: 4,
+  },
+
+  orderTypeDirectBtnActive: {
+    backgroundColor: PRIMARY,
+    borderColor: PRIMARY,
+  },
+
+  orderTypeDirectBtnText: {
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.black,
+    color: '#B5B5C8',
+    fontFamily: appFont,
+  },
+
+  orderTypeDirectBtnTextActive: {
     color: '#FFFFFF',
   },
 
