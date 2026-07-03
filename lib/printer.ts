@@ -275,7 +275,9 @@ function buildSunmiInstructions(
     align: 'left' | 'center' | 'right' = 'left'
   ) => {
     instructions.push({
-      type: 'blank',
+      type: 'text',
+      content: ' ',
+      bold: false,
       size,
       align,
     });
