@@ -21,6 +21,12 @@ import { router, useFocusEffect } from 'expo-router';
 import { useLanguage } from '../../lib/LanguageContext';
 import { appFont } from '../../lib/fonts';
 import { colors, borders, radii, fontSizes, fontWeights } from '../../lib/theme';
+import {
+  type PhoneCustomer,
+  deletePhoneCustomer,
+  loadPhoneCustomers,
+  searchPhoneCustomers,
+} from '../../lib/phoneCustomers';
 
 import TcpSocket from 'react-native-tcp-socket';
 
@@ -236,6 +242,10 @@ export default function Settings() {
   const [printerPort, setPrinterPort] = useState('');
   const [printerModel, setPrinterModel] = useState('');
 
+  const [addressBookModal, setAddressBookModal] = useState(false);
+  const [addressBookCustomers, setAddressBookCustomers] = useState<PhoneCustomer[]>([]);
+  const [addressBookSearch, setAddressBookSearch] = useState('');
+
   const [windowWidth, setWindowWidth] = useState(Dimensions.get('window').width);
 
   const isNarrow = windowWidth < 760;
@@ -272,6 +282,41 @@ export default function Settings() {
 
     return () => sub?.remove();
   }, []);
+
+  const openAddressBook = async () => {
+    const code = await AsyncStorage.getItem('restaurant_code') || '';
+
+    const customers = await loadPhoneCustomers(code);
+    setAddressBookCustomers(customers);
+    setAddressBookSearch('');
+    setAddressBookModal(true);
+  };
+
+  const handleDeleteAddressBookCustomer = async (customer: PhoneCustomer) => {
+    const code = await AsyncStorage.getItem('restaurant_code') || '';
+    const name = `${customer.first_name} ${customer.last_name}`.trim() || ((t as any).unknownCustomer || 'Unknown customer');
+
+    Alert.alert(
+      (t as any).deleteCustomer || (language === 'de' ? 'Kunde löschen' : 'Delete customer'),
+      (t as any).deleteCustomerConfirm || (language === 'de' ? `${name} aus dem Adressbuch löschen?` : `Delete ${name} from the address book?`),
+      [
+        {
+          text: t.cancel,
+          style: 'cancel',
+        },
+        {
+          text: (t as any).deleteCustomer || (language === 'de' ? 'Löschen' : 'Delete'),
+          style: 'destructive',
+          onPress: async () => {
+            const updated = await deletePhoneCustomer(code, customer);
+            setAddressBookCustomers(updated);
+          },
+        },
+      ]
+    );
+  };
+
+  const filteredAddressBookCustomers = searchPhoneCustomers(addressBookCustomers, addressBookSearch);
 
   const loadData = useCallback(async () => {
     try {
@@ -474,6 +519,31 @@ export default function Settings() {
                   </TouchableOpacity>
                 </View>
               </View>
+            </View>
+
+            <View style={styles.section}>
+              {renderSectionHeader((t as any).savedCustomers || (language === 'de' ? 'Gespeicherte Kunden' : 'Saved customers'))}
+
+              <TouchableOpacity
+                style={styles.addressBookSettingsCard}
+                onPress={openAddressBook}
+                activeOpacity={0.78}
+              >
+                <View style={styles.addressBookSettingsIcon}>
+                  <Ionicons name="book-outline" size={22} color="#D97706" />
+                </View>
+
+                <View style={styles.addressBookSettingsTextWrap}>
+                  <Text style={styles.addressBookSettingsTitle}>
+                    {(t as any).addressBook || 'Address book'}
+                  </Text>
+                  <Text style={styles.addressBookSettingsSub}>
+                    {(t as any).addressBookSettingsSubtitle || (language === 'de' ? 'Gespeicherte Telefonkunden anzeigen' : 'View saved phone customers')}
+                  </Text>
+                </View>
+
+                <Ionicons name="chevron-forward" size={20} color="#A8ACB7" />
+              </TouchableOpacity>
             </View>
 
             <PrinterStatusCard
@@ -740,6 +810,108 @@ export default function Settings() {
                 )}
               </TouchableOpacity>
             </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+      <Modal visible={addressBookModal} transparent animationType="fade">
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setAddressBookModal(false)}
+        >
+          <TouchableOpacity
+            style={styles.addressBookModalBox}
+            activeOpacity={1}
+            onPress={e => e.stopPropagation()}
+          >
+            <View style={styles.addressBookModalHeader}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.addressBookModalTitle}>
+                  {(t as any).addressBook || 'Address book'}
+                </Text>
+                <Text style={styles.addressBookModalSub}>
+                  {(t as any).addressBookSearchSubtitle || (language === 'de' ? 'Suche nach Telefon, Name, Nachname oder Strasse' : 'Search by phone, name, last name or street')}
+                </Text>
+              </View>
+
+              <TouchableOpacity
+                onPress={() => setAddressBookModal(false)}
+                style={styles.addressBookCloseBtn}
+                activeOpacity={0.75}
+              >
+                <Ionicons name="close" size={18} color="#5B5F6B" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.addressBookSearchWrap}>
+              <Ionicons name="search-outline" size={18} color="#9CA3AF" />
+              <TextInput
+                style={styles.addressBookSearchInput}
+                placeholder={(t as any).addressBookSearchPlaceholder || (language === 'de' ? 'Telefon, Name, Nachname, Strasse suchen...' : 'Search phone, name, last name, street...')}
+                placeholderTextColor="#9CA3AF"
+                value={addressBookSearch}
+                onChangeText={setAddressBookSearch}
+                autoCorrect={false}
+                autoCapitalize="none"
+              />
+            </View>
+
+            <ScrollView
+              style={styles.addressBookList}
+              contentContainerStyle={filteredAddressBookCustomers.length === 0 ? styles.addressBookListEmpty : undefined}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
+              {filteredAddressBookCustomers.length === 0 ? (
+                <View style={styles.addressBookEmpty}>
+                  <Ionicons name="person-circle-outline" size={48} color="#C7CBD4" />
+                  <Text style={styles.addressBookEmptyText}>
+                    {(t as any).noSavedCustomers || (language === 'de' ? 'Noch keine Kunden gespeichert' : 'No saved customers yet')}
+                  </Text>
+                </View>
+              ) : (
+                filteredAddressBookCustomers.map((customer, index) => {
+                  const name = `${customer.first_name} ${customer.last_name}`.trim() || ((t as any).unknownCustomer || 'Unknown customer');
+                  const address = `${customer.street}, ${customer.zip} ${customer.city}`.replace(/^,\s*/, '').trim();
+
+                  return (
+                    <View
+                      key={`${customer.phone}-${customer.street}-${index}`}
+                      style={styles.addressBookCustomerCard}
+                    >
+                      <View style={styles.addressBookAvatar}>
+                        <Text style={styles.addressBookAvatarText}>
+                          {name.trim()[0]?.toUpperCase() || '?'}
+                        </Text>
+                      </View>
+
+                      <View style={styles.addressBookCustomerInfo}>
+                        <Text style={styles.addressBookCustomerName} numberOfLines={1}>
+                          {name}
+                        </Text>
+
+                        <Text style={styles.addressBookCustomerPhone} numberOfLines={1}>
+                          {customer.phone || ((t as any).noPhone || 'No phone')}
+                        </Text>
+
+                        <Text style={styles.addressBookCustomerAddress} numberOfLines={1}>
+                          {address || ((t as any).noAddress || (language === 'de' ? 'Keine Adresse' : 'No address'))}
+                        </Text>
+                      </View>
+
+                      <TouchableOpacity
+                        style={styles.addressBookDeleteBtn}
+                        onPress={() => handleDeleteAddressBookCustomer(customer)}
+                        activeOpacity={0.75}
+                      >
+                        <Ionicons name="trash-outline" size={17} color="#EF4444" />
+                      </TouchableOpacity>
+                    </View>
+                  );
+                })
+              )}
+            </ScrollView>
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
@@ -1306,6 +1478,209 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: 'center',
     marginTop: 20,
+  },
+
+addressBookSettingsCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: CARD_BG,
+    borderRadius: radii.xxxl,
+    padding: 14,
+    gap: 12,
+    borderWidth: thinBorder,
+    borderColor: BORDER,
+  },
+
+  addressBookSettingsIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: radii.lg,
+    backgroundColor: '#FFF7ED',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: thinBorder,
+    borderColor: '#FED7AA',
+  },
+
+  addressBookSettingsTextWrap: {
+    flex: 1,
+  },
+
+  addressBookSettingsTitle: {
+    fontSize: fontSizes.lg,
+    fontWeight: fontWeights.extrabold,
+    color: TEXT,
+    fontFamily: appFont,
+  },
+
+  addressBookSettingsSub: {
+    fontSize: fontSizes.smd,
+    color: MUTED,
+    marginTop: 3,
+    fontWeight: fontWeights.semibold,
+    fontFamily: appFont,
+  },
+
+  addressBookModalBox: {
+    backgroundColor: '#fff',
+    borderRadius: radii.massive,
+    width: '94%',
+    maxWidth: 720,
+    maxHeight: '84%',
+    overflow: 'hidden',
+    borderWidth: thinBorder,
+    borderColor: BORDER,
+  },
+
+  addressBookModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    padding: 18,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: BORDER,
+    gap: 14,
+  },
+
+  addressBookModalTitle: {
+    marginTop: 3,
+    fontSize: fontSizes.xxl,
+    fontWeight: fontWeights.extrabold,
+    color: TEXT,
+    fontFamily: appFont,
+  },
+
+  addressBookModalSub: {
+    fontSize: fontSizes.smd,
+    color: MUTED,
+    fontWeight: fontWeights.semibold,
+    marginTop: 3,
+    fontFamily: appFont,
+  },
+
+  addressBookCloseBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: radii.lg,
+    backgroundColor: '#F7F8FA',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: thinBorder,
+    borderColor: BORDER,
+  },
+
+  addressBookSearchWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FAFAFB',
+    borderRadius: radii.lg,
+    margin: 16,
+    marginBottom: 10,
+    paddingHorizontal: 13,
+    gap: 9,
+    borderWidth: thinBorder,
+    borderColor: BORDER,
+    height: 46,
+  },
+
+  addressBookSearchInput: {
+    flex: 1,
+    fontSize: fontSizes.mdl,
+    color: TEXT,
+    padding: 0,
+    fontFamily: appFont,
+    fontWeight: fontWeights.medium,
+  },
+
+  addressBookList: {
+    paddingHorizontal: 16,
+    maxHeight: 420,
+  },
+
+  addressBookListEmpty: {
+    flexGrow: 1,
+    justifyContent: 'center',
+  },
+
+  addressBookEmpty: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 38,
+    gap: 8,
+  },
+
+  addressBookEmptyText: {
+    fontSize: fontSizes.md,
+    color: MUTED,
+    fontWeight: fontWeights.bold,
+    fontFamily: appFont,
+    textAlign: 'center',
+  },
+
+  addressBookCustomerCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FAFAFB',
+    borderRadius: radii.lg,
+    borderWidth: thinBorder,
+    borderColor: BORDER,
+    padding: 12,
+    marginBottom: 10,
+    gap: 11,
+  },
+
+  addressBookAvatar: {
+    width: 42,
+    height: 42,
+    borderRadius: radii.full,
+    backgroundColor: PRIMARY_SOFT,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  addressBookAvatarText: {
+    fontSize: fontSizes.lgl,
+    fontWeight: fontWeights.black,
+    color: PRIMARY,
+    fontFamily: appFont,
+  },
+
+  addressBookCustomerInfo: {
+    flex: 1,
+  },
+
+  addressBookCustomerName: {
+    fontSize: fontSizes.mdl,
+    fontWeight: fontWeights.black,
+    color: TEXT,
+    fontFamily: appFont,
+  },
+
+  addressBookCustomerPhone: {
+    marginTop: 2,
+    fontSize: fontSizes.smd,
+    fontWeight: fontWeights.bold,
+    color: '#4B5563',
+    fontFamily: appFont,
+  },
+
+  addressBookCustomerAddress: {
+    marginTop: 2,
+    fontSize: fontSizes.smd,
+    fontWeight: fontWeights.medium,
+    color: MUTED,
+    fontFamily: appFont,
+  },
+
+  addressBookDeleteBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: radii.lg,
+    backgroundColor: '#FEF2F2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: thinBorder,
+    borderColor: '#FECACA',
   },
 
   saveBtnDisabled: {
