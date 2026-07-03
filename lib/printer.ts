@@ -196,7 +196,7 @@ const SUNMI_SIZE_THANK = 22;
 const SUNMI_SIZE_FOOTER = 18;
 const SUNMI_GAP_SMALL = 8;
 const SUNMI_GAP = 14;
-const SUNMI_BOTTOM_FEED = 60;
+const SUNMI_BOTTOM_FEED = 120;
 
 function sunmiClean(value: any): string {
   if (value === null || value === undefined) return '';
