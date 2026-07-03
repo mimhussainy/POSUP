@@ -13,6 +13,7 @@ import {
   Platform,
   Animated,
   Alert,
+  KeyboardAvoidingView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -289,6 +290,13 @@ export default function NewOrderScreen() {
   const [phoneCustomers, setPhoneCustomers] = useState<PhoneCustomer[]>([]);
   const [phoneCustomerSearch, setPhoneCustomerSearch] = useState('');
   const [phoneCustomerError, setPhoneCustomerError] = useState('');
+
+  const phoneFirstNameRef = useRef<TextInput>(null);
+  const phoneLastNameRef = useRef<TextInput>(null);
+  const phoneNumberRef = useRef<TextInput>(null);
+  const phoneStreetRef = useRef<TextInput>(null);
+  const phoneZipRef = useRef<TextInput>(null);
+  const phoneCityRef = useRef<TextInput>(null);
 
   useEffect(() => {
     const sub = Dimensions.addEventListener('change', ({ window }) => {
@@ -1474,9 +1482,14 @@ export default function NewOrderScreen() {
       </Modal>
 
       <Modal visible={phoneModal} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={[styles.addonModalBox, { width: layout.addonModalWidth }]}>
-            <View style={styles.modalHeader}>
+        <KeyboardAvoidingView
+          style={styles.modalKeyboardView}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 20 : 0}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={[styles.addonModalBox, { width: layout.addonModalWidth }]}>
+              <View style={styles.modalHeader}>
               <View>
                 <Text style={styles.modalTitle}>{t.phoneOrder}</Text>
                 <Text style={styles.modalSubtitleLight}>{t.phoneOrderChooseMode}</Text>
@@ -1491,7 +1504,12 @@ export default function NewOrderScreen() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.phoneModalScroll}>
+            <ScrollView
+              style={styles.phoneModalScroll}
+              contentContainerStyle={styles.phoneModalScrollContent}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
               <Text style={styles.addonSectionTitle}>{t.phoneOrderMode}</Text>
 
               <View style={styles.phoneModeRow}>
@@ -1565,42 +1583,63 @@ export default function NewOrderScreen() {
               <View style={styles.phoneFormGrid}>
                 <View style={styles.phoneNameRow}>
                   <TextInput
+                    ref={phoneFirstNameRef}
                     style={[styles.phoneInput, styles.phoneNameInput]}
                     placeholder={t.firstName}
                     placeholderTextColor="#A8ACB7"
                     value={phoneCustomer.first_name}
                     onChangeText={v => updatePhoneCustomerField('first_name', v)}
+                    returnKeyType="next"
+                    blurOnSubmit={false}
+                    onSubmitEditing={() => phoneLastNameRef.current?.focus()}
                   />
 
                   <TextInput
+                    ref={phoneLastNameRef}
                     style={[styles.phoneInput, styles.phoneNameInput]}
                     placeholder={t.lastName}
                     placeholderTextColor="#A8ACB7"
                     value={phoneCustomer.last_name}
                     onChangeText={v => updatePhoneCustomerField('last_name', v)}
+                    returnKeyType="next"
+                    blurOnSubmit={false}
+                    onSubmitEditing={() => phoneNumberRef.current?.focus()}
                   />
                 </View>
 
                 <TextInput
+                  ref={phoneNumberRef}
                   style={styles.phoneInput}
                   placeholder={t.phone}
                   placeholderTextColor="#A8ACB7"
                   value={phoneCustomer.phone}
                   onChangeText={v => updatePhoneCustomerField('phone', v)}
                   keyboardType="phone-pad"
+                  returnKeyType={phoneOrderMode === 'delivery' ? 'next' : 'done'}
+                  blurOnSubmit={phoneOrderMode !== 'delivery'}
+                  onSubmitEditing={() => {
+                    if (phoneOrderMode === 'delivery') {
+                      phoneStreetRef.current?.focus();
+                    }
+                  }}
                 />
 
                 {phoneOrderMode === 'delivery' && (
                   <View style={styles.phoneAddressRow}>
                     <TextInput
+                      ref={phoneStreetRef}
                       style={[styles.phoneInput, styles.phoneStreetInput]}
                       placeholder={t.street}
                       placeholderTextColor="#A8ACB7"
                       value={phoneCustomer.street}
                       onChangeText={v => updatePhoneCustomerField('street', v)}
+                      returnKeyType="next"
+                      blurOnSubmit={false}
+                      onSubmitEditing={() => phoneZipRef.current?.focus()}
                     />
 
                     <TextInput
+                      ref={phoneZipRef}
                       style={[styles.phoneInput, styles.phoneZipInput]}
                       placeholder={t.zip}
                       placeholderTextColor="#A8ACB7"
@@ -1608,14 +1647,20 @@ export default function NewOrderScreen() {
                       onChangeText={v => updatePhoneCustomerField('zip', v)}
                       keyboardType="number-pad"
                       maxLength={4}
+                      returnKeyType="next"
+                      blurOnSubmit={false}
+                      onSubmitEditing={() => phoneCityRef.current?.focus()}
                     />
 
                     <TextInput
+                      ref={phoneCityRef}
                       style={[styles.phoneInput, styles.phoneCityInput]}
                       placeholder={t.city}
                       placeholderTextColor="#A8ACB7"
                       value={phoneCustomer.city}
                       onChangeText={v => updatePhoneCustomerField('city', v)}
+                      returnKeyType="done"
+                      onSubmitEditing={confirmPhoneOrder}
                     />
                   </View>
                 )}
@@ -1646,8 +1691,9 @@ export default function NewOrderScreen() {
                 <Text style={styles.discountApplyBtnText}>{t.confirmPhoneOrder}</Text>
               </TouchableOpacity>
             </View>
+            </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       <Modal visible={addressBookModal} transparent animationType="fade">
@@ -2716,6 +2762,10 @@ const styles = StyleSheet.create({
     fontFamily: appFont,
   },
 
+  modalKeyboardView: {
+    flex: 1,
+  },
+
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(10,10,18,0.55)',
@@ -3024,6 +3074,10 @@ const styles = StyleSheet.create({
   phoneModalScroll: {
     padding: 16,
     maxHeight: 460,
+  },
+
+  phoneModalScrollContent: {
+    paddingBottom: 18,
   },
 
   phoneModeRow: {
