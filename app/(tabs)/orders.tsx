@@ -711,6 +711,76 @@ export default function NewOrderScreen() {
   const currentDiscount = discountAmount();
   const orderTotal = subtotal - currentDiscount;
 
+  function getVatRateForCartItem(item: CartItem) {
+    if (!orderType) {
+      return 0;
+    }
+
+    if (orderType === 'table') {
+      return 8.1;
+    }
+
+    return item.product?.is_alcohol === true ? 8.1 : 2.6;
+  }
+
+  function getVatTypeForCartItem(item: CartItem) {
+    return item.product?.is_alcohol === true ? 'alcohol' : 'food';
+  }
+
+  function getDiscountedLineGross(item: CartItem) {
+    const lineGross = money(item.price) * item.quantity;
+
+    if (!currentDiscount || subtotal <= 0) {
+      return lineGross;
+    }
+
+    const discountShare = lineGross / subtotal;
+
+    return Math.max(0, lineGross - currentDiscount * discountShare);
+  }
+
+  function getVatAmountFromGross(gross: number, rate: number) {
+    return gross - (gross / (1 + rate / 100));
+  }
+
+  const taxGroups = [
+    {
+      type: 'food',
+      label: (t as any).foodTotal || 'Food total',
+      isMatch: (item: CartItem) => item.product?.is_alcohol !== true,
+    },
+    {
+      type: 'alcohol',
+      label: (t as any).alcoholTotal || 'Alcohol total',
+      isMatch: (item: CartItem) => item.product?.is_alcohol === true,
+    },
+  ];
+
+  const taxSummary = taxGroups
+    .map(group => {
+      const matchingItems = cart.filter(group.isMatch);
+      const rate = matchingItems.length > 0 ? getVatRateForCartItem(matchingItems[0]) : 0;
+
+      const gross = matchingItems.reduce((sum, item) => {
+        return sum + getDiscountedLineGross(item);
+      }, 0);
+
+      const tax = getVatAmountFromGross(gross, rate);
+      const net = gross - tax;
+
+      return {
+        type: group.type,
+        label: group.label,
+        rate,
+        gross,
+        net,
+        tax,
+      };
+    })
+    .filter(row => row.gross > 0.004 && row.rate > 0);
+
+  const taxTotal = taxSummary.reduce((sum, row) => sum + row.tax, 0);
+
   useEffect(() => {
     publishDisplayState({
       restaurantName: restaurantCode,
@@ -803,11 +873,22 @@ export default function NewOrderScreen() {
           const firstCategoryId = (i.product.category_ids || [])[0];
           const category = categories.find(c => c.id === firstCategoryId);
 
+          const taxRate = getVatRateForCartItem(i);
+          const taxType = getVatTypeForCartItem(i);
+          const discountedLineGross = getDiscountedLineGross(i);
+          const lineTax = getVatAmountFromGross(discountedLineGross, taxRate);
+          const lineNet = discountedLineGross - lineTax;
+
           return {
             name: i.product.name,
             quantity: i.quantity,
             price: money(i.price).toFixed(2),
             total: (money(i.price) * i.quantity).toFixed(2),
+            discounted_total: discountedLineGross.toFixed(2),
+            net_total: lineNet.toFixed(2),
+            tax_type: taxType,
+            tax_rate: taxRate.toFixed(1),
+            tax_total: lineTax.toFixed(2),
             variation: i.variation?.name || '',
             category: category?.name || '',
             is_alcohol: i.product.is_alcohol === true,
@@ -818,10 +899,23 @@ export default function NewOrderScreen() {
           };
         }),
         subtotal: subtotal.toFixed(2),
-        discount: discountAmount().toFixed(2),
+        discount: currentDiscount.toFixed(2),
         discount_type: discountType,
         discount_value: discount,
         total: orderTotal.toFixed(2),
+        tax_total: taxTotal.toFixed(2),
+        tax_summary: taxSummary.map(row => ({
+          type: row.type,
+          label: row.label,
+          rate: row.rate.toFixed(1),
+          gross: row.gross.toFixed(2),
+          net: row.net.toFixed(2),
+          tax: row.tax.toFixed(2),
+        })),
+        tax_rule:
+          orderType === 'table'
+            ? 'table_food_and_alcohol_8_1'
+            : 'takeaway_food_2_6_alcohol_8_1',
         currency: 'CHF',
         payment_method: paymentMethod,
         note: note.trim(),
@@ -1308,16 +1402,32 @@ export default function NewOrderScreen() {
               <Text style={styles.totalRowVal}>CHF {subtotal.toFixed(2)}</Text>
             </View>
 
-            {discountAmount() > 0 && (
+            {currentDiscount > 0 && (
               <View style={styles.totalRow}>
                 <Text style={[styles.totalRowLabel, styles.discountTotalLabel]}>
                   {t.discount} {discountType === 'percent' ? `(${discount}%)` : `(${t.fixedChf})`}
                 </Text>
                 <Text style={[styles.totalRowVal, styles.discountTotalValue]}>
-                  - CHF {discountAmount().toFixed(2)}
+                  - CHF {currentDiscount.toFixed(2)}
                 </Text>
               </View>
             )}
+
+            {taxSummary.map(row => (
+              <View key={row.type}>
+                <View style={styles.totalRow}>
+                  <Text style={styles.totalRowLabel}>{row.label}</Text>
+                  <Text style={styles.totalRowVal}>CHF {row.gross.toFixed(2)}</Text>
+                </View>
+
+                <View style={styles.totalRow}>
+                  <Text style={styles.totalRowLabel}>
+                    {(t as any).vat || 'VAT'} {row.rate.toFixed(1)}%
+                  </Text>
+                  <Text style={styles.totalRowVal}>CHF {row.tax.toFixed(2)}</Text>
+                </View>
+              </View>
+            ))}
 
             <View style={styles.totalDivider} />
 
@@ -1896,7 +2006,7 @@ export default function NewOrderScreen() {
                 <View style={styles.discountPreview}>
                   <Text style={styles.discountPreviewLabel}>{t.discountAmount}</Text>
                   <Text style={styles.discountPreviewAmt}>
-                    - CHF {discountAmount().toFixed(2)}
+                    - CHF {currentDiscount.toFixed(2)}
                   </Text>
                   <Text style={styles.discountPreviewTotal}>
                     {t.newTotal}: CHF {orderTotal.toFixed(2)}

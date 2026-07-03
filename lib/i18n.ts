@@ -131,6 +131,9 @@ export const translations = {
     noteName: 'Name',
     notePhone: 'Telefon',
     noteAddress: 'Adresse',
+    foodTotal: 'Total Essen',
+    alcoholTotal: 'Total Alkohol',
+    vat: 'MwSt.',
   },
   
   en: {
@@ -263,6 +266,9 @@ export const translations = {
     noteName: 'Name',
     notePhone: 'Phone',
     noteAddress: 'Address',
+    foodTotal: 'Food total',
+    alcoholTotal: 'Alcohol total',
+    vat: 'VAT',
   },
 };
 
