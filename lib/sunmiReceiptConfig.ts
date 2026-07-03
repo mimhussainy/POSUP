@@ -33,7 +33,7 @@ export const sunmiReceiptConfig = {
   },
 
   columns: {
-    product: [1, 7, 2],
+    product: [1, 6, 3],
     addon: [1, 8, 1],
     total: [1, 1],
     payment: [1, 1],
