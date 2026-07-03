@@ -1480,9 +1480,9 @@ export default function NewOrderScreen() {
       <Modal visible={phoneModal} transparent animationType="fade">
         <KeyboardAvoidingView
           style={styles.modalKeyboardView}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'position'}
+          behavior="padding"
           keyboardVerticalOffset={Platform.OS === 'ios' ? 20 : 0}
-          >
+        >
           <View style={styles.modalOverlay}>
             <View style={[styles.addonModalBox, { width: layout.addonModalWidth }]}>
               <View style={styles.modalHeader}>
