@@ -194,8 +194,11 @@ const SUNMI_SIZE_TOTAL = 30;
 const SUNMI_SIZE_PAYMENT = 26;
 const SUNMI_SIZE_THANK = 22;
 const SUNMI_SIZE_FOOTER = 18;
-const SUNMI_GAP_SMALL = 8;
-const SUNMI_GAP = 14;
+const SUNMI_GAP_SMALL = 10;
+const SUNMI_GAP = 18;
+const SUNMI_DIVIDER_GAP_TOP = 16;
+const SUNMI_DIVIDER_GAP_BOTTOM = 16;
+const SUNMI_SECTION_GAP = 22;
 const SUNMI_BOTTOM_FEED = 120;
 
 function sunmiClean(value: any): string {
@@ -272,9 +275,13 @@ function buildSunmiInstructions(
   };
 
   const pushDivider = () => {
+    pushBlank(SUNMI_DIVIDER_GAP_TOP, 'left');
+
     instructions.push({
       type: 'divider',
     });
+
+    pushBlank(SUNMI_DIVIDER_GAP_BOTTOM, 'left');
   };
 
   const pushColumns = (
@@ -310,9 +317,7 @@ function buildSunmiInstructions(
     pushText(order.customer_name, false, SUNMI_SIZE_META, 'center');
   }
 
-  pushBlank(SUNMI_GAP, 'center');
   pushDivider();
-  pushBlank(SUNMI_GAP_SMALL, 'left');
 
   const items = order.items || [];
 
@@ -349,7 +354,6 @@ function buildSunmiInstructions(
     }
   });
 
-  pushBlank(SUNMI_GAP_SMALL, 'left');
   pushDivider();
 
   const discount = parseFloat(order.discount || '0');
@@ -393,16 +397,13 @@ function buildSunmiInstructions(
     pushText(`${tr.note}: ${order.note}`, false, SUNMI_SIZE_BODY, 'left');
   }
 
-  pushBlank(SUNMI_GAP, 'left');
   pushDivider();
 
-  pushBlank(SUNMI_GAP, 'center');
   pushText(tr.thank, true, SUNMI_SIZE_THANK, 'center');
 
-  pushBlank(SUNMI_GAP, 'center');
   pushDivider();
 
-  pushBlank(SUNMI_GAP_SMALL, 'center');
+  pushBlank(SUNMI_SECTION_GAP, 'center');
   pushText('Powered by: FoodUp.ch', false, SUNMI_SIZE_FOOTER, 'center');
 
   pushBlank(SUNMI_BOTTOM_FEED, 'left');
