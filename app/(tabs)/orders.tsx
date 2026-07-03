@@ -118,6 +118,27 @@ interface CartItem {
   price: number;
   quantity: number;
 }
+
+type PhoneOrderMode = 'pickup' | 'delivery';
+
+type PhoneCustomer = {
+  first_name: string;
+  last_name: string;
+  phone: string;
+  street: string;
+  zip: string;
+  city: string;
+};
+
+const emptyPhoneCustomer: PhoneCustomer = {
+  first_name: '',
+  last_name: '',
+  phone: '',
+  street: '',
+  zip: '',
+  city: '',
+};
+
 const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
 
 function CategoryButton({
@@ -245,7 +266,7 @@ export default function NewOrderScreen() {
   const [addonModal, setAddonModal] = useState(false);
 
   const [selectedTable, setSelectedTable] = useState<string | null>(null);
-  const [orderType, setOrderType] = useState<'walkIn' | 'table' | null>(null);
+  const [orderType, setOrderType] = useState<'takeaway' | 'table' | 'phone' | null>(null);
 
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [selectedVariation, setSelectedVariation] = useState<any>(null);
@@ -261,8 +282,13 @@ export default function NewOrderScreen() {
 
   const [layout, setLayout] = useState(getLayout(Dimensions.get('window').width));
 
-
-
+  const [phoneModal, setPhoneModal] = useState(false);
+  const [addressBookModal, setAddressBookModal] = useState(false);
+  const [phoneOrderMode, setPhoneOrderMode] = useState<PhoneOrderMode>('pickup');
+  const [phoneCustomer, setPhoneCustomer] = useState<PhoneCustomer>(emptyPhoneCustomer);
+  const [phoneCustomers, setPhoneCustomers] = useState<PhoneCustomer[]>([]);
+  const [phoneCustomerSearch, setPhoneCustomerSearch] = useState('');
+  const [phoneCustomerError, setPhoneCustomerError] = useState('');
 
   useEffect(() => {
     const sub = Dimensions.addEventListener('change', ({ window }) => {
@@ -279,6 +305,12 @@ export default function NewOrderScreen() {
   useFocusEffect(useCallback(() => {
     if (!restaurantCode) loadData();
   }, [restaurantCode]));
+
+  useEffect(() => {
+    if (restaurantCode) {
+      loadPhoneCustomers(restaurantCode);
+    }
+  }, [restaurantCode]);
 
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type });
@@ -342,6 +374,139 @@ export default function NewOrderScreen() {
 
   const normalizeText = (v: string) =>
     (v || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+  const phoneCustomersStorageKey = (code: string) =>
+    `posup_phone_customers_${code || 'default'}`;
+
+  function cleanPhoneCustomer(customer: PhoneCustomer): PhoneCustomer {
+    return {
+      first_name: customer.first_name.trim(),
+      last_name: customer.last_name.trim(),
+      phone: customer.phone.trim(),
+      street: customer.street.trim(),
+      zip: customer.zip.trim(),
+      city: customer.city.trim(),
+    };
+  }
+
+  function normalizedPhone(value: string) {
+    return String(value || '').replace(/\D/g, '');
+  }
+
+  async function loadPhoneCustomers(code: string) {
+    try {
+      const raw = await AsyncStorage.getItem(phoneCustomersStorageKey(code));
+      const parsed = raw ? JSON.parse(raw) : [];
+      setPhoneCustomers(Array.isArray(parsed) ? parsed : []);
+    } catch (e) {
+      setPhoneCustomers([]);
+    }
+  }
+
+  async function savePhoneCustomer(customer: PhoneCustomer) {
+    const cleaned = cleanPhoneCustomer(customer);
+
+    if (!cleaned.phone && !cleaned.first_name && !cleaned.last_name) {
+      return;
+    }
+
+    const customerPhone = normalizedPhone(cleaned.phone);
+    const customerNameStreet = normalizeText(
+      `${cleaned.first_name} ${cleaned.last_name} ${cleaned.street}`
+    ).trim();
+
+    const existingIndex = phoneCustomers.findIndex(c => {
+      const savedPhone = normalizedPhone(c.phone);
+
+      if (customerPhone && savedPhone === customerPhone) {
+        return true;
+      }
+
+      return normalizeText(`${c.first_name} ${c.last_name} ${c.street}`).trim() === customerNameStreet;
+    });
+
+    const updated = [...phoneCustomers];
+
+    if (existingIndex >= 0) {
+      updated[existingIndex] = cleaned;
+    } else {
+      updated.unshift(cleaned);
+    }
+
+    const limited = updated.slice(0, 200);
+    setPhoneCustomers(limited);
+    await AsyncStorage.setItem(phoneCustomersStorageKey(restaurantCode), JSON.stringify(limited));
+  }
+
+  function updatePhoneCustomerField(field: keyof PhoneCustomer, value: string) {
+    setPhoneCustomer(prev => ({
+      ...prev,
+      [field]: value,
+    }));
+    setPhoneCustomerError('');
+  }
+
+  function selectPhoneCustomer(customer: PhoneCustomer) {
+    setPhoneCustomer(cleanPhoneCustomer(customer));
+    setPhoneCustomerError('');
+    setAddressBookModal(false);
+  }
+
+  function buildPhoneOrderNote(customer: PhoneCustomer, mode: PhoneOrderMode) {
+    const name = `${customer.first_name} ${customer.last_name}`.trim();
+    const address = `${customer.street}, ${customer.zip} ${customer.city}`.replace(/^,\s*/, '').trim();
+
+    return [
+      mode === 'delivery' ? 'PHONE DELIVERY' : 'PHONE PICKUP',
+      name ? `Name: ${name}` : '',
+      customer.phone ? `Phone: ${customer.phone}` : '',
+      mode === 'delivery' && address ? `Address: ${address}` : '',
+    ].filter(Boolean).join('\n');
+  }
+
+  function confirmPhoneOrder() {
+    const cleaned = cleanPhoneCustomer(phoneCustomer);
+
+    if (phoneOrderMode === 'delivery') {
+      const missingDeliveryField =
+        !cleaned.first_name ||
+        !cleaned.last_name ||
+        !cleaned.street ||
+        !cleaned.zip ||
+        !cleaned.city ||
+        !cleaned.phone;
+
+      if (missingDeliveryField) {
+        setPhoneCustomerError('Bitte alle Lieferfelder ausfüllen.');
+        return;
+      }
+    }
+
+    if (phoneOrderMode === 'pickup' && !cleaned.phone) {
+      setPhoneCustomerError('Bitte Telefonnummer eingeben.');
+      return;
+    }
+
+    setPhoneCustomer(cleaned);
+    setOrderType('phone');
+    setSelectedTable(null);
+    setPhoneModal(false);
+    setTableModal(false);
+  }
+
+  const filteredPhoneCustomers = phoneCustomers.filter(customer => {
+    const q = normalizeText(phoneCustomerSearch.trim());
+
+    if (!q) {
+      return true;
+    }
+
+    const haystack = normalizeText(
+      `${customer.phone} ${customer.first_name} ${customer.last_name} ${customer.street} ${customer.zip} ${customer.city}`
+    );
+
+    return haystack.includes(q);
+  });
 
   const filteredProducts = products.filter(p => {
     if (!p.active) return false;
@@ -569,6 +734,38 @@ export default function NewOrderScreen() {
       return;
     }
 
+    const cleanedPhoneCustomer = cleanPhoneCustomer(phoneCustomer);
+
+    if (orderType === 'phone') {
+      if (phoneOrderMode === 'delivery') {
+        const missingDeliveryField =
+          !cleanedPhoneCustomer.first_name ||
+          !cleanedPhoneCustomer.last_name ||
+          !cleanedPhoneCustomer.street ||
+          !cleanedPhoneCustomer.zip ||
+          !cleanedPhoneCustomer.city ||
+          !cleanedPhoneCustomer.phone;
+
+        if (missingDeliveryField) {
+          setPhoneCustomerError('Bitte alle Lieferfelder ausfüllen.');
+          setPhoneModal(true);
+          showToast('Delivery info missing', 'error');
+          return;
+        }
+      }
+
+      if (phoneOrderMode === 'pickup' && !cleanedPhoneCustomer.phone) {
+        setPhoneCustomerError('Bitte Telefonnummer eingeben.');
+        setPhoneModal(true);
+        showToast('Phone number missing', 'error');
+        return;
+      }
+    }
+
+    const phoneOrderNote = orderType === 'phone'
+      ? buildPhoneOrderNote(cleanedPhoneCustomer, phoneOrderMode)
+      : '';
+
     setPlacingOrder(true);
 
     try {
@@ -576,8 +773,15 @@ export default function NewOrderScreen() {
 
       const order = {
         restaurant_code: restaurantCode,
-        table: selectedTable ? `Table ${selectedTable}` : orderType === 'walkIn' ? 'Walk-in' : 'Not specified',
-        order_type: orderType || 'walkIn',
+        table: selectedTable
+          ? `Table ${selectedTable}`
+          : orderType === 'phone'
+            ? phoneOrderMode === 'delivery' ? 'Phone Delivery' : 'Phone Pickup'
+            : 'Not specified',
+        order_type: orderType === 'phone' ? phoneOrderMode : orderType || 'takeaway',
+        phone_order: orderType === 'phone',
+        phone_order_mode: orderType === 'phone' ? phoneOrderMode : null,
+        customer: orderType === 'phone' ? cleanedPhoneCustomer : null,
         items: cart.map(i => {
           const firstCategoryId = (i.product.category_ids || [])[0];
           const category = categories.find(c => c.id === firstCategoryId);
@@ -589,6 +793,7 @@ export default function NewOrderScreen() {
             total: (money(i.price) * i.quantity).toFixed(2),
             variation: i.variation?.name || '',
             category: category?.name || '',
+            is_alcohol: i.product.is_alcohol === true,
             addons: i.addons.map(a => ({
               label: a.name,
               price: money(a.price),
@@ -602,8 +807,9 @@ export default function NewOrderScreen() {
         total: orderTotal.toFixed(2),
         currency: 'CHF',
         payment_method: paymentMethod,
-        note,
-        source: 'posup',
+        note: [phoneOrderNote, note.trim()].filter(Boolean).join('\n\n'),
+        pos_note: note,
+        source: orderType === 'phone' ? 'posup_phone' : 'posup',
         created_at: new Date().toISOString(),
       };
 
@@ -622,9 +828,15 @@ export default function NewOrderScreen() {
           order_id: data.order_id,
         };
 
+        if (orderType === 'phone') {
+          await savePhoneCustomer(cleanedPhoneCustomer);
+        }
+
         setCart([]);
         setNote('');
         setDiscount('');
+        setPhoneCustomer(emptyPhoneCustomer);
+        setPhoneCustomerError('');
 
         showToast(`✓ Order ${data.order_id} placed`);
 
@@ -826,7 +1038,15 @@ export default function NewOrderScreen() {
           >
             <View style={styles.tableIconWrap}>
               <Ionicons
-                name={selectedTable ? 'grid-outline' : orderType === 'walkIn' ? 'walk-outline' : 'albums-outline'}
+                name={
+                  selectedTable
+                    ? 'grid-outline'
+                    : orderType === 'takeaway'
+                      ? 'bag-handle-outline'
+                      : orderType === 'phone'
+                        ? 'call-outline'
+                        : 'albums-outline'
+                }
                 size={15}
                 color={PRIMARY}
               />
@@ -841,9 +1061,11 @@ export default function NewOrderScreen() {
             >
               {selectedTable
                 ? `${t.table} ${selectedTable}`
-                : orderType === 'walkIn'
-                  ? `🚶 ${t.walkIn}`
-                  : `${t.walkIn} / ${t.table}`}
+                : orderType === 'takeaway'
+                  ? `🥡 Takeaway`
+                  : orderType === 'phone'
+                    ? phoneOrderMode === 'delivery' ? '☎️ Phone Delivery' : '☎️ Phone Pickup'
+                    : `Takeaway / Phone / ${t.table}`}
             </Text>
 
             <Ionicons name="chevron-down" size={15} color="#A8A8BC" />
@@ -1112,7 +1334,7 @@ export default function NewOrderScreen() {
             <View style={styles.modalHeader}>
               <View>
                 <Text style={styles.modalTitle}>{t.orderType}</Text>
-                <Text style={styles.modalSubtitleLight}>Walk-in oder Tisch auswählen</Text>
+                <Text style={styles.modalSubtitleLight}>Takeaway, Telefonbestellung oder Tisch auswählen</Text>
               </View>
 
               <TouchableOpacity
@@ -1131,27 +1353,54 @@ export default function NewOrderScreen() {
                 <TouchableOpacity
                   style={[
                     styles.tableTypeBtn,
-                    orderType === 'walkIn' && styles.tableTypeBtnActive,
+                    orderType === 'takeaway' && styles.tableTypeBtnActive,
                   ]}
                   onPress={() => {
-                    setOrderType('walkIn');
+                    setOrderType('takeaway');
                     setSelectedTable(null);
                     setTableModal(false);
                   }}
                   activeOpacity={0.78}
                 >
                   <Ionicons
-                    name="walk-outline"
+                    name="bag-handle-outline"
                     size={22}
-                    color={orderType === 'walkIn' ? '#fff' : '#6F7280'}
+                    color={orderType === 'takeaway' ? '#fff' : '#6F7280'}
                   />
                   <Text
                     style={[
                       styles.tableTypeBtnText,
-                      orderType === 'walkIn' && styles.tableTypeBtnTextActive,
+                      orderType === 'takeaway' && styles.tableTypeBtnTextActive,
                     ]}
                   >
-                    {t.walkIn}
+                    Takeaway
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.tableTypeBtn,
+                    orderType === 'phone' && styles.tableTypeBtnActive,
+                  ]}
+                  onPress={() => {
+                    setSelectedTable(null);
+                    setTableModal(false);
+                    setPhoneModal(true);
+                  }}
+                  activeOpacity={0.78}
+                >
+                  <Ionicons
+                    name="call-outline"
+                    size={22}
+                    color={orderType === 'phone' ? '#fff' : '#6F7280'}
+                  />
+                  <Text
+                    style={[
+                      styles.tableTypeBtnText,
+                      orderType === 'phone' && styles.tableTypeBtnTextActive,
+                    ]}
+                  >
+                    Phone
                   </Text>
                 </TouchableOpacity>
 
@@ -1219,6 +1468,262 @@ export default function NewOrderScreen() {
                 </>
               )}
             </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={phoneModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.addonModalBox, { width: layout.addonModalWidth }]}>
+            <View style={styles.modalHeader}>
+              <View>
+                <Text style={styles.modalTitle}>Phone Order</Text>
+                <Text style={styles.modalSubtitleLight}>Delivery oder Pickup auswählen</Text>
+              </View>
+
+              <TouchableOpacity
+                onPress={() => setPhoneModal(false)}
+                style={styles.modalCloseBtn}
+                activeOpacity={0.75}
+              >
+                <Ionicons name="close" size={18} color="#5B5F6B" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.phoneModalScroll}>
+              <Text style={styles.addonSectionTitle}>Order mode</Text>
+
+              <View style={styles.phoneModeRow}>
+                <TouchableOpacity
+                  style={[
+                    styles.phoneModeBtn,
+                    phoneOrderMode === 'pickup' && styles.phoneModeBtnActive,
+                  ]}
+                  onPress={() => {
+                    setPhoneOrderMode('pickup');
+                    setPhoneCustomerError('');
+                  }}
+                  activeOpacity={0.78}
+                >
+                  <Ionicons
+                    name="bag-handle-outline"
+                    size={22}
+                    color={phoneOrderMode === 'pickup' ? '#fff' : '#6F7280'}
+                  />
+                  <Text
+                    style={[
+                      styles.phoneModeBtnText,
+                      phoneOrderMode === 'pickup' && styles.phoneModeBtnTextActive,
+                    ]}
+                  >
+                    Pickup
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.phoneModeBtn,
+                    phoneOrderMode === 'delivery' && styles.phoneModeBtnActive,
+                  ]}
+                  onPress={() => {
+                    setPhoneOrderMode('delivery');
+                    setPhoneCustomerError('');
+                  }}
+                  activeOpacity={0.78}
+                >
+                  <Ionicons
+                    name="bicycle-outline"
+                    size={22}
+                    color={phoneOrderMode === 'delivery' ? '#fff' : '#6F7280'}
+                  />
+                  <Text
+                    style={[
+                      styles.phoneModeBtnText,
+                      phoneOrderMode === 'delivery' && styles.phoneModeBtnTextActive,
+                    ]}
+                  >
+                    Delivery
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.phoneBookHeader}>
+                <Text style={styles.addonSectionTitle}>Customer</Text>
+
+                <TouchableOpacity
+                  style={styles.addressBookBtn}
+                  onPress={() => {
+                    setPhoneCustomerSearch('');
+                    setAddressBookModal(true);
+                  }}
+                  activeOpacity={0.75}
+                >
+                  <Ionicons name="book-outline" size={15} color={PRIMARY} />
+                  <Text style={styles.addressBookBtnText}>Address book</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.phoneFormGrid}>
+                <TextInput
+                  style={styles.phoneInput}
+                  placeholder="Name"
+                  placeholderTextColor="#A8ACB7"
+                  value={phoneCustomer.first_name}
+                  onChangeText={v => updatePhoneCustomerField('first_name', v)}
+                />
+
+                <TextInput
+                  style={styles.phoneInput}
+                  placeholder="Last name"
+                  placeholderTextColor="#A8ACB7"
+                  value={phoneCustomer.last_name}
+                  onChangeText={v => updatePhoneCustomerField('last_name', v)}
+                />
+
+                <TextInput
+                  style={styles.phoneInput}
+                  placeholder="Phone"
+                  placeholderTextColor="#A8ACB7"
+                  value={phoneCustomer.phone}
+                  onChangeText={v => updatePhoneCustomerField('phone', v)}
+                  keyboardType="phone-pad"
+                />
+
+                {phoneOrderMode === 'delivery' && (
+                  <>
+                    <TextInput
+                      style={styles.phoneInput}
+                      placeholder="Street"
+                      placeholderTextColor="#A8ACB7"
+                      value={phoneCustomer.street}
+                      onChangeText={v => updatePhoneCustomerField('street', v)}
+                    />
+
+                    <TextInput
+                      style={styles.phoneInputHalf}
+                      placeholder="ZIP"
+                      placeholderTextColor="#A8ACB7"
+                      value={phoneCustomer.zip}
+                      onChangeText={v => updatePhoneCustomerField('zip', v)}
+                    />
+
+                    <TextInput
+                      style={styles.phoneInputHalf}
+                      placeholder="City"
+                      placeholderTextColor="#A8ACB7"
+                      value={phoneCustomer.city}
+                      onChangeText={v => updatePhoneCustomerField('city', v)}
+                    />
+                  </>
+                )}
+              </View>
+
+              {phoneCustomerError ? (
+                <View style={styles.addonErrorBox}>
+                  <Ionicons name="alert-circle-outline" size={16} color="#EF4444" />
+                  <Text style={styles.addonErrorText}>{phoneCustomerError}</Text>
+                </View>
+              ) : null}
+            </ScrollView>
+
+            <View style={styles.phoneActions}>
+              <TouchableOpacity
+                style={styles.discountClearBtn}
+                onPress={() => setPhoneModal(false)}
+                activeOpacity={0.75}
+              >
+                <Text style={styles.discountClearBtnText}>{t.cancel}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.discountApplyBtn}
+                onPress={confirmPhoneOrder}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.discountApplyBtnText}>Use phone order</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={addressBookModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.addonModalBox, { width: layout.addonModalWidth }]}>
+            <View style={styles.modalHeader}>
+              <View>
+                <Text style={styles.modalTitle}>Address Book</Text>
+                <Text style={styles.modalSubtitleLight}>Search by phone, name, last name or street</Text>
+              </View>
+
+              <TouchableOpacity
+                onPress={() => setAddressBookModal(false)}
+                style={styles.modalCloseBtn}
+                activeOpacity={0.75}
+              >
+                <Ionicons name="close" size={18} color="#5B5F6B" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.addressBookBody}>
+              <View style={styles.addressBookSearchWrap}>
+                <Ionicons name="search-outline" size={18} color="#9CA3AF" />
+                <TextInput
+                  style={styles.addressBookSearchInput}
+                  placeholder="Search phone, name, last name, street..."
+                  placeholderTextColor="#9CA3AF"
+                  value={phoneCustomerSearch}
+                  onChangeText={setPhoneCustomerSearch}
+                  autoCorrect={false}
+                  autoCapitalize="none"
+                />
+              </View>
+
+              <ScrollView style={styles.addressBookList}>
+                {filteredPhoneCustomers.length === 0 ? (
+                  <View style={styles.addressBookEmpty}>
+                    <Ionicons name="person-circle-outline" size={42} color="#C7CBD4" />
+                    <Text style={styles.addressBookEmptyText}>No saved customers yet</Text>
+                  </View>
+                ) : (
+                  filteredPhoneCustomers.map((customer, index) => {
+                    const name = `${customer.first_name} ${customer.last_name}`.trim() || 'Unknown customer';
+                    const address = `${customer.street}, ${customer.zip} ${customer.city}`.replace(/^,\s*/, '').trim();
+
+                    return (
+                      <TouchableOpacity
+                        key={`${customer.phone}-${customer.street}-${index}`}
+                        style={styles.customerCard}
+                        onPress={() => selectPhoneCustomer(customer)}
+                        activeOpacity={0.75}
+                      >
+                        <View style={styles.customerAvatar}>
+                          <Text style={styles.customerAvatarText}>
+                            {name.trim()[0]?.toUpperCase() || '?'}
+                          </Text>
+                        </View>
+
+                        <View style={styles.customerCardTextWrap}>
+                          <Text style={styles.customerName} numberOfLines={1}>
+                            {name}
+                          </Text>
+                          <Text style={styles.customerMeta} numberOfLines={1}>
+                            {customer.phone || 'No phone'}
+                          </Text>
+                          {address ? (
+                            <Text style={styles.customerAddress} numberOfLines={1}>
+                              {address}
+                            </Text>
+                          ) : null}
+                        </View>
+
+                        <Ionicons name="chevron-forward" size={18} color="#A8ACB7" />
+                      </TouchableOpacity>
+                    );
+                  })
+                )}
+              </ScrollView>
+            </View>
           </View>
         </View>
       </Modal>
@@ -2511,6 +3016,213 @@ const styles = StyleSheet.create({
 
   tableCardTextActive: {
     color: '#fff',
+  },
+
+  phoneModalScroll: {
+    padding: 16,
+    maxHeight: 460,
+  },
+
+  phoneModeRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 18,
+  },
+
+  phoneModeBtn: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 15,
+    borderRadius: radii.xl,
+    backgroundColor: '#F0F1F5',
+    gap: 7,
+    borderWidth: thinBorder,
+    borderColor: BORDER,
+  },
+
+  phoneModeBtnActive: {
+    backgroundColor: PRIMARY,
+    borderColor: PRIMARY,
+  },
+
+  phoneModeBtnText: {
+    fontSize: fontSizes.md,
+    fontWeight: fontWeights.extrabold,
+    color: '#6F7280',
+    fontFamily: appFont,
+  },
+
+  phoneModeBtnTextActive: {
+    color: '#fff',
+  },
+
+  phoneBookHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+
+  addressBookBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: radii.full,
+    backgroundColor: PRIMARY_SOFT,
+    borderWidth: thinBorder,
+    borderColor: 'rgba(139,56,203,0.18)',
+  },
+
+  addressBookBtnText: {
+    fontSize: fontSizes.smd,
+    fontWeight: fontWeights.black,
+    color: PRIMARY,
+    fontFamily: appFont,
+  },
+
+  phoneFormGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+
+  phoneInput: {
+    width: '100%',
+    borderWidth: thinBorder,
+    borderColor: BORDER,
+    borderRadius: radii.lg,
+    paddingHorizontal: 13,
+    paddingVertical: 11,
+    fontSize: fontSizes.md,
+    color: TEXT,
+    backgroundColor: '#FAFAFB',
+    fontFamily: appFont,
+    fontWeight: fontWeights.bold,
+  },
+
+  phoneInputHalf: {
+    flex: 1,
+    minWidth: 120,
+    borderWidth: thinBorder,
+    borderColor: BORDER,
+    borderRadius: radii.lg,
+    paddingHorizontal: 13,
+    paddingVertical: 11,
+    fontSize: fontSizes.md,
+    color: TEXT,
+    backgroundColor: '#FAFAFB',
+    fontFamily: appFont,
+    fontWeight: fontWeights.bold,
+  },
+
+  phoneActions: {
+    flexDirection: 'row',
+    gap: 8,
+    padding: 16,
+    borderTopWidth: thinBorder,
+    borderTopColor: BORDER,
+  },
+
+  addressBookBody: {
+    padding: 16,
+  },
+
+  addressBookSearchWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FAFAFB',
+    borderRadius: radii.lg,
+    paddingHorizontal: 13,
+    gap: 8,
+    borderWidth: thinBorder,
+    borderColor: BORDER,
+    height: 44,
+    marginBottom: 12,
+  },
+
+  addressBookSearchInput: {
+    flex: 1,
+    fontSize: fontSizes.md,
+    color: TEXT,
+    padding: 0,
+    fontFamily: appFont,
+    fontWeight: fontWeights.medium,
+  },
+
+  addressBookList: {
+    maxHeight: 390,
+  },
+
+  addressBookEmpty: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 34,
+    gap: 8,
+  },
+
+  addressBookEmptyText: {
+    fontSize: fontSizes.md,
+    color: MUTED,
+    fontWeight: fontWeights.bold,
+    fontFamily: appFont,
+  },
+
+  customerCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 11,
+    padding: 12,
+    borderRadius: radii.lg,
+    backgroundColor: '#FAFAFB',
+    borderWidth: thinBorder,
+    borderColor: BORDER,
+    marginBottom: 8,
+  },
+
+  customerAvatar: {
+    width: 38,
+    height: 38,
+    borderRadius: radii.lg,
+    backgroundColor: PRIMARY_SOFT,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  customerAvatarText: {
+    fontSize: fontSizes.lgl,
+    fontWeight: fontWeights.black,
+    color: PRIMARY,
+    fontFamily: appFont,
+  },
+
+  customerCardTextWrap: {
+    flex: 1,
+  },
+
+  customerName: {
+    fontSize: fontSizes.md,
+    fontWeight: fontWeights.black,
+    color: TEXT,
+    fontFamily: appFont,
+  },
+
+  customerMeta: {
+    marginTop: 2,
+    fontSize: fontSizes.smd,
+    fontWeight: fontWeights.bold,
+    color: PRIMARY,
+    fontFamily: appFont,
+  },
+
+  customerAddress: {
+    marginTop: 2,
+    fontSize: fontSizes.smd,
+    fontWeight: fontWeights.medium,
+    color: MUTED,
+    fontFamily: appFont,
   },
 
  addonModalBox: {
