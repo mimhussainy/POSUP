@@ -183,6 +183,124 @@ function buildZReportHTML(data: any, restaurantName: string, logoUrl: string, la
   `;
 }
 
+// All Sunmi receipt layout lives here. Change spacing, sizes, bold, order,
+// column widths, or logo width right in this function — ships via eas update,
+// no native rebuild needed. Only add a new `type` in SunmiPrinterModule.kt
+// if you need a capability it doesn't have yet (QR code, barcode, etc.)
+const SUNMI_LOGO_WIDTH = 220;
+
+function buildSunmiInstructions(
+  order: any,
+  restaurantName: string,
+  logoBase64: string,
+  language: string
+): any[] {
+  const tr = receiptTranslations[language] || receiptTranslations['de'];
+  const date = new Date(order.created_at);
+  const dateTimeLabel = `${date.toLocaleDateString('de-CH')} ${date.toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' })}`;
+  const paymentValueLabel = order.payment_method === 'cash' ? tr.cash : tr.card;
+
+  const instructions: any[] = [];
+
+  if (logoBase64) {
+    instructions.push({
+      type: 'bitmap',
+      base64: logoBase64,
+      width: SUNMI_LOGO_WIDTH,
+      align: 'center',
+      fallbackText: restaurantName.toUpperCase(),
+      fallbackBold: true,
+      fallbackSize: 32,
+    });
+    instructions.push({ type: 'blank', size: 8, align: 'center' });
+  } else {
+    instructions.push({ type: 'text', content: restaurantName.toUpperCase(), bold: true, size: 32, align: 'center' });
+  }
+
+  instructions.push({ type: 'text', content: order.order_number || '', bold: true, size: 24, align: 'center' });
+  instructions.push({ type: 'text', content: dateTimeLabel, size: 18, align: 'center' });
+
+  if (order.table && order.table !== 'Walk-in' && order.table !== 'Not specified') {
+    instructions.push({ type: 'text', content: `${tr.table}: ${order.table}`, size: 18, align: 'center' });
+  }
+
+  instructions.push({ type: 'divider' });
+  instructions.push({ type: 'blank', size: 10, align: 'left' });
+
+  const items = order.items || [];
+  items.forEach((item: any, i: number) => {
+    let name = item.name;
+    if (item.variation) name = `${name} (${item.variation})`;
+
+    instructions.push({
+      type: 'columns',
+      content: [`${item.quantity}x`, name, `CHF ${parseFloat(item.total).toFixed(2)}`],
+      widths: [1, 4, 2],
+      aligns: ['left', 'left', 'right'],
+      bold: true,
+    });
+
+    (item.addons || []).forEach((addon: any) => {
+      instructions.push({ type: 'text', content: `   + ${addon.label || addon.name}`, size: 18, align: 'left' });
+    });
+
+    if (i < items.length - 1) {
+      instructions.push({ type: 'blank', size: 10, align: 'left' });
+    }
+  });
+
+  instructions.push({ type: 'blank', size: 10, align: 'left' });
+  instructions.push({ type: 'divider' });
+
+  const discount = parseFloat(order.discount || '0');
+  if (discount > 0) {
+    instructions.push({
+      type: 'columns',
+      content: [tr.subtotal, `CHF ${parseFloat(order.subtotal).toFixed(2)}`],
+      widths: [3, 1],
+      aligns: ['left', 'right'],
+    });
+    instructions.push({
+      type: 'columns',
+      content: [tr.discount, `-CHF ${discount.toFixed(2)}`],
+      widths: [3, 1],
+      aligns: ['left', 'right'],
+      bold: true,
+    });
+  }
+
+  instructions.push({
+    type: 'columns',
+    content: [tr.total, `CHF ${parseFloat(order.total).toFixed(2)}`],
+    widths: [3, 1],
+    aligns: ['left', 'right'],
+    bold: true,
+    size: 26,
+  });
+
+  instructions.push({
+    type: 'columns',
+    content: [tr.payment, paymentValueLabel],
+    widths: [3, 1],
+    aligns: ['left', 'right'],
+    bold: true,
+  });
+
+  if (order.note) {
+    instructions.push({ type: 'blank', size: 10, align: 'left' });
+    instructions.push({ type: 'text', content: `${tr.note}: ${order.note}`, size: 18, align: 'left' });
+  }
+
+  instructions.push({ type: 'blank', size: 10, align: 'left' });
+  instructions.push({ type: 'divider' });
+  instructions.push({ type: 'text', content: tr.thank, bold: true, size: 20, align: 'center' });
+  instructions.push({ type: 'divider' });
+  instructions.push({ type: 'text', content: 'Powered by: FoodUp.ch', size: 16, align: 'center' });
+  instructions.push({ type: 'blank', size: 10, align: 'left' });
+
+  return instructions;
+}
+
 async function printViaTCP(order: any, restaurantName: string, logoUrl: string, language: string): Promise<void> {
   const printerIp = await AsyncStorage.getItem('printer_ip');
   const printerPort = parseInt(await AsyncStorage.getItem('printer_port') || '9100');
@@ -349,9 +467,6 @@ export async function printOrder(order: any, restaurantCode: string): Promise<vo
 
   if (printerModel.includes('sunmi')) {
     try {
-      const tr = receiptTranslations[language] || receiptTranslations['de'];
-      const date = new Date(order.created_at);
-
       let logoBase64 = '';
       if (logoUrl) {
         try {
@@ -366,21 +481,10 @@ export async function printOrder(order: any, restaurantCode: string): Promise<vo
         }
       }
 
-      const nativeOrder = {
-        ...order,
-        dateTimeLabel: `${date.toLocaleDateString('de-CH')} ${date.toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' })}`,
-        tableLabel: `${tr.table}: ${order.table}`,
-        subtotalLabel: tr.subtotal,
-        discountLabel: tr.discount,
-        totalLabel: tr.total,
-        paymentLabel: tr.payment,
-        paymentValueLabel: order.payment_method === 'cash' ? tr.cash : tr.card,
-        noteLabel: tr.note,
-        thankLabel: tr.thank,
-      };
+      const instructions = buildSunmiInstructions(order, restaurantName, logoBase64, language);
 
-      const { printSunmiReceiptNative } = await import('./nativeSunmiPrinter');
-      const ok = await printSunmiReceiptNative(nativeOrder, { name: restaurantName, logoBase64 });
+      const { printSunmiInstructionsNative } = await import('./nativeSunmiPrinter');
+      const ok = await printSunmiInstructionsNative(instructions);
       if (ok) return;
     } catch (e: any) {
       console.log('Sunmi native print failed:', e);
