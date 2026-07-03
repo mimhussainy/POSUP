@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'flex-start',
     paddingHorizontal: 22,
-    paddingTop: Platform.OS === 'android' ? 250 : 32,
+    paddingTop: Platform.OS === 'android' ? 50 : 32,
     paddingBottom: 32,
   },
 
