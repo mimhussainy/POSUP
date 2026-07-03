@@ -1108,7 +1108,9 @@ const numColumns = getNumColumns(listWidth);
                       {formatDate(selectedOrder.created_at)} ·{' '}
                       {getPaymentLabel(selectedOrder.payment_method)}
                     </Text>
+                  </View>
 
+                  <View style={styles.modalHeaderActions}>
                     <View
                       style={[
                         styles.modalOrderTypeBadge,
@@ -1139,19 +1141,20 @@ const numColumns = getNumColumns(listWidth);
                               ? styles.modalOrderTypeBadgeTextTable
                               : styles.modalOrderTypeBadgeTextTakeaway,
                         ]}
+                        numberOfLines={1}
                       >
                         {orderTypeMeta.label}
                       </Text>
                     </View>
-                  </View>
 
-                  <TouchableOpacity
-                    onPress={() => setSelectedOrder(null)}
-                    style={styles.modalCloseBtn}
-                    activeOpacity={0.75}
-                  >
-                    <Ionicons name="close" size={18} color="#5B5F6B" />
-                  </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => setSelectedOrder(null)}
+                      style={styles.modalCloseBtn}
+                      activeOpacity={0.75}
+                    >
+                      <Ionicons name="close" size={18} color="#5B5F6B" />
+                    </TouchableOpacity>
+                  </View>
                 </View>
 
                 <ScrollView style={styles.modalBody}>
@@ -1248,6 +1251,9 @@ const numColumns = getNumColumns(listWidth);
                     </Text>
                   </View>
 
+                </ScrollView>
+
+                <View style={styles.modalFooter}>
                   <TouchableOpacity
                     style={styles.reprintBtn}
                     onPress={() => selectedOrder && printOrder(selectedOrder, restaurantCode)}
@@ -1256,7 +1262,7 @@ const numColumns = getNumColumns(listWidth);
                     <Ionicons name="print-outline" size={16} color={PRIMARY} />
                     <Text style={styles.reprintBtnText}>{t.reprint}</Text>
                   </TouchableOpacity>
-                </ScrollView>
+                </View>
               </>
               );
             })()}
@@ -2036,6 +2042,12 @@ const styles = StyleSheet.create({
     gap: 14,
   },
 
+  modalHeaderActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 40,
+  },
+
   modalKicker: {
     fontSize: fontSizes.xs,
     fontWeight: fontWeights.extrabold,
@@ -2062,14 +2074,14 @@ const styles = StyleSheet.create({
   },
 
   modalOrderTypeBadge: {
-    alignSelf: 'flex-start',
+    height: 34,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 5,
-    borderRadius: radii.full,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    marginTop: 8,
+    borderRadius: radii.lg,
+    paddingHorizontal: 11,
+    maxWidth: 190,
   },
 
   modalOrderTypeBadgeTakeaway: {
@@ -2113,6 +2125,15 @@ const styles = StyleSheet.create({
 
   modalBody: {
     padding: 18,
+  },
+
+  modalFooter: {
+    paddingHorizontal: 18,
+    paddingTop: 12,
+    paddingBottom: 18,
+    borderTopWidth: thinBorder,
+    borderTopColor: BORDER,
+    backgroundColor: '#fff',
   },
 
   itemRow: {
@@ -2272,8 +2293,6 @@ const styles = StyleSheet.create({
     borderRadius: radii.xl,
     paddingHorizontal: 14,
     paddingVertical: 13,
-    marginTop: 16,
-    marginBottom: 14,
     borderWidth: thinBorder,
     borderColor: PRIMARY_BORDER,
   },
