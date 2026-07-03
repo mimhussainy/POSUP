@@ -53,6 +53,11 @@ interface POSOrder {
     quantity: number;
     price: string;
     total: string;
+    discounted_total?: string | number;
+    tax_type?: string;
+    tax_rate?: string | number;
+    tax_total?: string | number;
+    is_alcohol?: boolean;
     variation: string;
     addons: any[];
   }[];
@@ -63,7 +68,41 @@ interface POSOrder {
   payment_method: string;
   note: string;
   created_at: string;
+  table?: string | null;
+  order_type?: string | null;
+  type?: string | null;
+  service_type?: string | null;
+  fulfillment_type?: string | null;
+  delivery_type?: string | null;
+  order_method?: string | null;
+  phone_order?: boolean;
+  phone_order_mode?: string | null;
+  source?: string | null;
+  tax_summary?: {
+    type?: string;
+    label?: string;
+    tax_label?: string;
+    rate?: string | number;
+    gross?: string | number;
+    total?: string | number;
+    amount?: string | number;
+    net?: string | number;
+    tax?: string | number;
+    tax_total?: string | number;
+  }[];
 }
+
+type HistoryTaxRow = {
+  label: string;
+  amount: number;
+  bold?: boolean;
+};
+
+type OrderTypeMeta = {
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  kind: 'takeaway' | 'phone' | 'table';
+};
 
 type ListItem = POSOrder | { id: string; placeholder: true };
 
@@ -178,6 +217,254 @@ const numColumns = getNumColumns(listWidth);
   };
 
   const formatMoney = (value: number) => `CHF ${value.toFixed(2)}`;
+
+  const cleanText = (value: any) => {
+    if (value === null || value === undefined) return '';
+
+    return String(value)
+      .replace(/<[^>]*>/g, ' ')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&quot;/g, '"')
+      .replace(/&#039;/g, "'")
+      .replace(/\s+/g, ' ')
+      .trim();
+  };
+
+  const formatTaxRateLabel = (rate: number) => {
+    if (!Number.isFinite(rate) || rate <= 0) return '';
+
+    const fixed = rate.toFixed(1).replace(/\.0$/, '');
+    return `MWST inkl. ${fixed}%`;
+  };
+
+  const taxIncluded = (grossAmount: number, rate: number) => {
+    if (!Number.isFinite(grossAmount) || grossAmount <= 0) return 0;
+
+    return grossAmount - grossAmount / (1 + rate / 100);
+  };
+
+  const fallbackTaxGroupLabel = (type: any) => {
+    const normalized = cleanText(type).toLowerCase();
+
+    if (normalized === 'alcohol') {
+      return 'Alkohol total';
+    }
+
+    return 'Speisen total';
+  };
+
+  const isPhoneOrder = (order: POSOrder) => {
+    const typeText = [
+      order.order_type,
+      order.type,
+      order.service_type,
+      order.fulfillment_type,
+      order.delivery_type,
+      order.order_method,
+      order.phone_order_mode,
+    ]
+      .map(value => cleanText(value).toLowerCase())
+      .join(' ');
+
+    return (
+      order.phone_order === true ||
+      order.source === 'posup_phone' ||
+      !!order.phone_order_mode ||
+      typeText.includes('phone') ||
+      typeText.includes('telefon')
+    );
+  };
+
+  const isTableOrder = (order: POSOrder) => {
+    if (isPhoneOrder(order)) return false;
+
+    const typeText = [
+      order.order_type,
+      order.type,
+      order.service_type,
+      order.fulfillment_type,
+      order.delivery_type,
+      order.order_method,
+    ]
+      .map(value => cleanText(value).toLowerCase())
+      .join(' ');
+
+    if (
+      typeText.includes('takeaway') ||
+      typeText.includes('take away') ||
+      typeText.includes('pickup') ||
+      typeText.includes('delivery')
+    ) {
+      return false;
+    }
+
+    if (
+      typeText.includes('table') ||
+      typeText.includes('dine') ||
+      typeText.includes('eat in') ||
+      typeText.includes('restaurant')
+    ) {
+      return true;
+    }
+
+    const table = cleanText(order.table).toLowerCase();
+
+    if (!table) return false;
+
+    const hiddenTableValues = [
+      'walk-in',
+      'walk-in customer',
+      'not specified',
+      'laufkunden',
+      'laufkunde',
+      'takeaway',
+      'telefon',
+      'phone',
+    ];
+
+    return !hiddenTableValues.includes(table);
+  };
+
+  const getOrderTypeMeta = (order: POSOrder): OrderTypeMeta => {
+    if (isPhoneOrder(order)) {
+      const mode = cleanText(order.phone_order_mode || order.order_type).toLowerCase();
+
+      return {
+        label:
+          mode === 'delivery'
+            ? 'Telefon · Lieferung'
+            : mode === 'pickup'
+              ? 'Telefon · Abholung'
+              : 'Telefon',
+        icon: 'call-outline',
+        kind: 'phone',
+      };
+    }
+
+    if (isTableOrder(order)) {
+      const table = cleanText(order.table);
+
+      return {
+        label: table ? `Tisch: ${table}` : 'Tisch',
+        icon: 'restaurant-outline',
+        kind: 'table',
+      };
+    }
+
+    return {
+      label: 'Takeaway',
+      icon: 'bag-handle-outline',
+      kind: 'takeaway',
+    };
+  };
+
+  const buildHistoryTaxRows = (order: POSOrder): HistoryTaxRow[] => {
+    const rows: HistoryTaxRow[] = [];
+    const summary = Array.isArray(order.tax_summary) ? order.tax_summary : [];
+
+    if (summary.length > 0) {
+      summary.forEach(row => {
+        const rate = parseAmount(row.rate);
+        const gross = parseAmount(row.gross ?? row.total ?? row.amount);
+        const tax = parseAmount(row.tax ?? row.tax_total);
+        const groupLabel = cleanText(row.label) || fallbackTaxGroupLabel(row.type);
+        const taxLabel = cleanText(row.tax_label) || formatTaxRateLabel(rate);
+
+        if (gross > 0.004 && groupLabel) {
+          rows.push({
+            label: groupLabel,
+            amount: gross,
+            bold: true,
+          });
+        }
+
+        if (tax > 0.004 && taxLabel) {
+          rows.push({
+            label: taxLabel,
+            amount: tax,
+          });
+        }
+      });
+
+      return rows;
+    }
+
+    const items = Array.isArray(order.items) ? order.items : [];
+    const orderTotal = parseAmount(order.total);
+
+    if (orderTotal <= 0) return [];
+
+    if (isTableOrder(order)) {
+      return [
+        {
+          label: formatTaxRateLabel(8.1),
+          amount: taxIncluded(orderTotal, 8.1),
+        },
+      ];
+    }
+
+    const itemGrossTotal = items.reduce((sum, item) => {
+      return sum + parseAmount(item.discounted_total ?? item.total);
+    }, 0);
+
+    if (itemGrossTotal <= 0) {
+      return [
+        {
+          label: formatTaxRateLabel(2.6),
+          amount: taxIncluded(orderTotal, 2.6),
+        },
+      ];
+    }
+
+    const adjustmentFactor = orderTotal / itemGrossTotal;
+    const grouped: Record<string, { type: string; rate: number; gross: number; tax: number }> = {};
+
+    items.forEach(item => {
+      const type = cleanText(
+        item.tax_type || (item.is_alcohol === true ? 'alcohol' : 'food')
+      ).toLowerCase() || 'food';
+
+      const rateFromItem = parseAmount(item.tax_rate);
+      const rate = rateFromItem > 0 ? rateFromItem : type === 'alcohol' ? 8.1 : 2.6;
+      const itemGross = parseAmount(item.discounted_total ?? item.total);
+      const adjustedGross = item.discounted_total !== undefined ? itemGross : itemGross * adjustmentFactor;
+      const taxFromItem = parseAmount(item.tax_total);
+      const tax = taxFromItem > 0 ? taxFromItem : taxIncluded(adjustedGross, rate);
+      const key = `${type}_${rate.toFixed(1)}`;
+
+      if (!grouped[key]) {
+        grouped[key] = {
+          type,
+          rate,
+          gross: 0,
+          tax: 0,
+        };
+      }
+
+      grouped[key].gross += adjustedGross;
+      grouped[key].tax += tax;
+    });
+
+    Object.values(grouped).forEach(group => {
+      if (group.gross > 0.004) {
+        rows.push({
+          label: fallbackTaxGroupLabel(group.type),
+          amount: group.gross,
+          bold: true,
+        });
+      }
+
+      if (group.tax > 0.004) {
+        rows.push({
+          label: formatTaxRateLabel(group.rate),
+          amount: group.tax,
+        });
+      }
+    });
+
+    return rows;
+  };
 
   const getPaymentType = (method: string) => {
     const normalized = String(method || '').toLowerCase();
@@ -803,7 +1090,11 @@ const numColumns = getNumColumns(listWidth);
             activeOpacity={1}
             onPress={e => e.stopPropagation()}
           >
-            {selectedOrder && (
+            {selectedOrder && (() => {
+              const orderTypeMeta = getOrderTypeMeta(selectedOrder);
+              const taxRows = buildHistoryTaxRows(selectedOrder);
+
+              return (
               <>
                 <View style={styles.modalHeader}>
                   <View style={{ flex: 1 }}>
@@ -817,6 +1108,41 @@ const numColumns = getNumColumns(listWidth);
                       {formatDate(selectedOrder.created_at)} ·{' '}
                       {getPaymentLabel(selectedOrder.payment_method)}
                     </Text>
+
+                    <View
+                      style={[
+                        styles.modalOrderTypeBadge,
+                        orderTypeMeta.kind === 'phone'
+                          ? styles.modalOrderTypeBadgePhone
+                          : orderTypeMeta.kind === 'table'
+                            ? styles.modalOrderTypeBadgeTable
+                            : styles.modalOrderTypeBadgeTakeaway,
+                      ]}
+                    >
+                      <Ionicons
+                        name={orderTypeMeta.icon}
+                        size={13}
+                        color={
+                          orderTypeMeta.kind === 'phone'
+                            ? ORANGE
+                            : orderTypeMeta.kind === 'table'
+                              ? BLUE
+                              : GREEN
+                        }
+                      />
+                      <Text
+                        style={[
+                          styles.modalOrderTypeBadgeText,
+                          orderTypeMeta.kind === 'phone'
+                            ? styles.modalOrderTypeBadgeTextPhone
+                            : orderTypeMeta.kind === 'table'
+                              ? styles.modalOrderTypeBadgeTextTable
+                              : styles.modalOrderTypeBadgeTextTakeaway,
+                        ]}
+                      >
+                        {orderTypeMeta.label}
+                      </Text>
+                    </View>
                   </View>
 
                   <TouchableOpacity
@@ -892,6 +1218,29 @@ const numColumns = getNumColumns(listWidth);
                     </>
                   )}
 
+                  {taxRows.map((row, index) => (
+                    <View key={`${row.label}-${index}`} style={styles.totalRow}>
+                      <Text
+                        style={[
+                          styles.totalLabel,
+                          row.bold ? styles.taxGroupLabel : styles.taxLabel,
+                        ]}
+                      >
+                        {row.label}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.totalValue,
+                          row.bold ? styles.taxGroupValue : styles.taxValue,
+                        ]}
+                      >
+                        {formatMoney(row.amount)}
+                      </Text>
+                    </View>
+                  ))}
+
+                  {taxRows.length > 0 ? <View style={styles.totalDivider} /> : null}
+
                   <View style={styles.finalTotalBox}>
                     <Text style={styles.finalTotalLabel}>{t.total}</Text>
                     <Text style={styles.finalTotalValue}>
@@ -909,7 +1258,8 @@ const numColumns = getNumColumns(listWidth);
                   </TouchableOpacity>
                 </ScrollView>
               </>
-            )}
+              );
+            })()}
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
@@ -1711,6 +2061,47 @@ const styles = StyleSheet.create({
     fontFamily: appFont,
   },
 
+  modalOrderTypeBadge: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    borderRadius: radii.full,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    marginTop: 8,
+  },
+
+  modalOrderTypeBadgeTakeaway: {
+    backgroundColor: colors.successSoft,
+  },
+
+  modalOrderTypeBadgePhone: {
+    backgroundColor: colors.warningSoft,
+  },
+
+  modalOrderTypeBadgeTable: {
+    backgroundColor: colors.infoSoft,
+  },
+
+  modalOrderTypeBadgeText: {
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.extrabold,
+    fontFamily: appFont,
+  },
+
+  modalOrderTypeBadgeTextTakeaway: {
+    color: GREEN,
+  },
+
+  modalOrderTypeBadgeTextPhone: {
+    color: ORANGE,
+  },
+
+  modalOrderTypeBadgeTextTable: {
+    color: BLUE,
+  },
+
   modalCloseBtn: {
     width: 34,
     height: 34,
@@ -1820,6 +2211,33 @@ const styles = StyleSheet.create({
     color: RED,
   },
 
+  taxGroupLabel: {
+    color: TEXT,
+    fontWeight: fontWeights.extrabold,
+  },
+
+  taxGroupValue: {
+    color: TEXT,
+    fontWeight: fontWeights.extrabold,
+  },
+
+  taxLabel: {
+    color: MUTED,
+    fontWeight: fontWeights.semibold,
+  },
+
+  taxValue: {
+    color: MUTED,
+    fontWeight: fontWeights.semibold,
+  },
+
+  totalDivider: {
+    height: 1,
+    backgroundColor: BORDER_SOFT,
+    marginTop: 4,
+    marginBottom: 10,
+  },
+
   finalTotalBox: {
     backgroundColor: PRIMARY_SOFT,
     borderWidth: thinBorder,
@@ -1855,7 +2273,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 13,
     marginTop: 16,
-    marginBottom: 28,
+    marginBottom: 14,
     borderWidth: thinBorder,
     borderColor: PRIMARY_BORDER,
   },
