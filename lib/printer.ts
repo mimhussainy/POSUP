@@ -1,6 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Print from 'expo-print';
 import { Platform } from 'react-native';
+
+export let lastSunmiError: string | null = null;
 // Sunmi printing now goes through the native AIDL module (lib/nativeSunmiPrinter.ts)
 
 const receiptTranslations: { [key: string]: { total: string; payment: string; cash: string; card: string; note: string; thank: string; subtotal: string; discount: string; table: string; } } = {
@@ -380,8 +382,9 @@ export async function printOrder(order: any, restaurantCode: string): Promise<vo
       const { printSunmiReceiptNative } = await import('./nativeSunmiPrinter');
       const ok = await printSunmiReceiptNative(nativeOrder, { name: restaurantName, logoBase64 });
       if (ok) return;
-    } catch (e) {
+    } catch (e: any) {
       console.log('Sunmi native print failed, falling back:', e);
+      lastSunmiError = String(e?.message || e);
     }
   }
 

@@ -1,4 +1,4 @@
-const { withDangerousMod, withMainApplication, withAppBuildGradle } = require('@expo/config-plugins');
+const { withDangerousMod, withMainApplication, withAppBuildGradle, withAndroidManifest } = require('@expo/config-plugins');
 const fs = require('fs');
 const path = require('path');
 
@@ -49,6 +49,31 @@ function withAidlBuildFeature(config) {
   });
 }
 
+function withSunmiQueries(config) {
+  return withAndroidManifest(config, (config) => {
+    const manifest = config.modResults.manifest;
+
+    if (!manifest.queries) {
+      manifest.queries = [{}];
+    }
+
+    const queries = manifest.queries[0];
+    if (!queries.package) {
+      queries.package = [];
+    }
+
+    const alreadyDeclared = queries.package.some(
+      (p) => p.$ && p.$['android:name'] === 'woyou.aidlservice.jiuiv5'
+    );
+
+    if (!alreadyDeclared) {
+      queries.package.push({ $: { 'android:name': 'woyou.aidlservice.jiuiv5' } });
+    }
+
+    return config;
+  });
+}
+
 function withSunmiRegistration(config) {
   return withMainApplication(config, (config) => {
     const contents = config.modResults.contents;
@@ -67,6 +92,7 @@ function withSunmiRegistration(config) {
 module.exports = function withSunmiPrinter(config) {
   config = withSunmiFiles(config);
   config = withAidlBuildFeature(config);
+  config = withSunmiQueries(config);
   config = withSunmiRegistration(config);
   return config;
 };

@@ -184,7 +184,25 @@ class SunmiPrinterModule(reactContext: ReactApplicationContext) :
             val intent = Intent()
             intent.setPackage("woyou.aidlservice.jiuiv5")
             intent.action = "woyou.aidlservice.jiuiv5.IWoyouService"
-            reactApplicationContext.bindService(intent, connection, Context.BIND_AUTO_CREATE)
+
+            val bound = reactApplicationContext.bindService(intent, connection, Context.BIND_AUTO_CREATE)
+
+            if (!bound) {
+                pendingOrder = null
+                pendingRestaurant = null
+                pendingPromise = null
+                promise.reject("SUNMI_SERVICE_NOT_FOUND", "bindService returned false -- Sunmi print service (woyou.aidlservice.jiuiv5) not found on this device")
+                return
+            }
+
+            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                if (pendingPromise === promise) {
+                    pendingOrder = null
+                    pendingRestaurant = null
+                    pendingPromise = null
+                    promise.reject("SUNMI_SERVICE_TIMEOUT", "Timed out waiting for Sunmi print service to connect")
+                }
+            }, 5000)
         } catch (e: Exception) {
             promise.reject("SUNMI_PRINT_ERROR", e)
         }

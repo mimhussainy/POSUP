@@ -12,6 +12,7 @@ import {
   Dimensions,
   Platform,
   Animated,
+  Alert,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -629,8 +630,13 @@ export default function NewOrderScreen() {
 
         try {
           await printOrder(placedOrder, restaurantCode);
+          const { lastSunmiError } = await import('../../lib/printer');
+          if (lastSunmiError) {
+            Alert.alert('Sunmi Print Debug', lastSunmiError);
+          }
         } catch (printErr: any) {
           console.log('Print failed:', printErr?.message);
+          Alert.alert('Print Failed', String(printErr?.message || printErr));
         }
       } else {
         showToast('Failed to place order', 'error');
