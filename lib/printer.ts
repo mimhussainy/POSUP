@@ -188,6 +188,15 @@ function buildZReportHTML(data: any, restaurantName: string, logoUrl: string, la
 // no native rebuild needed. Only add a new `type` in SunmiPrinterModule.kt
 // if you need a capability it doesn't have yet (QR code, barcode, etc.)
 const SUNMI_LOGO_WIDTH = 220;
+const SUNMI_SIZE_HEADER = 26;
+const SUNMI_SIZE_META = 20;
+const SUNMI_SIZE_BODY = 22;
+const SUNMI_SIZE_TOTAL = 28;
+const SUNMI_SIZE_PAYMENT = 26;
+const SUNMI_SIZE_THANK = 22;
+const SUNMI_SIZE_FOOTER = 18;
+const SUNMI_GAP = 16;
+const SUNMI_LOGO_GAP = 14;
 
 function buildSunmiInstructions(
   order: any,
@@ -210,22 +219,23 @@ function buildSunmiInstructions(
       align: 'center',
       fallbackText: restaurantName.toUpperCase(),
       fallbackBold: true,
-      fallbackSize: 32,
+      fallbackSize: SUNMI_SIZE_HEADER + 6,
     });
-    instructions.push({ type: 'blank', size: 8, align: 'center' });
+    instructions.push({ type: 'blank', size: SUNMI_LOGO_GAP, align: 'center' });
   } else {
-    instructions.push({ type: 'text', content: restaurantName.toUpperCase(), bold: true, size: 32, align: 'center' });
+    instructions.push({ type: 'text', content: restaurantName.toUpperCase(), bold: true, size: SUNMI_SIZE_HEADER + 6, align: 'center' });
   }
 
-  instructions.push({ type: 'text', content: order.order_number || '', bold: true, size: 24, align: 'center' });
-  instructions.push({ type: 'text', content: dateTimeLabel, size: 18, align: 'center' });
+  instructions.push({ type: 'text', content: order.order_number || '', bold: true, size: SUNMI_SIZE_HEADER, align: 'center' });
+  instructions.push({ type: 'text', content: dateTimeLabel, size: SUNMI_SIZE_META, align: 'center' });
 
   if (order.table && order.table !== 'Walk-in' && order.table !== 'Not specified') {
-    instructions.push({ type: 'text', content: `${tr.table}: ${order.table}`, size: 18, align: 'center' });
+    instructions.push({ type: 'text', content: `${tr.table}: ${order.table}`, size: SUNMI_SIZE_META, align: 'center' });
   }
 
+  instructions.push({ type: 'blank', size: SUNMI_GAP, align: 'center' });
   instructions.push({ type: 'divider' });
-  instructions.push({ type: 'blank', size: 10, align: 'left' });
+  instructions.push({ type: 'blank', size: SUNMI_GAP, align: 'left' });
 
   const items = order.items || [];
   items.forEach((item: any, i: number) => {
@@ -238,19 +248,19 @@ function buildSunmiInstructions(
       widths: [1, 4, 2],
       aligns: ['left', 'left', 'right'],
       bold: true,
+      size: SUNMI_SIZE_BODY,
     });
 
     (item.addons || []).forEach((addon: any) => {
-      instructions.push({ type: 'text', content: `   + ${addon.label || addon.name}`, size: 18, align: 'left' });
+      instructions.push({ type: 'text', content: `   + ${addon.label || addon.name}`, size: SUNMI_SIZE_BODY, align: 'left' });
     });
 
     if (i < items.length - 1) {
-      instructions.push({ type: 'blank', size: 10, align: 'left' });
+      instructions.push({ type: 'blank', size: SUNMI_GAP - 2, align: 'left' });
     }
   });
 
-  instructions.push({ type: 'blank', size: 10, align: 'left' });
-  instructions.push({ type: 'divider' });
+  instructions.push({ type: 'blank', size: SUNMI_GAP, align: 'left' });
 
   const discount = parseFloat(order.discount || '0');
   if (discount > 0) {
@@ -259,6 +269,7 @@ function buildSunmiInstructions(
       content: [tr.subtotal, `CHF ${parseFloat(order.subtotal).toFixed(2)}`],
       widths: [3, 1],
       aligns: ['left', 'right'],
+      size: SUNMI_SIZE_BODY,
     });
     instructions.push({
       type: 'columns',
@@ -266,6 +277,7 @@ function buildSunmiInstructions(
       widths: [3, 1],
       aligns: ['left', 'right'],
       bold: true,
+      size: SUNMI_SIZE_BODY,
     });
   }
 
@@ -275,7 +287,7 @@ function buildSunmiInstructions(
     widths: [3, 1],
     aligns: ['left', 'right'],
     bold: true,
-    size: 26,
+    size: SUNMI_SIZE_TOTAL,
   });
 
   instructions.push({
@@ -284,19 +296,23 @@ function buildSunmiInstructions(
     widths: [3, 1],
     aligns: ['left', 'right'],
     bold: true,
+    size: SUNMI_SIZE_PAYMENT,
   });
 
   if (order.note) {
-    instructions.push({ type: 'blank', size: 10, align: 'left' });
-    instructions.push({ type: 'text', content: `${tr.note}: ${order.note}`, size: 18, align: 'left' });
+    instructions.push({ type: 'blank', size: SUNMI_GAP - 2, align: 'left' });
+    instructions.push({ type: 'text', content: `${tr.note}: ${order.note}`, size: SUNMI_SIZE_BODY, align: 'left' });
   }
 
-  instructions.push({ type: 'blank', size: 10, align: 'left' });
+  instructions.push({ type: 'blank', size: SUNMI_GAP, align: 'left' });
   instructions.push({ type: 'divider' });
-  instructions.push({ type: 'text', content: tr.thank, bold: true, size: 20, align: 'center' });
+  instructions.push({ type: 'blank', size: SUNMI_GAP, align: 'center' });
+  instructions.push({ type: 'text', content: tr.thank, bold: true, size: SUNMI_SIZE_THANK, align: 'center' });
+  instructions.push({ type: 'blank', size: SUNMI_GAP, align: 'center' });
   instructions.push({ type: 'divider' });
-  instructions.push({ type: 'text', content: 'Powered by: FoodUp.ch', size: 16, align: 'center' });
-  instructions.push({ type: 'blank', size: 10, align: 'left' });
+  instructions.push({ type: 'blank', size: SUNMI_GAP, align: 'center' });
+  instructions.push({ type: 'text', content: 'Powered by: FoodUp.ch', size: SUNMI_SIZE_FOOTER, align: 'center' });
+  instructions.push({ type: 'blank', size: SUNMI_GAP, align: 'left' });
 
   return instructions;
 }
