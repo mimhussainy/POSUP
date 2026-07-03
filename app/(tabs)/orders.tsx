@@ -771,10 +771,6 @@ export default function NewOrderScreen() {
       }
     }
 
-    const phoneOrderNote = orderType === 'phone'
-      ? buildPhoneOrderNote(cleanedPhoneCustomer, phoneOrderMode)
-      : '';
-
     setPlacingOrder(true);
 
     try {
@@ -816,8 +812,8 @@ export default function NewOrderScreen() {
         total: orderTotal.toFixed(2),
         currency: 'CHF',
         payment_method: paymentMethod,
-        note: [phoneOrderNote, note.trim()].filter(Boolean).join('\n\n'),
-        pos_note: note,
+        note: note.trim(),
+        pos_note: note.trim(),
         source: orderType === 'phone' ? 'posup_phone' : 'posup',
         created_at: new Date().toISOString(),
       };
@@ -1484,9 +1480,9 @@ export default function NewOrderScreen() {
       <Modal visible={phoneModal} transparent animationType="fade">
         <KeyboardAvoidingView
           style={styles.modalKeyboardView}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'position'}
           keyboardVerticalOffset={Platform.OS === 'ios' ? 20 : 0}
-        >
+          >
           <View style={styles.modalOverlay}>
             <View style={[styles.addonModalBox, { width: layout.addonModalWidth }]}>
               <View style={styles.modalHeader}>

@@ -223,6 +223,42 @@ function sunmiMoney(value: any): string {
   return `CHF ${Number.isFinite(n) ? n.toFixed(2) : '0.00'}`;
 }
 
+function getPhoneOrderPrintInfo(order: any, language: string) {
+  const isPhoneOrder =
+    order.phone_order === true ||
+    order.source === 'posup_phone' ||
+    !!order.phone_order_mode;
+
+  if (!isPhoneOrder) return null;
+
+  const customer = order.customer || {};
+  const mode = String(order.phone_order_mode || order.order_type || '').toLowerCase();
+  const isDelivery = mode === 'delivery';
+  const isGerman = language === 'de';
+
+  const name = sunmiClean(`${customer.first_name || ''} ${customer.last_name || ''}`);
+  const phone = sunmiClean(customer.phone || '');
+  const address = sunmiClean(
+    [
+      customer.street,
+      [customer.zip, customer.city].filter(Boolean).join(' '),
+    ].filter(Boolean).join(', ')
+  );
+
+  return {
+    title: isDelivery
+      ? isGerman ? 'TELEFON-LIEFERUNG' : 'PHONE DELIVERY'
+      : isGerman ? 'TELEFON-ABHOLUNG' : 'PHONE PICKUP',
+    name,
+    phone,
+    address,
+    isDelivery,
+    labelName: isGerman ? 'Name' : 'Name',
+    labelPhone: isGerman ? 'Telefon' : 'Phone',
+    labelAddress: isGerman ? 'Adresse' : 'Address',
+  };
+}
+
 function sunmiNumber(value: any): number {
   const n = parseFloat(String(value || '0'));
   return Number.isFinite(n) ? n : 0;
@@ -437,7 +473,47 @@ function buildSunmiInstructions(
     pushText(order.customer_name, false, SUNMI_SIZE_META, 'center');
   }
 
-  pushDivider();
+  const phonePrintInfo = getPhoneOrderPrintInfo(order, language);
+
+  if (phonePrintInfo) {
+    pushDivider();
+
+    pushText(phonePrintInfo.title, true, SUNMI_SIZE_PAYMENT, 'center');
+
+    if (phonePrintInfo.name) {
+      pushColumns(
+        [phonePrintInfo.labelName, phonePrintInfo.name],
+        [1, 2],
+        ['left', 'right'],
+        false,
+        SUNMI_SIZE_BODY
+      );
+    }
+
+    if (phonePrintInfo.phone) {
+      pushColumns(
+        [phonePrintInfo.labelPhone, phonePrintInfo.phone],
+        [1, 2],
+        ['left', 'right'],
+        false,
+        SUNMI_SIZE_BODY
+      );
+    }
+
+    if (phonePrintInfo.isDelivery && phonePrintInfo.address) {
+      pushColumns(
+        [phonePrintInfo.labelAddress, phonePrintInfo.address],
+        [1, 2],
+        ['left', 'right'],
+        false,
+        SUNMI_SIZE_BODY
+      );
+    }
+
+    pushDivider();
+  } else {
+    pushDivider();
+  }
 
   const items = order.items || [];
 
@@ -530,9 +606,11 @@ function buildSunmiInstructions(
     SUNMI_SIZE_PAYMENT
   );
 
-  if (order.note) {
+  const cleanOrderNote = sunmiClean(order.note || order.pos_note || '');
+
+  if (cleanOrderNote) {
     pushBlank(SUNMI_GAP_SMALL, 'left');
-    pushText(`${tr.note}: ${order.note}`, false, SUNMI_SIZE_BODY, 'left');
+    pushText(`${tr.note}: ${cleanOrderNote}`, false, SUNMI_SIZE_BODY, 'left');
   }
 
   pushDivider();
@@ -756,6 +834,26 @@ async function printViaTCP(order: any, restaurantName: string, logoUrl: string, 
   lines.push(order.order_number || '');
   lines.push(`${dateStr} ${timeStr}`);
   if (order.table && order.table !== 'Walk-in') lines.push(`${tr.table}: ${order.table}`);
+
+  const phonePrintInfo = getPhoneOrderPrintInfo(order, language);
+
+  if (phonePrintInfo) {
+    lines.push('--------------------------------');
+    lines.push(phonePrintInfo.title);
+
+    if (phonePrintInfo.name) {
+      lines.push(`${phonePrintInfo.labelName}: ${phonePrintInfo.name}`);
+    }
+
+    if (phonePrintInfo.phone) {
+      lines.push(`${phonePrintInfo.labelPhone}: ${phonePrintInfo.phone}`);
+    }
+
+    if (phonePrintInfo.isDelivery && phonePrintInfo.address) {
+      lines.push(`${phonePrintInfo.labelAddress}: ${phonePrintInfo.address}`);
+    }
+  }
+
   lines.push('--------------------------------');
 
   for (const item of order.items || []) {
@@ -781,7 +879,8 @@ async function printViaTCP(order: any, restaurantName: string, logoUrl: string, 
   lines.push(`${tr.total.padEnd(32 - total.length)}${total}`);
   lines.push(`${tr.payment}: ${order.payment_method === 'cash' ? tr.cash : tr.card}`);
 
-  if (order.note) lines.push(`${tr.note}: ${order.note}`);
+  const cleanOrderNote = sunmiClean(order.note || order.pos_note || '');
+  if (cleanOrderNote) lines.push(`${tr.note}: ${cleanOrderNote}`);
 
   lines.push('--------------------------------');
   lines.push(tr.thank);
