@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -45,6 +46,7 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(true);
   const [logging, setLogging] = useState(false);
   const [focusedField, setFocusedField] = useState<'code' | 'pin' | null>(null);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
 
   useEffect(() => {
     AsyncStorage.getItem('prefill_restaurant_code').then(prefill => {
@@ -57,6 +59,21 @@ export default function LoginScreen() {
 
   useEffect(() => {
     checkSavedLogin();
+  }, []);
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener('keyboardDidShow', () => {
+      setKeyboardVisible(true);
+    });
+
+    const hideSub = Keyboard.addListener('keyboardDidHide', () => {
+      setKeyboardVisible(false);
+    });
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
   }, []);
 
   async function checkSavedLogin() {
@@ -134,7 +151,10 @@ export default function LoginScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          keyboardVisible && styles.scrollContentKeyboard,
+        ]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
@@ -224,13 +244,17 @@ const styles = StyleSheet.create({
     backgroundColor: APP_BG,
   },
 
-  scrollContent: {
+    scrollContent: {
     flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'flex-start',
     paddingHorizontal: 22,
-    paddingTop: Platform.OS === 'android' ? 50 : 32,
+    paddingTop: Platform.OS === 'android' ? 150 : 32,
     paddingBottom: 32,
+  },
+
+  scrollContentKeyboard: {
+    paddingTop: Platform.OS === 'android' ? 50 : 32,
   },
 
   center: {
