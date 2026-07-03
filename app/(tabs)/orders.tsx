@@ -631,15 +631,17 @@ export default function NewOrderScreen() {
         try {
           await printOrder(placedOrder, restaurantCode);
           const { lastSunmiError } = await import('../../lib/printer');
+
           if (lastSunmiError) {
-            Alert.alert('Sunmi Print Failed (fell back to system dialog)', lastSunmiError);
+            Alert.alert('SUNMI Print Warning', lastSunmiError);
           }
         } catch (printErr: any) {
           console.log('Print failed:', printErr?.message);
           const { lastSunmiError } = await import('../../lib/printer');
+
           Alert.alert(
-            'Print Failed',
-            `Sunmi: ${lastSunmiError || 'no error captured'}\n\nFallback: ${String(printErr?.message || printErr)}`
+            'SUNMI Print Failed',
+            `Sunmi error: ${lastSunmiError || String(printErr?.message || printErr)}`
           );
         }
       } else {

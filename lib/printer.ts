@@ -3,7 +3,7 @@ import * as Print from 'expo-print';
 import { Platform } from 'react-native';
 
 export let lastSunmiError: string | null = null;
-// Sunmi printing now goes through the native AIDL module (lib/nativeSunmiPrinter.ts)
+// Sunmi printing now goes through the native PrinterX module (lib/nativeSunmiPrinter.ts)
 
 const receiptTranslations: { [key: string]: { total: string; payment: string; cash: string; card: string; note: string; thank: string; subtotal: string; discount: string; table: string; } } = {
   de: { total: 'TOTAL', payment: 'Zahlung', cash: 'Bar', card: 'Karte', note: 'Notiz', thank: 'Danke & auf Wiedersehen!', subtotal: 'Zwischensumme', discount: 'Rabatt', table: 'Tisch' },
@@ -334,10 +334,6 @@ export async function printOrder(order: any, restaurantCode: string): Promise<vo
   const language = await AsyncStorage.getItem('app_language') || 'de';
   const printerIp = await AsyncStorage.getItem('printer_ip');
   const printerModel = (await AsyncStorage.getItem('printer_model') || '').toLowerCase();
-  if (Platform.OS !== 'web') {
-    const { Alert } = require('react-native');
-    Alert.alert('Print Debug', `model="${printerModel}"\nip="${printerIp}"`);
-  }
 
   if (Platform.OS === 'web') {
     const html = buildReceiptHTML(order, restaurantName, logoUrl, language);
