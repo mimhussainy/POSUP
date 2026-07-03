@@ -183,20 +183,81 @@ function buildZReportHTML(data: any, restaurantName: string, logoUrl: string, la
   `;
 }
 
-// All Sunmi receipt layout lives here. Change spacing, sizes, bold, order,
-// column widths, or logo width right in this function — ships via eas update,
-// no native rebuild needed. Only add a new `type` in SunmiPrinterModule.kt
-// if you need a capability it doesn't have yet (QR code, barcode, etc.)
-const SUNMI_LOGO_WIDTH = 220;
-const SUNMI_SIZE_HEADER = 26;
-const SUNMI_SIZE_META = 20;
-const SUNMI_SIZE_BODY = 22;
-const SUNMI_SIZE_TOTAL = 28;
+// All Sunmi receipt layout lives here.
+// D3-safe version: native text only.
+// No bitmap logo, no columns instruction, no divider instruction.
+// This is to stop slow/light image-style printing on Sunmi D3.
+const SUNMI_LINE_WIDTH = 32;
+const SUNMI_SIZE_HEADER = 30;
+const SUNMI_SIZE_META = 21;
+const SUNMI_SIZE_BODY = 24;
+const SUNMI_SIZE_TOTAL = 30;
 const SUNMI_SIZE_PAYMENT = 26;
-const SUNMI_SIZE_THANK = 22;
-const SUNMI_SIZE_FOOTER = 18;
-const SUNMI_GAP = 16;
-const SUNMI_LOGO_GAP = 14;
+const SUNMI_SIZE_THANK = 23;
+const SUNMI_SIZE_FOOTER = 19;
+const SUNMI_GAP_SMALL = 6;
+const SUNMI_GAP = 10;
+
+function sunmiClean(value: any): string {
+  if (value === null || value === undefined) return '';
+
+  return String(value)
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#039;/g, "'")
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function sunmiMoney(value: any): string {
+  const n = parseFloat(String(value || '0'));
+  return `CHF ${Number.isFinite(n) ? n.toFixed(2) : '0.00'}`;
+}
+
+function sunmiRepeat(char: string, count: number): string {
+  return new Array(Math.max(0, count) + 1).join(char);
+}
+
+function sunmiPad(leftRaw: any, rightRaw: any, width = SUNMI_LINE_WIDTH): string {
+  let left = sunmiClean(leftRaw);
+  const right = sunmiClean(rightRaw);
+
+  if (!right) return left;
+
+  const maxLeft = Math.max(0, width - right.length - 1);
+
+  if (left.length > maxLeft) {
+    left = left.slice(0, Math.max(0, maxLeft - 3)).trimEnd() + '...';
+  }
+
+  const spaces = Math.max(1, width - left.length - right.length);
+  return `${left}${sunmiRepeat(' ', spaces)}${right}`;
+}
+
+function sunmiWrap(textRaw: any, width = SUNMI_LINE_WIDTH): string[] {
+  const text = sunmiClean(textRaw);
+  if (!text) return [];
+
+  const words = text.split(' ');
+  const lines: string[] = [];
+  let line = '';
+
+  words.forEach((word) => {
+    const next = line ? `${line} ${word}` : word;
+
+    if (next.length > width && line) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = next;
+    }
+  });
+
+  if (line) lines.push(line);
+  return lines;
+}
 
 function buildSunmiInstructions(
   order: any,
@@ -204,115 +265,163 @@ function buildSunmiInstructions(
   logoBase64: string,
   language: string
 ): any[] {
+  // Logo intentionally ignored for this D3-safe test.
+  // The logo bitmap can be added back smaller after native text is confirmed good.
+  void logoBase64;
+
   const tr = receiptTranslations[language] || receiptTranslations['de'];
-  const date = new Date(order.created_at);
-  const dateTimeLabel = `${date.toLocaleDateString('de-CH')} ${date.toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' })}`;
+
+  const rawDate = order.created_at || new Date().toISOString();
+  const date = new Date(rawDate);
+  const dateTimeLabel = Number.isNaN(date.getTime())
+    ? sunmiClean(rawDate)
+    : `${date.toLocaleDateString('de-CH')} ${date.toLocaleTimeString('de-CH', {
+        hour: '2-digit',
+        minute: '2-digit',
+      })}`;
+
   const paymentValueLabel = order.payment_method === 'cash' ? tr.cash : tr.card;
 
   const instructions: any[] = [];
 
-  if (logoBase64) {
-    instructions.push({
-      type: 'bitmap',
-      base64: logoBase64,
-      width: SUNMI_LOGO_WIDTH,
-      align: 'center',
-      fallbackText: restaurantName.toUpperCase(),
-      fallbackBold: true,
-      fallbackSize: SUNMI_SIZE_HEADER + 6,
-    });
-    instructions.push({ type: 'blank', size: SUNMI_LOGO_GAP, align: 'center' });
-  } else {
-    instructions.push({ type: 'text', content: restaurantName.toUpperCase(), bold: true, size: SUNMI_SIZE_HEADER + 6, align: 'center' });
-  }
+  const pushText = (
+    content: any,
+    bold = false,
+    size = SUNMI_SIZE_BODY,
+    align: 'left' | 'center' | 'right' = 'left'
+  ) => {
+    const text = sunmiClean(content);
+    if (!text) return;
 
-  instructions.push({ type: 'text', content: order.order_number || '', bold: true, size: SUNMI_SIZE_HEADER, align: 'center' });
-  instructions.push({ type: 'text', content: dateTimeLabel, size: SUNMI_SIZE_META, align: 'center' });
+    instructions.push({
+      type: 'text',
+      content: text,
+      bold,
+      size,
+      align,
+    });
+  };
+
+  const pushBlank = (size = SUNMI_GAP, align: 'left' | 'center' | 'right' = 'left') => {
+    instructions.push({
+      type: 'blank',
+      size,
+      align,
+    });
+  };
+
+  const pushDivider = () => {
+    pushText(sunmiRepeat('-', SUNMI_LINE_WIDTH), false, SUNMI_SIZE_META, 'left');
+  };
+
+  pushText(restaurantName.toUpperCase(), true, SUNMI_SIZE_HEADER, 'center');
+  pushBlank(SUNMI_GAP_SMALL, 'center');
+
+  pushText(order.order_number || order.order_id || '', true, SUNMI_SIZE_HEADER, 'center');
+
+  if (dateTimeLabel) {
+    pushText(dateTimeLabel, false, SUNMI_SIZE_META, 'center');
+  }
 
   if (order.table && order.table !== 'Walk-in' && order.table !== 'Not specified') {
-    instructions.push({ type: 'text', content: `${tr.table}: ${order.table}`, size: SUNMI_SIZE_META, align: 'center' });
+    pushText(`${tr.table}: ${order.table}`, false, SUNMI_SIZE_META, 'center');
   }
 
-  instructions.push({ type: 'blank', size: SUNMI_GAP, align: 'center' });
-  instructions.push({ type: 'divider' });
-  instructions.push({ type: 'blank', size: SUNMI_GAP, align: 'left' });
+  if (order.customer_name && order.customer_name !== 'Walk-in Customer') {
+    pushText(order.customer_name, false, SUNMI_SIZE_META, 'center');
+  }
+
+  pushBlank(SUNMI_GAP, 'center');
+  pushDivider();
+  pushBlank(SUNMI_GAP_SMALL, 'left');
 
   const items = order.items || [];
-  items.forEach((item: any, i: number) => {
-    let name = item.name;
-    if (item.variation) name = `${name} (${item.variation})`;
 
-    instructions.push({
-      type: 'columns',
-      content: [`${item.quantity}x`, name, `CHF ${parseFloat(item.total).toFixed(2)}`],
-      widths: [1, 4, 2],
-      aligns: ['left', 'left', 'right'],
-      bold: true,
-      size: SUNMI_SIZE_BODY,
-    });
+  items.forEach((item: any, index: number) => {
+    const qty = sunmiClean(item.quantity || 1);
+    let name = sunmiClean(item.name || 'Item');
+
+    if (item.variation) {
+      name = `${name} (${sunmiClean(item.variation)})`;
+    }
+
+    pushText(
+      sunmiPad(`${qty}x ${name}`, sunmiMoney(item.total)),
+      true,
+      SUNMI_SIZE_BODY,
+      'left'
+    );
 
     (item.addons || []).forEach((addon: any) => {
-      instructions.push({ type: 'text', content: `   + ${addon.label || addon.name}`, size: SUNMI_SIZE_BODY, align: 'left' });
+      const addonName = sunmiClean(addon.label || addon.name);
+      if (!addonName) return;
+
+      sunmiWrap(`+ ${addonName}`, SUNMI_LINE_WIDTH - 3).forEach((line) => {
+        pushText(`   ${line}`, false, SUNMI_SIZE_BODY, 'left');
+      });
     });
 
-    if (i < items.length - 1) {
-      instructions.push({ type: 'blank', size: SUNMI_GAP - 2, align: 'left' });
+    if (index < items.length - 1) {
+      pushBlank(SUNMI_GAP_SMALL, 'left');
     }
   });
 
-  instructions.push({ type: 'blank', size: SUNMI_GAP, align: 'left' });
+  pushBlank(SUNMI_GAP_SMALL, 'left');
+  pushDivider();
 
   const discount = parseFloat(order.discount || '0');
+
   if (discount > 0) {
-    instructions.push({
-      type: 'columns',
-      content: [tr.subtotal, `CHF ${parseFloat(order.subtotal).toFixed(2)}`],
-      widths: [3, 1],
-      aligns: ['left', 'right'],
-      size: SUNMI_SIZE_BODY,
-    });
-    instructions.push({
-      type: 'columns',
-      content: [tr.discount, `-CHF ${discount.toFixed(2)}`],
-      widths: [3, 1],
-      aligns: ['left', 'right'],
-      bold: true,
-      size: SUNMI_SIZE_BODY,
-    });
+    pushText(
+      sunmiPad(tr.subtotal, sunmiMoney(order.subtotal)),
+      false,
+      SUNMI_SIZE_BODY,
+      'left'
+    );
+
+    pushText(
+      sunmiPad(tr.discount, `- CHF ${discount.toFixed(2)}`),
+      true,
+      SUNMI_SIZE_BODY,
+      'left'
+    );
   }
 
-  instructions.push({
-    type: 'columns',
-    content: [tr.total, `CHF ${parseFloat(order.total).toFixed(2)}`],
-    widths: [3, 1],
-    aligns: ['left', 'right'],
-    bold: true,
-    size: SUNMI_SIZE_TOTAL,
-  });
+  pushText(
+    sunmiPad(tr.total, sunmiMoney(order.total)),
+    true,
+    SUNMI_SIZE_TOTAL,
+    'left'
+  );
 
-  instructions.push({
-    type: 'columns',
-    content: [tr.payment, paymentValueLabel],
-    widths: [3, 1],
-    aligns: ['left', 'right'],
-    bold: true,
-    size: SUNMI_SIZE_PAYMENT,
-  });
+  pushText(
+    sunmiPad(tr.payment, paymentValueLabel),
+    true,
+    SUNMI_SIZE_PAYMENT,
+    'left'
+  );
 
   if (order.note) {
-    instructions.push({ type: 'blank', size: SUNMI_GAP - 2, align: 'left' });
-    instructions.push({ type: 'text', content: `${tr.note}: ${order.note}`, size: SUNMI_SIZE_BODY, align: 'left' });
+    pushBlank(SUNMI_GAP_SMALL, 'left');
+
+    sunmiWrap(`${tr.note}: ${order.note}`, SUNMI_LINE_WIDTH).forEach((line) => {
+      pushText(line, false, SUNMI_SIZE_BODY, 'left');
+    });
   }
 
-  instructions.push({ type: 'blank', size: SUNMI_GAP, align: 'left' });
-  instructions.push({ type: 'divider' });
-  instructions.push({ type: 'blank', size: SUNMI_GAP, align: 'center' });
-  instructions.push({ type: 'text', content: tr.thank, bold: true, size: SUNMI_SIZE_THANK, align: 'center' });
-  instructions.push({ type: 'blank', size: SUNMI_GAP, align: 'center' });
-  instructions.push({ type: 'divider' });
-  instructions.push({ type: 'blank', size: SUNMI_GAP, align: 'center' });
-  instructions.push({ type: 'text', content: 'Powered by: FoodUp.ch', size: SUNMI_SIZE_FOOTER, align: 'center' });
-  instructions.push({ type: 'blank', size: SUNMI_GAP, align: 'left' });
+  pushBlank(SUNMI_GAP, 'left');
+  pushDivider();
+  pushBlank(SUNMI_GAP, 'center');
+
+  pushText(tr.thank, true, SUNMI_SIZE_THANK, 'center');
+
+  pushBlank(SUNMI_GAP, 'center');
+  pushDivider();
+  pushBlank(SUNMI_GAP_SMALL, 'center');
+
+  pushText('Powered by: FoodUp.ch', false, SUNMI_SIZE_FOOTER, 'center');
+
+  pushBlank(24, 'left');
 
   return instructions;
 }
@@ -483,22 +592,7 @@ export async function printOrder(order: any, restaurantCode: string): Promise<vo
 
   if (printerModel.includes('sunmi')) {
     try {
-      let logoBase64 = '';
-      if (logoUrl) {
-        try {
-          const FileSystem = await import('expo-file-system/legacy');
-          const fileUri = FileSystem.cacheDirectory + 'receipt-logo.png';
-          await FileSystem.downloadAsync(logoUrl, fileUri);
-          logoBase64 = await FileSystem.readAsStringAsync(fileUri, {
-            encoding: FileSystem.EncodingType.Base64,
-          });
-        } catch (e) {
-          console.log('Logo download failed for native Sunmi print:', e);
-        }
-      }
-
-      const instructions = buildSunmiInstructions(order, restaurantName, logoBase64, language);
-
+      const instructions = buildSunmiInstructions(order, restaurantName, '', language);
       const { printSunmiInstructionsNative } = await import('./nativeSunmiPrinter');
       const ok = await printSunmiInstructionsNative(instructions);
       if (ok) return;

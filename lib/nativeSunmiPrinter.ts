@@ -8,7 +8,9 @@ export async function printSunmiInstructionsNative(instructions: any[]): Promise
   }
 
   if (!SunmiPrinterModule) {
-    throw new Error('SunmiPrinterModule is not registered in NativeModules. Check SunmiPrinterPackage registration in MainApplication and the config plugin.');
+    throw new Error(
+      'SunmiPrinterModule is not registered in NativeModules. Check SunmiPrinterPackage registration in MainApplication and the config plugin.'
+    );
   }
 
   return SunmiPrinterModule.printInstructions(JSON.stringify(instructions));
