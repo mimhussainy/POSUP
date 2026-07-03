@@ -226,10 +226,7 @@ function buildSunmiInstructions(
   logoBase64: string,
   language: string
 ): any[] {
-  // Do not print logo bitmap yet.
-  // SVG/HTML is not useful here because Sunmi native print cannot print SVG directly.
-  // It would become an image again.
-  void logoBase64;
+  const hasLogo = !!logoBase64;
 
   const tr = receiptTranslations[language] || receiptTranslations['de'];
 
@@ -308,7 +305,21 @@ function buildSunmiInstructions(
     pushBlank(SUNMI_LINE_AIR, 'left');
   };
 
-  pushText(restaurantName.toUpperCase(), true, SUNMI_SIZE_RESTAURANT, 'center');
+  if (hasLogo) {
+    instructions.push({
+      type: 'bitmap',
+      base64: logoBase64,
+      width: 180,
+      align: 'center',
+      fallbackText: restaurantName.toUpperCase(),
+      fallbackBold: true,
+      fallbackSize: SUNMI_SIZE_RESTAURANT,
+    });
+
+    pushBlank(12, 'center');
+  } else {
+    pushText(restaurantName.toUpperCase(), true, SUNMI_SIZE_RESTAURANT, 'center');
+  }
 
   pushText(order.order_number || order.order_id || '', true, SUNMI_SIZE_HEADER + 4, 'center');
 
@@ -586,7 +597,24 @@ export async function printOrder(order: any, restaurantCode: string): Promise<vo
 
   if (printerModel.includes('sunmi')) {
     try {
-      const instructions = buildSunmiInstructions(order, restaurantName, '', language);
+      let logoBase64 = '';
+
+      if (logoUrl) {
+        try {
+          const FileSystem = await import('expo-file-system/legacy');
+          const fileUri = FileSystem.cacheDirectory + 'receipt-logo.png';
+
+          await FileSystem.downloadAsync(logoUrl, fileUri);
+
+          logoBase64 = await FileSystem.readAsStringAsync(fileUri, {
+            encoding: FileSystem.EncodingType.Base64,
+          });
+        } catch (e) {
+          console.log('Logo download failed for native Sunmi print:', e);
+        }
+      }
+
+      const instructions = buildSunmiInstructions(order, restaurantName, logoBase64, language);
       const { printSunmiInstructionsNative } = await import('./nativeSunmiPrinter');
       const ok = await printSunmiInstructionsNative(instructions);
       if (ok) return;
