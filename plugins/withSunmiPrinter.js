@@ -41,16 +41,40 @@ function withPrinterXDependency(config) {
 
 function withSunmiRegistration(config) {
   return withMainApplication(config, (config) => {
-    const contents = config.modResults.contents;
+    let contents = config.modResults.contents;
 
-    if (!contents.includes('SunmiPrinterPackage()')) {
-      config.modResults.contents = contents.replace(
-        /(add\(PackageList\(this\)\.packages\(\)\))/,
-        `$1\n              add(SunmiPrinterPackage())`
-      );
+    if (contents.includes('SunmiPrinterPackage()')) {
+      return config;
     }
 
-    return config;
+    // Expo / React Native Kotlin format:
+    // PackageList(this).packages.apply {
+    if (contents.includes('PackageList(this).packages.apply {')) {
+      contents = contents.replace(
+        /PackageList\(this\)\.packages\.apply\s*\{/,
+        `PackageList(this).packages.apply {\n          add(SunmiPrinterPackage())`
+      );
+
+      config.modResults.contents = contents;
+      return config;
+    }
+
+    // Alternative Kotlin format:
+    // val packages = PackageList(this).packages
+    // return packages
+    if (contents.includes('return packages')) {
+      contents = contents.replace(
+        /return packages/,
+        `packages.add(SunmiPrinterPackage())\n          return packages`
+      );
+
+      config.modResults.contents = contents;
+      return config;
+    }
+
+    throw new Error(
+      'Could not register SunmiPrinterPackage: unsupported MainApplication.kt format'
+    );
   });
 }
 
