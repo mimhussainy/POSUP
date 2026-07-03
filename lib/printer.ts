@@ -63,7 +63,7 @@ function buildReceiptHTML(order: any, restaurantName: string, logoUrl?: string, 
   ` : '';
 
   const taxRowsHTML = buildReceiptTaxRows(order, language).map(row => `
-    <tr class="tax-row">
+    <tr class="tax-row${row.bold ? ' tax-total-row' : ''}">
       <td colspan="2">${row.label}</td>
       <td>CHF ${row.amount.toFixed(2)}</td>
     </tr>
@@ -94,7 +94,8 @@ function buildReceiptHTML(order: any, restaurantName: string, logoUrl?: string, 
         .sub { font-size: 15px; color: #000; font-weight: 400; }
         .subtotal td, .discount td { font-size: 14px; color: #000; }
         .discount td { font-weight: 600; }
-        .tax-row td { font-size: 14px; color: #000; font-weight: 600; }
+        .tax-row td { font-size: 14px; color: #000; font-weight: 400; }
+        .tax-row.tax-total-row td { font-weight: 900; }
         .tax-row td:last-child { text-align: right; white-space: nowrap; }
         .total-row td { font-size: 16px; font-weight: 900; padding-top: 8px; color: #000; }
         .total-row td:last-child { text-align: right; }
@@ -282,6 +283,7 @@ function sunmiTaxIncluded(grossAmount: number, rate: number): number {
 type ReceiptTaxPrintRow = {
   label: string;
   amount: number;
+  bold?: boolean;
 };
 
 function formatTaxRateLabel(rate: number): string {
@@ -317,6 +319,7 @@ function buildReceiptTaxRows(order: any, language: string = 'de'): ReceiptTaxPri
         rows.push({
           label: groupLabel,
           amount: gross,
+          bold: true,
         });
       }
 
@@ -388,6 +391,7 @@ function buildReceiptTaxRows(order: any, language: string = 'de'): ReceiptTaxPri
       rows.push({
         label: group.label,
         amount: group.gross,
+        bold: true,
       });
     }
 
@@ -438,7 +442,7 @@ function isSunmiDineInOrder(order: any): boolean {
   return !!table && table !== 'walk-in' && table !== 'not specified';
 }
 
-function buildSunmiTaxRows(order: any, language: string = 'de'): { label: string; amount: number }[] {
+function buildSunmiTaxRows(order: any, language: string = 'de'): ReceiptTaxPrintRow[] {
   return buildReceiptTaxRows(order, language);
 }
 
@@ -670,11 +674,10 @@ function buildSunmiInstructions(
       [row.label, sunmiMoney(row.amount)],
       sunmiReceiptConfig.columns.total,
       ['left', 'right'],
-      false,
+      row.bold === true,
       SUNMI_SIZE_BODY
     );
   });
-
   if (taxRows.length > 0) {
     pushBlank(SUNMI_GAP_SMALL, 'left');
   }
