@@ -317,6 +317,7 @@ export default function NewOrderScreen() {
     setTimeout(() => setToast(null), 3000);
   };
 
+  
   const switchCategory = (categoryId: string) => {
     if (selectedCategory === categoryId && !searchQuery) return;
 
@@ -365,7 +366,7 @@ export default function NewOrderScreen() {
         return cats.length > 0 ? cats[0].id : null;
       });
     } catch (e) {
-      showToast('Failed to load products', 'error');
+      showToast(t.failedToLoadProducts, 'error');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -457,10 +458,10 @@ export default function NewOrderScreen() {
     const address = `${customer.street}, ${customer.zip} ${customer.city}`.replace(/^,\s*/, '').trim();
 
     return [
-      mode === 'delivery' ? 'PHONE DELIVERY' : 'PHONE PICKUP',
-      name ? `Name: ${name}` : '',
-      customer.phone ? `Phone: ${customer.phone}` : '',
-      mode === 'delivery' && address ? `Address: ${address}` : '',
+      mode === 'delivery' ? t.notePhoneDelivery : t.notePhonePickup,
+      name ? `${t.noteName}: ${name}` : '',
+      customer.phone ? `${t.notePhone}: ${customer.phone}` : '',
+      mode === 'delivery' && address ? `${t.noteAddress}: ${address}` : '',
     ].filter(Boolean).join('\n');
   }
 
@@ -477,13 +478,13 @@ export default function NewOrderScreen() {
         !cleaned.phone;
 
       if (missingDeliveryField) {
-        setPhoneCustomerError('Bitte alle Lieferfelder ausfüllen.');
+        setPhoneCustomerError(t.missingDeliveryFields);
         return;
       }
     }
 
     if (phoneOrderMode === 'pickup' && !cleaned.phone) {
-      setPhoneCustomerError('Bitte Telefonnummer eingeben.');
+      setPhoneCustomerError(t.missingPhoneNumber);
       return;
     }
 
@@ -747,17 +748,17 @@ export default function NewOrderScreen() {
           !cleanedPhoneCustomer.phone;
 
         if (missingDeliveryField) {
-          setPhoneCustomerError('Bitte alle Lieferfelder ausfüllen.');
+          setPhoneCustomerError(t.missingDeliveryFields);
           setPhoneModal(true);
-          showToast('Delivery info missing', 'error');
+          showToast(t.deliveryInfoMissing, 'error');
           return;
         }
       }
 
       if (phoneOrderMode === 'pickup' && !cleanedPhoneCustomer.phone) {
-        setPhoneCustomerError('Bitte Telefonnummer eingeben.');
+        setPhoneCustomerError(t.missingPhoneNumber);
         setPhoneModal(true);
-        showToast('Phone number missing', 'error');
+        showToast(t.phoneNumberMissing, 'error');
         return;
       }
     }
@@ -774,10 +775,10 @@ export default function NewOrderScreen() {
       const order = {
         restaurant_code: restaurantCode,
         table: selectedTable
-          ? `Table ${selectedTable}`
+          ? `${t.table} ${selectedTable}`
           : orderType === 'phone'
-            ? phoneOrderMode === 'delivery' ? 'Phone Delivery' : 'Phone Pickup'
-            : 'Not specified',
+            ? phoneOrderMode === 'delivery' ? t.phoneDelivery : t.phonePickup
+            : t.walkIn,
         order_type: orderType === 'phone' ? phoneOrderMode : orderType || 'takeaway',
         phone_order: orderType === 'phone',
         phone_order_mode: orderType === 'phone' ? phoneOrderMode : null,
@@ -838,7 +839,7 @@ export default function NewOrderScreen() {
         setPhoneCustomer(emptyPhoneCustomer);
         setPhoneCustomerError('');
 
-        showToast(`✓ Order ${data.order_id} placed`);
+        showToast(`${t.orderPlaced} ${data.order_id}`);
 
         try {
           await printOrder(placedOrder, restaurantCode);
@@ -857,10 +858,10 @@ export default function NewOrderScreen() {
           );
         }
       } else {
-        showToast('Failed to place order', 'error');
+        showToast(t.failedToPlaceOrder, 'error');
       }
     } catch (e: any) {
-      showToast('Failed to place order', 'error');
+      showToast(t.failedToPlaceOrder, 'error');
     } finally {
       setPlacingOrder(false);
     }
@@ -987,7 +988,7 @@ export default function NewOrderScreen() {
 
               <View style={styles.productBottomRow}>
                 <View>
-                  <Text style={styles.productPriceLabel}>Preis</Text>
+                  <Text style={styles.productPriceLabel}>{t.price}</Text>
                   <Text style={styles.productPrice}>
                     CHF {productDisplayPrice(item).toFixed(2)}
                   </Text>
@@ -1004,7 +1005,7 @@ export default function NewOrderScreen() {
               <View style={styles.emptyIconCircle}>
                 <Ionicons name="search-outline" size={34} color="#C7CBD4" />
               </View>
-              <Text style={styles.emptyTitle}>Keine Produkte gefunden</Text>
+              <Text style={styles.emptyTitle}>{t.noProductsFound}</Text>
               <Text style={styles.emptyText}>{t.searchProducts}</Text>
             </View>
           }
@@ -1062,10 +1063,10 @@ export default function NewOrderScreen() {
               {selectedTable
                 ? `${t.table} ${selectedTable}`
                 : orderType === 'takeaway'
-                  ? `🥡 Takeaway`
+                  ? `🥡 ${t.takeaway}`
                   : orderType === 'phone'
-                    ? phoneOrderMode === 'delivery' ? '☎️ Phone Delivery' : '☎️ Phone Pickup'
-                    : `Takeaway / Phone / ${t.table}`}
+                    ? phoneOrderMode === 'delivery' ? `☎️ ${t.phoneDelivery}` : `☎️ ${t.phonePickup}`
+                    : `${t.takeaway} / ${t.phone} / ${t.table}`}
             </Text>
 
             <Ionicons name="chevron-down" size={15} color="#A8A8BC" />
@@ -1079,7 +1080,7 @@ export default function NewOrderScreen() {
             </View>
             <Text style={styles.emptyOrderTitle}>{t.addItemsToStart}</Text>
             <Text style={styles.emptyOrderSub}>
-              Wähle Produkte aus der Liste links.
+              {t.chooseProductsFromLeft}
             </Text>
           </View>
         ) : (
@@ -1089,9 +1090,9 @@ export default function NewOrderScreen() {
             contentContainerStyle={styles.itemsListContent}
           >
             <View style={styles.itemsHeader}>
-              <Text style={[styles.itemsHeaderText, { width: 74 }]}>Qty</Text>
-              <Text style={[styles.itemsHeaderText, { flex: 1 }]}>Product</Text>
-              <Text style={[styles.itemsHeaderText, { width: 74, textAlign: 'right' }]}>Price</Text>
+              <Text style={[styles.itemsHeaderText, { width: 74 }]}>{t.qty}</Text>
+              <Text style={[styles.itemsHeaderText, { flex: 1 }]}>{t.product}</Text>
+              <Text style={[styles.itemsHeaderText, { width: 74, textAlign: 'right' }]}>{t.price}</Text>
             </View>
 
             {cart.map(item => (
@@ -1233,7 +1234,7 @@ export default function NewOrderScreen() {
             {discountAmount() > 0 && (
               <View style={styles.totalRow}>
                 <Text style={[styles.totalRowLabel, styles.discountTotalLabel]}>
-                  {t.discount} {discountType === 'percent' ? `(${discount}%)` : '(Fixed)'}
+                  {t.discount} {discountType === 'percent' ? `(${discount}%)` : `(${t.fixedChf})`}
                 </Text>
                 <Text style={[styles.totalRowVal, styles.discountTotalValue]}>
                   - CHF {discountAmount().toFixed(2)}
@@ -1286,7 +1287,7 @@ export default function NewOrderScreen() {
             <View style={styles.modalHeader}>
               <View>
                 <Text style={styles.modalTitle}>{t.clearOrder}</Text>
-                <Text style={styles.modalSubtitleLight}>Diese Bestellung zurücksetzen</Text>
+                <Text style={styles.modalSubtitleLight}>{t.resetOrderSubtitle}</Text>
               </View>
 
               <TouchableOpacity
@@ -1334,7 +1335,7 @@ export default function NewOrderScreen() {
             <View style={styles.modalHeader}>
               <View>
                 <Text style={styles.modalTitle}>{t.orderType}</Text>
-                <Text style={styles.modalSubtitleLight}>Takeaway, Telefonbestellung oder Tisch auswählen</Text>
+                <Text style={styles.modalSubtitleLight}>{t.orderTypeSubtitle}</Text>
               </View>
 
               <TouchableOpacity
@@ -1373,7 +1374,7 @@ export default function NewOrderScreen() {
                       orderType === 'takeaway' && styles.tableTypeBtnTextActive,
                     ]}
                   >
-                    Takeaway
+                    {t.takeaway}
                   </Text>
                 </TouchableOpacity>
 
@@ -1400,7 +1401,7 @@ export default function NewOrderScreen() {
                       orderType === 'phone' && styles.tableTypeBtnTextActive,
                     ]}
                   >
-                    Phone
+                    {t.phone}
                   </Text>
                 </TouchableOpacity>
 
@@ -1477,8 +1478,8 @@ export default function NewOrderScreen() {
           <View style={[styles.addonModalBox, { width: layout.addonModalWidth }]}>
             <View style={styles.modalHeader}>
               <View>
-                <Text style={styles.modalTitle}>Phone Order</Text>
-                <Text style={styles.modalSubtitleLight}>Delivery oder Pickup auswählen</Text>
+                <Text style={styles.modalTitle}>{t.phoneOrder}</Text>
+                <Text style={styles.modalSubtitleLight}>{t.phoneOrderChooseMode}</Text>
               </View>
 
               <TouchableOpacity
@@ -1491,7 +1492,7 @@ export default function NewOrderScreen() {
             </View>
 
             <ScrollView style={styles.phoneModalScroll}>
-              <Text style={styles.addonSectionTitle}>Order mode</Text>
+              <Text style={styles.addonSectionTitle}>{t.phoneOrderMode}</Text>
 
               <View style={styles.phoneModeRow}>
                 <TouchableOpacity
@@ -1507,7 +1508,7 @@ export default function NewOrderScreen() {
                 >
                   <Ionicons
                     name="bag-handle-outline"
-                    size={22}
+                    size={19}
                     color={phoneOrderMode === 'pickup' ? '#fff' : '#6F7280'}
                   />
                   <Text
@@ -1516,7 +1517,7 @@ export default function NewOrderScreen() {
                       phoneOrderMode === 'pickup' && styles.phoneModeBtnTextActive,
                     ]}
                   >
-                    Pickup
+                    {t.pickup}
                   </Text>
                 </TouchableOpacity>
 
@@ -1533,7 +1534,7 @@ export default function NewOrderScreen() {
                 >
                   <Ionicons
                     name="bicycle-outline"
-                    size={22}
+                    size={19}
                     color={phoneOrderMode === 'delivery' ? '#fff' : '#6F7280'}
                   />
                   <Text
@@ -1542,47 +1543,47 @@ export default function NewOrderScreen() {
                       phoneOrderMode === 'delivery' && styles.phoneModeBtnTextActive,
                     ]}
                   >
-                    Delivery
+                    {t.delivery}
                   </Text>
                 </TouchableOpacity>
-              </View>
-
-              <View style={styles.phoneBookHeader}>
-                <Text style={styles.addonSectionTitle}>Customer</Text>
 
                 <TouchableOpacity
-                  style={styles.addressBookBtn}
+                  style={styles.addressBookModeBtn}
                   onPress={() => {
                     setPhoneCustomerSearch('');
                     setAddressBookModal(true);
                   }}
                   activeOpacity={0.75}
                 >
-                  <Ionicons name="book-outline" size={15} color={PRIMARY} />
-                  <Text style={styles.addressBookBtnText}>Address book</Text>
+                  <Ionicons name="book-outline" size={18} color="#D97706" />
+                  <Text style={styles.addressBookModeBtnText}>{t.addressBook}</Text>
                 </TouchableOpacity>
               </View>
 
+              <Text style={styles.addonSectionTitle}>{t.customer}</Text>
+
               <View style={styles.phoneFormGrid}>
-                <TextInput
-                  style={styles.phoneInput}
-                  placeholder="Name"
-                  placeholderTextColor="#A8ACB7"
-                  value={phoneCustomer.first_name}
-                  onChangeText={v => updatePhoneCustomerField('first_name', v)}
-                />
+                <View style={styles.phoneNameRow}>
+                  <TextInput
+                    style={[styles.phoneInput, styles.phoneNameInput]}
+                    placeholder={t.firstName}
+                    placeholderTextColor="#A8ACB7"
+                    value={phoneCustomer.first_name}
+                    onChangeText={v => updatePhoneCustomerField('first_name', v)}
+                  />
+
+                  <TextInput
+                    style={[styles.phoneInput, styles.phoneNameInput]}
+                    placeholder={t.lastName}
+                    placeholderTextColor="#A8ACB7"
+                    value={phoneCustomer.last_name}
+                    onChangeText={v => updatePhoneCustomerField('last_name', v)}
+                  />
+                </View>
 
                 <TextInput
                   style={styles.phoneInput}
-                  placeholder="Last name"
-                  placeholderTextColor="#A8ACB7"
-                  value={phoneCustomer.last_name}
-                  onChangeText={v => updatePhoneCustomerField('last_name', v)}
-                />
-
-                <TextInput
-                  style={styles.phoneInput}
-                  placeholder="Phone"
+                  placeholder={t.phone}
                   placeholderTextColor="#A8ACB7"
                   value={phoneCustomer.phone}
                   onChangeText={v => updatePhoneCustomerField('phone', v)}
@@ -1590,31 +1591,33 @@ export default function NewOrderScreen() {
                 />
 
                 {phoneOrderMode === 'delivery' && (
-                  <>
+                  <View style={styles.phoneAddressRow}>
                     <TextInput
-                      style={styles.phoneInput}
-                      placeholder="Street"
+                      style={[styles.phoneInput, styles.phoneStreetInput]}
+                      placeholder={t.street}
                       placeholderTextColor="#A8ACB7"
                       value={phoneCustomer.street}
                       onChangeText={v => updatePhoneCustomerField('street', v)}
                     />
 
                     <TextInput
-                      style={styles.phoneInputHalf}
-                      placeholder="ZIP"
+                      style={[styles.phoneInput, styles.phoneZipInput]}
+                      placeholder={t.zip}
                       placeholderTextColor="#A8ACB7"
                       value={phoneCustomer.zip}
                       onChangeText={v => updatePhoneCustomerField('zip', v)}
+                      keyboardType="number-pad"
+                      maxLength={4}
                     />
 
                     <TextInput
-                      style={styles.phoneInputHalf}
-                      placeholder="City"
+                      style={[styles.phoneInput, styles.phoneCityInput]}
+                      placeholder={t.city}
                       placeholderTextColor="#A8ACB7"
                       value={phoneCustomer.city}
                       onChangeText={v => updatePhoneCustomerField('city', v)}
                     />
-                  </>
+                  </View>
                 )}
               </View>
 
@@ -1640,7 +1643,7 @@ export default function NewOrderScreen() {
                 onPress={confirmPhoneOrder}
                 activeOpacity={0.8}
               >
-                <Text style={styles.discountApplyBtnText}>Use phone order</Text>
+                <Text style={styles.discountApplyBtnText}>{t.confirmPhoneOrder}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1652,8 +1655,8 @@ export default function NewOrderScreen() {
           <View style={[styles.addonModalBox, { width: layout.addonModalWidth }]}>
             <View style={styles.modalHeader}>
               <View>
-                <Text style={styles.modalTitle}>Address Book</Text>
-                <Text style={styles.modalSubtitleLight}>Search by phone, name, last name or street</Text>
+                <Text style={styles.modalTitle}>{t.addressBook}</Text>
+                <Text style={styles.modalSubtitleLight}>{t.addressBookSearchSubtitle}</Text>
               </View>
 
               <TouchableOpacity
@@ -1670,7 +1673,7 @@ export default function NewOrderScreen() {
                 <Ionicons name="search-outline" size={18} color="#9CA3AF" />
                 <TextInput
                   style={styles.addressBookSearchInput}
-                  placeholder="Search phone, name, last name, street..."
+                  placeholder={t.addressBookSearchPlaceholder}
                   placeholderTextColor="#9CA3AF"
                   value={phoneCustomerSearch}
                   onChangeText={setPhoneCustomerSearch}
@@ -1683,11 +1686,11 @@ export default function NewOrderScreen() {
                 {filteredPhoneCustomers.length === 0 ? (
                   <View style={styles.addressBookEmpty}>
                     <Ionicons name="person-circle-outline" size={42} color="#C7CBD4" />
-                    <Text style={styles.addressBookEmptyText}>No saved customers yet</Text>
+                    <Text style={styles.addressBookEmptyText}>{t.noSavedCustomers}</Text>
                   </View>
                 ) : (
                   filteredPhoneCustomers.map((customer, index) => {
-                    const name = `${customer.first_name} ${customer.last_name}`.trim() || 'Unknown customer';
+                    const name = `${customer.first_name} ${customer.last_name}`.trim() || t.unknownCustomer;
                     const address = `${customer.street}, ${customer.zip} ${customer.city}`.replace(/^,\s*/, '').trim();
 
                     return (
@@ -1708,7 +1711,7 @@ export default function NewOrderScreen() {
                             {name}
                           </Text>
                           <Text style={styles.customerMeta} numberOfLines={1}>
-                            {customer.phone || 'No phone'}
+                            {customer.phone || t.noPhone}
                           </Text>
                           {address ? (
                             <Text style={styles.customerAddress} numberOfLines={1}>
@@ -1734,7 +1737,7 @@ export default function NewOrderScreen() {
             <View style={styles.modalHeader}>
               <View>
                 <Text style={styles.modalTitle}>{t.applyDiscount}</Text>
-                <Text style={styles.modalSubtitleLight}>Rabatt zur Bestellung hinzufügen</Text>
+                <Text style={styles.modalSubtitleLight}>{t.discountModalSubtitle}</Text>
               </View>
 
               <TouchableOpacity
@@ -1837,7 +1840,7 @@ export default function NewOrderScreen() {
 
               <TextInput
                 style={styles.discountInput}
-                placeholder={discountType === 'percent' ? 'Custom %...' : 'Custom CHF...'}
+                placeholder={discountType === 'percent' ? t.percentage : t.fixedChf}
                 placeholderTextColor="#A8ACB7"
                 value={discount}
                 onChangeText={v => {
@@ -3025,15 +3028,17 @@ const styles = StyleSheet.create({
 
   phoneModeRow: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 8,
     marginBottom: 18,
   },
 
   phoneModeBtn: {
     flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 15,
+    paddingVertical: 12,
+    paddingHorizontal: 10,
     borderRadius: radii.xl,
     backgroundColor: '#F0F1F5',
     gap: 7,
@@ -3083,9 +3088,38 @@ const styles = StyleSheet.create({
     fontFamily: appFont,
   },
 
-  phoneFormGrid: {
+  addressBookModeBtn: {
+    flex: 1,
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    paddingHorizontal: 10,
+    paddingVertical: 12,
+    borderRadius: radii.xl,
+    backgroundColor: 'rgba(245,158,11,0.14)',
+    borderWidth: thinBorder,
+    borderColor: 'rgba(245,158,11,0.36)',
+  },
+
+  addressBookModeBtnText: {
+    fontSize: fontSizes.smd,
+    fontWeight: fontWeights.black,
+    color: '#D97706',
+    fontFamily: appFont,
+  },
+
+  phoneFormGrid: {
+    gap: 8,
+  },
+
+  phoneNameRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+
+  phoneAddressRow: {
+    flexDirection: 'row',
     gap: 8,
   },
 
@@ -3101,6 +3135,26 @@ const styles = StyleSheet.create({
     backgroundColor: '#FAFAFB',
     fontFamily: appFont,
     fontWeight: fontWeights.bold,
+  },
+
+  phoneNameInput: {
+    flex: 1,
+    width: undefined,
+  },
+
+  phoneStreetInput: {
+    flex: 2.1,
+    width: undefined,
+  },
+
+  phoneZipInput: {
+    width: 82,
+    textAlign: 'center',
+  },
+
+  phoneCityInput: {
+    flex: 1.1,
+    width: undefined,
   },
 
   phoneInputHalf: {
