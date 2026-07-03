@@ -223,6 +223,98 @@ function sunmiMoney(value: any): string {
   return `CHF ${Number.isFinite(n) ? n.toFixed(2) : '0.00'}`;
 }
 
+function sunmiNumber(value: any): number {
+  const n = parseFloat(String(value || '0'));
+  return Number.isFinite(n) ? n : 0;
+}
+
+function sunmiTaxIncluded(grossAmount: number, rate: number): number {
+  if (!Number.isFinite(grossAmount) || grossAmount <= 0) return 0;
+  return grossAmount - grossAmount / (1 + rate / 100);
+}
+
+function isSunmiDineInOrder(order: any): boolean {
+  const typeText = [
+    order.order_type,
+    order.type,
+    order.service_type,
+    order.fulfillment_type,
+    order.delivery_type,
+    order.order_method,
+  ]
+    .map((v) => sunmiClean(v).toLowerCase())
+    .join(' ');
+
+  if (
+    typeText.includes('dine') ||
+    typeText.includes('eat in') ||
+    typeText.includes('table') ||
+    typeText.includes('restaurant')
+  ) {
+    return true;
+  }
+
+  const table = sunmiClean(order.table).toLowerCase();
+  return !!table && table !== 'walk-in' && table !== 'not specified';
+}
+
+function buildSunmiTaxRows(order: any): { label: string; amount: number }[] {
+  const items = Array.isArray(order.items) ? order.items : [];
+  const orderTotal = sunmiNumber(order.total);
+
+  if (orderTotal <= 0) return [];
+
+  if (isSunmiDineInOrder(order)) {
+    return [
+      {
+        label: 'MWST inkl. 8.1%',
+        amount: sunmiTaxIncluded(orderTotal, 8.1),
+      },
+    ];
+  }
+
+  const itemGrossTotal = items.reduce((sum: number, item: any) => {
+    return sum + sunmiNumber(item.total);
+  }, 0);
+
+  const alcoholGrossTotal = items.reduce((sum: number, item: any) => {
+    return item.is_alcohol === true ? sum + sunmiNumber(item.total) : sum;
+  }, 0);
+
+  if (itemGrossTotal <= 0) {
+    return [
+      {
+        label: 'MWST inkl. 2.6%',
+        amount: sunmiTaxIncluded(orderTotal, 2.6),
+      },
+    ];
+  }
+
+  const foodGrossTotal = Math.max(0, itemGrossTotal - alcoholGrossTotal);
+  const adjustmentFactor = orderTotal / itemGrossTotal;
+
+  const foodAdjustedTotal = foodGrossTotal * adjustmentFactor;
+  const alcoholAdjustedTotal = alcoholGrossTotal * adjustmentFactor;
+
+  const rows: { label: string; amount: number }[] = [];
+
+  if (foodAdjustedTotal > 0.005) {
+    rows.push({
+      label: 'MWST inkl. 2.6%',
+      amount: sunmiTaxIncluded(foodAdjustedTotal, 2.6),
+    });
+  }
+
+  if (alcoholAdjustedTotal > 0.005) {
+    rows.push({
+      label: 'MWST inkl. 8.1%',
+      amount: sunmiTaxIncluded(alcoholAdjustedTotal, 8.1),
+    });
+  }
+
+  return rows;
+}
+
 function buildSunmiInstructions(
   order: any,
   restaurantName: string,
@@ -402,6 +494,22 @@ function buildSunmiInstructions(
       true,
       SUNMI_SIZE_BODY
     );
+  }
+
+  const taxRows = buildSunmiTaxRows(order);
+
+  taxRows.forEach((row) => {
+    pushColumns(
+      [row.label, sunmiMoney(row.amount)],
+      sunmiReceiptConfig.columns.total,
+      ['left', 'right'],
+      false,
+      SUNMI_SIZE_BODY
+    );
+  });
+
+  if (taxRows.length > 0) {
+    pushBlank(SUNMI_GAP_SMALL, 'left');
   }
 
   pushColumns(

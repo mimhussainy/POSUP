@@ -227,9 +227,10 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     paddingHorizontal: 22,
-    paddingVertical: Platform.OS === 'android' ? 24 : 32,
+    paddingTop: Platform.OS === 'android' ? 250 : 32,
+    paddingBottom: 32,
   },
 
   center: {
@@ -333,7 +334,7 @@ const styles = StyleSheet.create({
     minHeight: 44,
     paddingHorizontal: 14,
     paddingVertical: Platform.OS === 'ios' ? 9 : 6,
-    fontSize: fontSizes.md,
+    fontSize: fontSizes.md + 4,
     color: TEXT,
     fontWeight: fontWeights.regular,
     fontFamily: appFont,
