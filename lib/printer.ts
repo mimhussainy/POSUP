@@ -196,10 +196,11 @@ const SUNMI_SIZE_THANK = 22;
 const SUNMI_SIZE_FOOTER = 18;
 const SUNMI_GAP_SMALL = 10;
 const SUNMI_GAP = 18;
-const SUNMI_DIVIDER_GAP_TOP = 16;
-const SUNMI_DIVIDER_GAP_BOTTOM = 16;
+const SUNMI_LINE_AIR = 7;
+const SUNMI_DIVIDER_GAP_TOP = 18;
+const SUNMI_DIVIDER_GAP_BOTTOM = 18;
 const SUNMI_SECTION_GAP = 22;
-const SUNMI_BOTTOM_FEED = 120;
+const SUNMI_BOTTOM_FEED = 140;
 
 function sunmiClean(value: any): string {
   if (value === null || value === undefined) return '';
@@ -261,6 +262,12 @@ function buildSunmiInstructions(
       size,
       align,
     });
+
+    instructions.push({
+      type: 'blank',
+      size: SUNMI_LINE_AIR,
+      align,
+    });
   };
 
   const pushBlank = (
@@ -298,6 +305,12 @@ function buildSunmiInstructions(
       aligns,
       bold,
       size,
+    });
+
+    instructions.push({
+      type: 'blank',
+      size: SUNMI_LINE_AIR,
+      align: 'left',
     });
   };
 
