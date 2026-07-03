@@ -3,7 +3,7 @@ export const sunmiReceiptConfig = {
     enabled: true,
     mode: 'height' as 'height' | 'width',
     width: 180,
-    height: 60,
+    height: 85,
     preserveAspect: true,
     gapAfter: 12,
   },
