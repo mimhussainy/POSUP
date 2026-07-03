@@ -630,6 +630,10 @@ export default function NewOrderScreen() {
 
         try {
           await printOrder(placedOrder, restaurantCode);
+          const { lastSunmiError } = await import('../../lib/printer');
+          if (lastSunmiError) {
+            Alert.alert('Sunmi Print Failed (fell back to system dialog)', lastSunmiError);
+          }
         } catch (printErr: any) {
           console.log('Print failed:', printErr?.message);
           const { lastSunmiError } = await import('../../lib/printer');
