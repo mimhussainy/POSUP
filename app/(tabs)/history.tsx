@@ -1165,9 +1165,7 @@ const numColumns = getNumColumns(listWidth);
                   >
                     {selectedOrder.items.map((item, index) => (
                       <View key={index} style={styles.itemRow}>
-                        <View style={styles.itemQtyBadge}>
-                          <Text style={styles.itemQtyText}>{item.quantity}</Text>
-                        </View>
+                        <Text style={styles.itemQtyText}>{item.quantity}x</Text>
 
                         <View style={styles.itemInfo}>
                           <Text style={styles.itemName}>{item.name}</Text>
@@ -2156,8 +2154,8 @@ const styles = StyleSheet.create({
     borderTopColor: BORDER,
     backgroundColor: '#fff',
     paddingHorizontal: 18,
-    paddingTop: 12,
-    paddingBottom: 18,
+    paddingTop: 9,
+    paddingBottom: 12,
   },
 
   modalFooter: {
@@ -2176,19 +2174,10 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
 
-  itemQtyBadge: {
-    width: 28,
-    height: 28,
-    borderRadius: radii.smd,
-    backgroundColor: PRIMARY_SOFT,
-    borderWidth: thinBorder,
-    borderColor: PRIMARY_BORDER,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
   itemQtyText: {
-    fontSize: fontSizes.smd,
+    minWidth: 30,
+    marginTop: 1,
+    fontSize: fontSizes.mdl,
     fontWeight: fontWeights.extrabold,
     color: PRIMARY,
     fontFamily: appFont,
@@ -2300,43 +2289,43 @@ const styles = StyleSheet.create({
 
   finalTotalBox: {
     flex: 1,
-    minHeight: 56,
+    minHeight: 46,
     backgroundColor: PRIMARY_SOFT,
     borderWidth: thinBorder,
     borderColor: PRIMARY_BORDER,
-    borderRadius: radii.xl,
-    paddingHorizontal: 13,
-    paddingVertical: 11,
+    borderRadius: radii.lgl,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
 
   finalTotalLabel: {
-    fontSize: fontSizes.mdl,
+    fontSize: fontSizes.md,
     fontWeight: fontWeights.extrabold,
     color: TEXT,
     fontFamily: appFont,
   },
 
   finalTotalValue: {
-    fontSize: fontSizes.xxxl,
+    fontSize: fontSizes.xxl,
     fontWeight: fontWeights.extrabold,
     color: PRIMARY,
     fontFamily: appFont,
   },
 
   reprintBtn: {
-    minWidth: 128,
-    minHeight: 56,
+    minWidth: 118,
+    minHeight: 46,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: 7,
     backgroundColor: PRIMARY_SOFT,
-    borderRadius: radii.xl,
-    paddingHorizontal: 12,
-    paddingVertical: 11,
+    borderRadius: radii.lgl,
+    paddingHorizontal: 11,
+    paddingVertical: 8,
     borderWidth: thinBorder,
     borderColor: PRIMARY_BORDER,
   },
