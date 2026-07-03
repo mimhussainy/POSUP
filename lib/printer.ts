@@ -340,6 +340,10 @@ export async function printOrder(order: any, restaurantCode: string): Promise<vo
     const { Alert } = require('react-native');
     Alert.alert('Print Debug', `model="${printerModel}"\nip="${printerIp}"`);
   }
+  if (Platform.OS !== 'web') {
+    const { Alert } = require('react-native');
+    Alert.alert('Print Debug', `model="${printerModel}"\nip="${printerIp}"`);
+  }
 
   if (Platform.OS === 'web') {
     const html = buildReceiptHTML(order, restaurantName, logoUrl, language);

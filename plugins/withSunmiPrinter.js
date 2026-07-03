@@ -1,9 +1,8 @@
-const { withDangerousMod, withMainApplication, withAppBuildGradle, withAndroidManifest } = require('@expo/config-plugins');
+const { withDangerousMod, withMainApplication, withAppBuildGradle } = require('@expo/config-plugins');
 const fs = require('fs');
 const path = require('path');
 
 const PACKAGE_PATH = 'com/foodup/posup';
-const AIDL_PACKAGE_PATH = 'woyou/aidlservice/jiuiv5';
 
 function withSunmiFiles(config) {
   return withDangerousMod(config, [
@@ -14,60 +13,26 @@ function withSunmiFiles(config) {
         config.modRequest.platformProjectRoot,
         'app', 'src', 'main', 'java', ...PACKAGE_PATH.split('/')
       );
-      const aidlDestDir = path.join(
-        config.modRequest.platformProjectRoot,
-        'app', 'src', 'main', 'aidl', ...AIDL_PACKAGE_PATH.split('/')
-      );
-      const aidlSrcDir = path.join(srcDir, 'aidl', ...AIDL_PACKAGE_PATH.split('/'));
 
       fs.mkdirSync(javaDestDir, { recursive: true });
-      fs.mkdirSync(aidlDestDir, { recursive: true });
 
       fs.copyFileSync(path.join(srcDir, 'SunmiPrinterModule.kt'), path.join(javaDestDir, 'SunmiPrinterModule.kt'));
       fs.copyFileSync(path.join(srcDir, 'SunmiPrinterPackage.kt'), path.join(javaDestDir, 'SunmiPrinterPackage.kt'));
-
-      fs.copyFileSync(path.join(aidlSrcDir, 'ICallback.aidl'), path.join(aidlDestDir, 'ICallback.aidl'));
-      fs.copyFileSync(path.join(aidlSrcDir, 'IWoyouService.aidl'), path.join(aidlDestDir, 'IWoyouService.aidl'));
 
       return config;
     },
   ]);
 }
 
-function withAidlBuildFeature(config) {
+function withPrinterXDependency(config) {
   return withAppBuildGradle(config, (config) => {
     const contents = config.modResults.contents;
 
-    if (!contents.includes('aidl = true') && !contents.includes('aidl true')) {
+    if (!contents.includes('com.sunmi:printerx')) {
       config.modResults.contents = contents.replace(
-        /(android\s*\{)/,
-        `$1\n    buildFeatures {\n        aidl = true\n    }`
+        /(dependencies\s*\{)/,
+        `$1\n    implementation 'com.sunmi:printerx:1.0.20'`
       );
-    }
-
-    return config;
-  });
-}
-
-function withSunmiQueries(config) {
-  return withAndroidManifest(config, (config) => {
-    const manifest = config.modResults.manifest;
-
-    if (!manifest.queries) {
-      manifest.queries = [{}];
-    }
-
-    const queries = manifest.queries[0];
-    if (!queries.package) {
-      queries.package = [];
-    }
-
-    const alreadyDeclared = queries.package.some(
-      (p) => p.$ && p.$['android:name'] === 'woyou.aidlservice.jiuiv5'
-    );
-
-    if (!alreadyDeclared) {
-      queries.package.push({ $: { 'android:name': 'woyou.aidlservice.jiuiv5' } });
     }
 
     return config;
@@ -91,8 +56,7 @@ function withSunmiRegistration(config) {
 
 module.exports = function withSunmiPrinter(config) {
   config = withSunmiFiles(config);
-  config = withAidlBuildFeature(config);
-  config = withSunmiQueries(config);
+  config = withPrinterXDependency(config);
   config = withSunmiRegistration(config);
   return config;
 };

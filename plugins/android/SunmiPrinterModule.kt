@@ -1,87 +1,89 @@
 package com.foodup.posup
 
-import android.content.ComponentName
-import android.content.Context
-import android.content.Intent
-import android.content.ServiceConnection
 import android.graphics.BitmapFactory
-import android.os.IBinder
+import android.os.Handler
+import android.os.Looper
 import android.util.Base64
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
+import com.sunmi.printerx.PrinterSdk
+import com.sunmi.printerx.SdkException
+import com.sunmi.printerx.api.LineApi
+import com.sunmi.printerx.enums.Align
+import com.sunmi.printerx.enums.DividingLine
+import com.sunmi.printerx.enums.ImageAlgorithm
+import com.sunmi.printerx.style.BaseStyle
+import com.sunmi.printerx.style.BitmapStyle
+import com.sunmi.printerx.style.TextStyle
 import org.json.JSONArray
 import org.json.JSONObject
-import woyou.aidlservice.jiuiv5.ICallback
-import woyou.aidlservice.jiuiv5.IWoyouService
+import java.util.concurrent.atomic.AtomicBoolean
 
 class SunmiPrinterModule(reactContext: ReactApplicationContext) :
     ReactContextBaseJavaModule(reactContext) {
 
-    private var woyouService: IWoyouService? = null
-    private var pendingPromise: Promise? = null
-    private var pendingOrder: JSONObject? = null
-    private var pendingRestaurant: JSONObject? = null
+    private var cachedPrinter: PrinterSdk.Printer? = null
 
     override fun getName() = "SunmiPrinterModule"
-
-    private val quietCallback = object : ICallback.Stub() {
-        override fun onRunResult(isSuccess: Boolean) {}
-        override fun onReturnString(result: String?) {}
-        override fun onRaiseException(code: Int, msg: String?) {}
-        override fun onPrintResult(code: Int, msg: String?) {}
-    }
-
-    private val connection = object : ServiceConnection {
-        override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
-            woyouService = IWoyouService.Stub.asInterface(service)
-
-            val order = pendingOrder
-            val restaurant = pendingRestaurant
-            val promise = pendingPromise
-
-            if (order != null && restaurant != null && promise != null) {
-                try {
-                    doPrint(order, restaurant)
-                    promise.resolve(true)
-                } catch (e: Exception) {
-                    promise.reject("SUNMI_PRINT_ERROR", e)
-                }
-            }
-
-            pendingOrder = null
-            pendingRestaurant = null
-            pendingPromise = null
-        }
-
-        override fun onServiceDisconnected(name: ComponentName?) {
-            woyouService = null
-        }
-    }
-
-    private fun col(text: String, width: Int, align: Int) = Triple(text, width, align)
-
-    private fun printColumns(cols: List<Triple<String, Int, Int>>) {
-        val texts = cols.map { it.first }.toTypedArray()
-        val widths = cols.map { it.second }.toIntArray()
-        val aligns = cols.map { it.third }.toIntArray()
-        woyouService?.printColumnsText(texts, widths, aligns, quietCallback)
-    }
 
     private fun formatCHF(v: Double): String {
         return "CHF " + String.format("%.2f", v)
     }
 
-    private fun doPrint(order: JSONObject, restaurant: JSONObject) {
-        val svc = woyouService ?: return
+    private fun textStyle(bold: Boolean = false, size: Float? = null, align: Align = Align.LEFT): TextStyle {
+        var style = TextStyle.getStyle().setAlign(align).enableBold(bold)
+        if (size != null) style = style.setTextSize(size)
+        return style
+    }
 
-        svc.printerInit(quietCallback)
+    private fun getPrinterAsync(onReady: (PrinterSdk.Printer?) -> Unit) {
+        val existing = cachedPrinter
+        if (existing != null) {
+            onReady(existing)
+            return
+        }
+
+        val delivered = AtomicBoolean(false)
+        val timeoutHandler = Handler(Looper.getMainLooper())
+        val timeoutRunnable = Runnable {
+            if (delivered.compareAndSet(false, true)) {
+                onReady(null)
+            }
+        }
+        timeoutHandler.postDelayed(timeoutRunnable, 5000)
+
+        try {
+            PrinterSdk.getInstance().getPrinter(
+                reactApplicationContext,
+                object : PrinterSdk.PrinterListen {
+                    override fun onDefPrinter(printer: PrinterSdk.Printer) {
+                        if (delivered.compareAndSet(false, true)) {
+                            timeoutHandler.removeCallbacks(timeoutRunnable)
+                            cachedPrinter = printer
+                            onReady(printer)
+                        }
+                    }
+
+                    override fun onPrinters(printers: List<PrinterSdk.Printer>) {}
+                }
+            )
+        } catch (e: SdkException) {
+            if (delivered.compareAndSet(false, true)) {
+                timeoutHandler.removeCallbacks(timeoutRunnable)
+                onReady(null)
+            }
+        }
+    }
+
+    private fun doPrint(printer: PrinterSdk.Printer, order: JSONObject, restaurant: JSONObject) {
+        val api: LineApi = printer.lineApi()
 
         val restaurantName = restaurant.optString("name", "")
         val logoBase64 = restaurant.optString("logoBase64", "")
 
-        svc.setAlignment(1, quietCallback)
+        api.initLine(BaseStyle.getStyle().setAlign(Align.CENTER))
 
         var logoPrinted = false
         if (logoBase64.isNotEmpty()) {
@@ -89,7 +91,13 @@ class SunmiPrinterModule(reactContext: ReactApplicationContext) :
                 val bytes = Base64.decode(logoBase64, Base64.DEFAULT)
                 val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
                 if (bitmap != null) {
-                    svc.printBitmap(bitmap, quietCallback)
+                    api.printBitmap(
+                        bitmap,
+                        BitmapStyle.getStyle()
+                            .setAlign(Align.CENTER)
+                            .setAlgorithm(ImageAlgorithm.BINARIZATION)
+                            .setWidth(384)
+                    )
                     logoPrinted = true
                 }
             } catch (e: Exception) {
@@ -97,23 +105,19 @@ class SunmiPrinterModule(reactContext: ReactApplicationContext) :
         }
 
         if (!logoPrinted) {
-            svc.setFontSize(32f, quietCallback)
-            svc.printText(restaurantName.uppercase() + "\n", quietCallback)
+            api.printText(restaurantName.uppercase(), textStyle(bold = true, size = 32f, align = Align.CENTER))
         }
 
-        svc.setFontSize(24f, quietCallback)
-        svc.printText(order.optString("order_number", "") + "\n", quietCallback)
-
-        svc.setFontSize(20f, quietCallback)
-        svc.printText(order.optString("dateTimeLabel", "") + "\n", quietCallback)
+        api.printText(order.optString("order_number", ""), textStyle(bold = true, size = 24f, align = Align.CENTER))
+        api.printText(order.optString("dateTimeLabel", ""), textStyle(size = 20f, align = Align.CENTER))
 
         val table = order.optString("table", "")
         if (table.isNotEmpty() && table != "Walk-in" && table != "Not specified") {
-            svc.printText(order.optString("tableLabel", "") + "\n", quietCallback)
+            api.printText(order.optString("tableLabel", ""), textStyle(size = 20f, align = Align.CENTER))
         }
 
-        svc.setAlignment(0, quietCallback)
-        svc.printText("------------------------------------------\n", quietCallback)
+        api.initLine(BaseStyle.getStyle().setAlign(Align.LEFT))
+        api.printDividingLine(DividingLine.SOLID, 1)
 
         val items = order.optJSONArray("items") ?: JSONArray()
         for (i in 0 until items.length()) {
@@ -124,45 +128,65 @@ class SunmiPrinterModule(reactContext: ReactApplicationContext) :
             if (variation.isNotEmpty()) name = "$name ($variation)"
             val total = item.optDouble("total", 0.0)
 
-            printColumns(
-                listOf(
-                    col("${qty}x", 4, 0),
-                    col(name, 26, 0),
-                    col(formatCHF(total), 12, 2)
+            api.printTexts(
+                arrayOf("${qty}x", name, formatCHF(total)),
+                intArrayOf(1, 4, 2),
+                arrayOf(
+                    textStyle(bold = true, align = Align.LEFT),
+                    textStyle(bold = true, align = Align.LEFT),
+                    textStyle(bold = true, align = Align.RIGHT)
                 )
             )
 
             val addons = item.optJSONArray("addons") ?: JSONArray()
             for (j in 0 until addons.length()) {
                 val addon = addons.getJSONObject(j)
-                svc.printText("   + " + addon.optString("label", "") + "\n", quietCallback)
+                api.printText("   + " + addon.optString("label", ""), textStyle(size = 18f, align = Align.LEFT))
             }
         }
 
         val discount = order.optDouble("discount", 0.0)
         if (discount > 0) {
-            printColumns(listOf(col(order.optString("subtotalLabel", "Subtotal"), 30, 0), col(formatCHF(order.optDouble("subtotal", 0.0)), 12, 2)))
-            printColumns(listOf(col(order.optString("discountLabel", "Discount"), 30, 0), col("-" + formatCHF(discount), 12, 2)))
+            api.printTexts(
+                arrayOf(order.optString("subtotalLabel", "Subtotal"), formatCHF(order.optDouble("subtotal", 0.0))),
+                intArrayOf(3, 1),
+                arrayOf(textStyle(align = Align.LEFT), textStyle(align = Align.RIGHT))
+            )
+            api.printTexts(
+                arrayOf(order.optString("discountLabel", "Discount"), "-" + formatCHF(discount)),
+                intArrayOf(3, 1),
+                arrayOf(textStyle(bold = true, align = Align.LEFT), textStyle(bold = true, align = Align.RIGHT))
+            )
         }
 
-        printColumns(listOf(col(order.optString("totalLabel", "TOTAL"), 30, 0), col(formatCHF(order.optDouble("total", 0.0)), 12, 2)))
+        api.printTexts(
+            arrayOf(order.optString("totalLabel", "TOTAL"), formatCHF(order.optDouble("total", 0.0))),
+            intArrayOf(3, 1),
+            arrayOf(
+                textStyle(bold = true, size = 26f, align = Align.LEFT),
+                textStyle(bold = true, size = 26f, align = Align.RIGHT)
+            )
+        )
 
         val paymentValue = order.optString("paymentValueLabel", "")
-        printColumns(listOf(col(order.optString("paymentLabel", "Payment"), 30, 0), col(paymentValue, 12, 2)))
+        api.printTexts(
+            arrayOf(order.optString("paymentLabel", "Payment"), paymentValue),
+            intArrayOf(3, 1),
+            arrayOf(textStyle(bold = true, align = Align.LEFT), textStyle(bold = true, align = Align.RIGHT))
+        )
 
         val note = order.optString("note", "")
         if (note.isNotEmpty()) {
-            svc.printText(order.optString("noteLabel", "Note") + ": " + note + "\n", quietCallback)
+            api.printText(order.optString("noteLabel", "Note") + ": " + note, textStyle(size = 18f, align = Align.LEFT))
         }
 
-        svc.printText("------------------------------------------\n", quietCallback)
-        svc.setAlignment(1, quietCallback)
-        svc.printText(order.optString("thankLabel", "") + "\n", quietCallback)
-        svc.printText("------------------------------------------\n", quietCallback)
-        svc.setFontSize(16f, quietCallback)
-        svc.printText("Powered by: FoodUp.ch\n", quietCallback)
+        api.printDividingLine(DividingLine.SOLID, 1)
+        api.initLine(BaseStyle.getStyle().setAlign(Align.CENTER))
+        api.printText(order.optString("thankLabel", ""), textStyle(size = 20f, align = Align.CENTER))
+        api.printDividingLine(DividingLine.SOLID, 1)
+        api.printText("Powered by: FoodUp.ch", textStyle(size = 16f, align = Align.CENTER))
 
-        svc.lineWrap(5, quietCallback)
+        api.autoOut()
     }
 
     @ReactMethod
@@ -170,39 +194,23 @@ class SunmiPrinterModule(reactContext: ReactApplicationContext) :
         try {
             val order = JSONObject(orderJson)
             val restaurant = JSONObject(restaurantJson)
+            val settled = AtomicBoolean(false)
 
-            if (woyouService != null) {
-                doPrint(order, restaurant)
-                promise.resolve(true)
-                return
-            }
+            getPrinterAsync { printer ->
+                if (!settled.compareAndSet(false, true)) return@getPrinterAsync
 
-            pendingOrder = order
-            pendingRestaurant = restaurant
-            pendingPromise = promise
-
-            val intent = Intent()
-            intent.setPackage("woyou.aidlservice.jiuiv5")
-            intent.action = "woyou.aidlservice.jiuiv5.IWoyouService"
-
-            val bound = reactApplicationContext.bindService(intent, connection, Context.BIND_AUTO_CREATE)
-
-            if (!bound) {
-                pendingOrder = null
-                pendingRestaurant = null
-                pendingPromise = null
-                promise.reject("SUNMI_SERVICE_NOT_FOUND", "bindService returned false -- Sunmi print service (woyou.aidlservice.jiuiv5) not found on this device")
-                return
-            }
-
-            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                if (pendingPromise === promise) {
-                    pendingOrder = null
-                    pendingRestaurant = null
-                    pendingPromise = null
-                    promise.reject("SUNMI_SERVICE_TIMEOUT", "Timed out waiting for Sunmi print service to connect")
+                if (printer == null) {
+                    promise.reject("SUNMI_PRINTER_NOT_FOUND", "PrinterSdk.getPrinter() timed out or returned no default printer")
+                    return@getPrinterAsync
                 }
-            }, 5000)
+
+                try {
+                    doPrint(printer, order, restaurant)
+                    promise.resolve(true)
+                } catch (e: Exception) {
+                    promise.reject("SUNMI_PRINT_ERROR", e)
+                }
+            }
         } catch (e: Exception) {
             promise.reject("SUNMI_PRINT_ERROR", e)
         }
