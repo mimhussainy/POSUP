@@ -443,6 +443,195 @@ function buildSunmiInstructions(
   return instructions;
 }
 
+function buildSunmiZReportInstructions(
+  data: any,
+  restaurantName: string,
+  logoBase64: string,
+  language: string
+): any[] {
+  const tr = zReportTranslations[language] || zReportTranslations['de'];
+  const now = new Date();
+
+  const dateTimeLabel = `${now.toLocaleDateString('de-CH')} ${now.toLocaleTimeString('de-CH', {
+    hour: '2-digit',
+    minute: '2-digit',
+  })}`;
+
+  const instructions: any[] = [];
+
+  const pushBlank = (
+    size = SUNMI_GAP,
+    align: 'left' | 'center' | 'right' = 'left'
+  ) => {
+    instructions.push({
+      type: 'text',
+      content: ' ',
+      bold: false,
+      size,
+      align,
+    });
+  };
+
+  const pushText = (
+    content: any,
+    bold = false,
+    size = SUNMI_SIZE_BODY,
+    align: 'left' | 'center' | 'right' = 'left'
+  ) => {
+    const text = sunmiClean(content);
+    if (!text) return;
+
+    instructions.push({
+      type: 'text',
+      content: text,
+      bold,
+      size,
+      align,
+    });
+
+    pushBlank(SUNMI_LINE_AIR, align);
+  };
+
+  const pushDivider = () => {
+    pushBlank(SUNMI_DIVIDER_GAP_TOP, 'left');
+
+    instructions.push({
+      type: 'divider',
+    });
+
+    pushBlank(SUNMI_DIVIDER_GAP_BOTTOM, 'left');
+  };
+
+  const pushColumns = (
+    content: any[],
+    widths: number[],
+    aligns: ('left' | 'center' | 'right')[],
+    bold = false,
+    size = SUNMI_SIZE_BODY
+  ) => {
+    instructions.push({
+      type: 'columns',
+      content: content.map(sunmiClean),
+      widths,
+      aligns,
+      bold,
+      size,
+    });
+
+    pushBlank(SUNMI_LINE_AIR, 'left');
+  };
+
+  if (logoBase64 && sunmiReceiptConfig.logo.enabled) {
+    const logoInstruction: any = {
+      type: 'bitmap',
+      base64: logoBase64,
+      align: 'center',
+      preserveAspect: sunmiReceiptConfig.logo.preserveAspect,
+      fallbackText: restaurantName.toUpperCase(),
+      fallbackBold: true,
+      fallbackSize: SUNMI_SIZE_RESTAURANT,
+    };
+
+    if (sunmiReceiptConfig.logo.mode === 'height') {
+      logoInstruction.height = sunmiReceiptConfig.logo.height;
+    } else {
+      logoInstruction.width = sunmiReceiptConfig.logo.width;
+    }
+
+    instructions.push(logoInstruction);
+    pushBlank(sunmiReceiptConfig.logo.gapAfter, 'center');
+  } else {
+    pushText(restaurantName.toUpperCase(), true, SUNMI_SIZE_RESTAURANT, 'center');
+  }
+
+  pushText(tr.title, true, SUNMI_SIZE_HEADER, 'center');
+  pushText(dateTimeLabel, false, SUNMI_SIZE_META, 'center');
+
+  pushDivider();
+
+  pushText(tr.period, true, SUNMI_SIZE_BODY, 'left');
+
+  pushColumns(
+    [tr.from, data.fromLabel],
+    [1, 2],
+    ['left', 'right'],
+    false,
+    SUNMI_SIZE_BODY
+  );
+
+  pushColumns(
+    [tr.to, data.toLabel],
+    [1, 2],
+    ['left', 'right'],
+    false,
+    SUNMI_SIZE_BODY
+  );
+
+  pushDivider();
+
+  pushColumns(
+    [tr.orders, String(data.orderCount)],
+    [1, 1],
+    ['left', 'right'],
+    true,
+    SUNMI_SIZE_BODY
+  );
+
+  pushColumns(
+    [tr.avgOrder, `CHF ${data.avgOrder.toFixed(2)}`],
+    [1, 1],
+    ['left', 'right'],
+    false,
+    SUNMI_SIZE_BODY
+  );
+
+  pushColumns(
+    [tr.cash, `CHF ${data.cashRevenue.toFixed(2)}`],
+    [1, 1],
+    ['left', 'right'],
+    false,
+    SUNMI_SIZE_BODY
+  );
+
+  pushColumns(
+    [tr.card, `CHF ${data.cardRevenue.toFixed(2)}`],
+    [1, 1],
+    ['left', 'right'],
+    false,
+    SUNMI_SIZE_BODY
+  );
+
+  if (data.totalDiscount > 0) {
+    pushColumns(
+      [tr.discounts, `- CHF ${data.totalDiscount.toFixed(2)}`],
+      [1, 1],
+      ['left', 'right'],
+      true,
+      SUNMI_SIZE_BODY
+    );
+  }
+
+  pushDivider();
+
+  pushColumns(
+    [tr.revenue, `CHF ${data.totalRevenue.toFixed(2)}`],
+    [1, 1],
+    ['left', 'right'],
+    true,
+    SUNMI_SIZE_TOTAL
+  );
+
+  pushDivider();
+
+  pushText('Powered by: FoodUp.ch', false, SUNMI_SIZE_FOOTER, 'center');
+
+  for (let i = 0; i < sunmiReceiptConfig.spacing.bottomFeedLines; i++) {
+    pushBlank(sunmiReceiptConfig.spacing.bottomFeedSize, 'left');
+  }
+
+  return instructions;
+}
+
 async function printViaTCP(order: any, restaurantName: string, logoUrl: string, language: string): Promise<void> {
   const printerIp = await AsyncStorage.getItem('printer_ip');
   const printerPort = parseInt(await AsyncStorage.getItem('printer_port') || '9100');
@@ -659,6 +848,7 @@ export async function printZReport(zData: {
   const logoUrl = await AsyncStorage.getItem('restaurant_logo') || '';
   const language = await AsyncStorage.getItem('app_language') || 'de';
   const printerIp = await AsyncStorage.getItem('printer_ip');
+  const printerModel = (await AsyncStorage.getItem('printer_model') || '').toLowerCase();
 
   if (Platform.OS === 'web') {
     const html = buildZReportHTML(zData, restaurantName, logoUrl, language);
@@ -672,7 +862,37 @@ export async function printZReport(zData: {
     return;
   }
 
-  if (printerIp) {
+  if (printerModel.includes('sunmi')) {
+    try {
+      let logoBase64 = '';
+
+      if (logoUrl) {
+        try {
+          const FileSystem = await import('expo-file-system/legacy');
+          const fileUri = FileSystem.cacheDirectory + 'z-report-logo.png';
+
+          await FileSystem.downloadAsync(logoUrl, fileUri);
+
+          logoBase64 = await FileSystem.readAsStringAsync(fileUri, {
+            encoding: FileSystem.EncodingType.Base64,
+          });
+        } catch (e) {
+          console.log('Logo download failed for native Sunmi Z-report:', e);
+        }
+      }
+
+      const instructions = buildSunmiZReportInstructions(zData, restaurantName, logoBase64, language);
+      const { printSunmiInstructionsNative } = await import('./nativeSunmiPrinter');
+      const ok = await printSunmiInstructionsNative(instructions);
+      if (ok) return;
+    } catch (e: any) {
+      console.log('Sunmi native Z-report print failed:', e);
+      lastSunmiError = String(e?.message || e);
+      throw e;
+    }
+  }
+
+  if (printerIp && !printerModel.includes('sunmi')) {
     await printZReportViaTCP(zData, restaurantName, language);
   } else {
     const html = buildZReportHTML(zData, restaurantName, logoUrl, language);

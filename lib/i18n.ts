@@ -82,7 +82,12 @@ export const translations = {
     printerModel: 'Modell',
     printerNotConfigured: 'Nicht konfiguriert',
     printerSetIp: 'Drucker-IP im WordPress-Plugin setzen',
+    restaurantLogin: 'Restaurant Login',
+    signInToPOS: 'Melde dich in deinem POS-System an',
+    error: 'Fehler',
+    connectionError: 'Verbindung fehlgeschlagen. Bitte überprüfe deine Internetverbindung.',
   },
+  
   en: {
     newOrder: 'New Order',
     orders: 'Orders',
@@ -164,6 +169,10 @@ export const translations = {
     printerModel: 'Model',
     printerNotConfigured: 'Not configured',
     printerSetIp: 'Set printer IP in WordPress plugin',
+    restaurantLogin: 'Restaurant Login',
+    signInToPOS: 'Sign in to your POS system',
+    error: 'Error',
+    connectionError: 'Could not connect. Check your internet connection.',
   },
 };
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -33,6 +33,12 @@ const PLACEHOLDER = colors.placeholder;
 
 export default function LoginScreen() {
   const { t } = useLanguage();
+  const pinInputRef = useRef<TextInput>(null);
+
+  const loginTitle = (t as any).restaurantLogin || 'Restaurant Login';
+  const loginSubtitle = (t as any).signInToPOS || 'Sign in to your POS system';
+  const errorTitle = (t as any).error || 'Error';
+  const connectionError = (t as any).connectionError || 'Could not connect. Check your internet connection.';
 
   const [code, setCode] = useState('');
   const [pin, setPin] = useState('');
@@ -71,7 +77,7 @@ export default function LoginScreen() {
 
   async function handleLogin() {
     if (!code.trim() || !pin.trim()) {
-      Alert.alert('Error', t.enterCodeAndPin);
+      Alert.alert(errorTitle, t.enterCodeAndPin);
       return;
     }
 
@@ -103,10 +109,10 @@ export default function LoginScreen() {
 
         router.replace('/(tabs)/orders');
       } else {
-        Alert.alert('Error', data.error || t.invalidCodeOrPin);
+        Alert.alert(errorTitle, data.error || t.invalidCodeOrPin);
       }
     } catch (e) {
-      Alert.alert('Error', 'Could not connect. Check your internet connection.');
+      Alert.alert(errorTitle, connectionError);
     } finally {
       setLogging(false);
     }
@@ -140,12 +146,11 @@ export default function LoginScreen() {
           />
 
           <View style={styles.titleBlock}>
-            <Text style={styles.title}>Restaurant Login</Text>
-            <Text style={styles.subtitle}>Sign in to your POS system</Text>
+            <Text style={styles.title}>{loginTitle}</Text>
+            <Text style={styles.subtitle}>{loginSubtitle}</Text>
           </View>
 
           <View style={styles.form}>
-            <Text style={styles.label}>{t.restaurantCode}</Text>
             <View
               style={[
                 styles.inputBox,
@@ -161,12 +166,13 @@ export default function LoginScreen() {
                 autoCapitalize="none"
                 autoCorrect={false}
                 returnKeyType="next"
+                blurOnSubmit={false}
+                onSubmitEditing={() => pinInputRef.current?.focus()}
                 onFocus={() => setFocusedField('code')}
                 onBlur={() => setFocusedField(null)}
               />
             </View>
 
-            <Text style={styles.label}>{t.ownerPin}</Text>
             <View
               style={[
                 styles.inputBox,
@@ -174,6 +180,7 @@ export default function LoginScreen() {
               ]}
             >
               <TextInput
+                ref={pinInputRef}
                 style={styles.input}
                 value={pin}
                 onChangeText={setPin}
@@ -247,20 +254,20 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: BORDER,
     paddingHorizontal: 26,
-    paddingTop: 30,
-    paddingBottom: 28,
+    paddingTop: 26,
+    paddingBottom: 24,
   },
 
   logo: {
     alignSelf: 'center',
     width: 178,
     height: 72,
-    marginBottom: 22,
+    marginBottom: 18,
   },
 
   titleBlock: {
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: 22,
   },
 
   title: {
@@ -295,12 +302,12 @@ const styles = StyleSheet.create({
   },
 
   inputBox: {
-    minHeight: 54,
+    minHeight: 46,
     backgroundColor: FIELD_BG,
-    borderRadius: radii.xl,
+    borderRadius: radii.lg,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: BORDER,
-    marginBottom: 17,
+    marginBottom: 13,
     justifyContent: 'center',
   },
 
@@ -310,10 +317,10 @@ const styles = StyleSheet.create({
   },
 
   input: {
-    minHeight: 54,
-    paddingHorizontal: 16,
-    paddingVertical: Platform.OS === 'ios' ? 15 : 12,
-    fontSize: fontSizes.lgl,
+    minHeight: 46,
+    paddingHorizontal: 15,
+    paddingVertical: Platform.OS === 'ios' ? 10 : 7,
+    fontSize: fontSizes.lg,
     color: TEXT,
     fontWeight: fontWeights.regular,
     fontFamily: appFont,
