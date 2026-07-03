@@ -334,12 +334,6 @@ export async function printOrder(order: any, restaurantCode: string): Promise<vo
   const language = await AsyncStorage.getItem('app_language') || 'de';
   const printerIp = await AsyncStorage.getItem('printer_ip');
   const printerModel = (await AsyncStorage.getItem('printer_model') || '').toLowerCase();
-
-  console.log('PRINT DEBUG: printerModel=', JSON.stringify(printerModel), 'printerIp=', JSON.stringify(printerIp));
-  if (Platform.OS !== 'web') {
-    const { Alert } = require('react-native');
-    Alert.alert('Print Debug', `model="${printerModel}"\nip="${printerIp}"`);
-  }
   if (Platform.OS !== 'web') {
     const { Alert } = require('react-native');
     Alert.alert('Print Debug', `model="${printerModel}"\nip="${printerIp}"`);
@@ -393,8 +387,9 @@ export async function printOrder(order: any, restaurantCode: string): Promise<vo
       const ok = await printSunmiReceiptNative(nativeOrder, { name: restaurantName, logoBase64 });
       if (ok) return;
     } catch (e: any) {
-      console.log('Sunmi native print failed, falling back:', e);
+      console.log('Sunmi native print failed:', e);
       lastSunmiError = String(e?.message || e);
+      throw e;
     }
   }
 
