@@ -352,19 +352,7 @@ export async function printOrder(order: any, restaurantCode: string): Promise<vo
       const tr = receiptTranslations[language] || receiptTranslations['de'];
       const date = new Date(order.created_at);
 
-      let logoBase64 = '';
-      if (logoUrl) {
-        try {
-          const FileSystem = await import('expo-file-system/legacy');
-          const fileUri = FileSystem.cacheDirectory + 'receipt-logo.png';
-          await FileSystem.downloadAsync(logoUrl, fileUri);
-          logoBase64 = await FileSystem.readAsStringAsync(fileUri, {
-            encoding: FileSystem.EncodingType.Base64,
-          });
-        } catch (e) {
-          console.log('Logo download failed for native Sunmi print:', e);
-        }
-      }
+      let logoBase64 = ''; // temporarily disabled — sending blank skips the native bitmap block
 
       const nativeOrder = {
         ...order,
