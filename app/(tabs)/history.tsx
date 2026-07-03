@@ -1086,7 +1086,7 @@ const numColumns = getNumColumns(listWidth);
           onPress={() => setSelectedOrder(null)}
         >
           <TouchableOpacity
-            style={styles.modalBox}
+            style={[styles.modalBox, styles.orderModalBox]}
             activeOpacity={1}
             onPress={e => e.stopPropagation()}
           >
@@ -1157,111 +1157,116 @@ const numColumns = getNumColumns(listWidth);
                   </View>
                 </View>
 
-                <ScrollView style={styles.modalBody}>
-                  {selectedOrder.items.map((item, index) => (
-                    <View key={index} style={styles.itemRow}>
-                      <View style={styles.itemQtyBadge}>
-                        <Text style={styles.itemQtyText}>{item.quantity}</Text>
-                      </View>
-
-                      <View style={styles.itemInfo}>
-                        <Text style={styles.itemName}>{item.name}</Text>
-
-                        {item.variation ? (
-                          <Text style={styles.itemSub}>↳ {item.variation}</Text>
-                        ) : null}
-
-                        {item.addons?.map((addon: any, addonIndex: number) => (
-                          <Text key={addonIndex} style={styles.itemSub}>
-                            + {addon.label || addon.name}
-                          </Text>
-                        ))}
-                      </View>
-
-                      <Text style={styles.itemTotal}>
-                        {formatMoney(parseAmount(item.total))}
-                      </Text>
-                    </View>
-                  ))}
-
-                  {selectedOrder.note ? (
-                    <View style={styles.noteBox}>
-                      <Ionicons
-                        name="chatbubble-ellipses-outline"
-                        size={14}
-                        color="#F59E0B"
-                      />
-                      <Text style={styles.noteText}>{selectedOrder.note}</Text>
-                    </View>
-                  ) : null}
-
-                  <View style={styles.divider} />
-
-                  {parseAmount(selectedOrder.discount) > 0 && (
-                    <>
-                      <View style={styles.totalRow}>
-                        <Text style={styles.totalLabel}>{t.subtotal}</Text>
-                        <Text style={styles.totalValue}>
-                          {formatMoney(
-                            parseAmount(
-                              selectedOrder.subtotal || selectedOrder.total
-                            )
-                          )}
-                        </Text>
-                      </View>
-
-                      <View style={styles.totalRow}>
-                        <Text style={[styles.totalLabel, styles.discountText]}>
-                          {t.discount}
-                        </Text>
-                        <Text style={[styles.totalValue, styles.discountText]}>
-                          - {formatMoney(parseAmount(selectedOrder.discount))}
-                        </Text>
-                      </View>
-                    </>
-                  )}
-
-                  {taxRows.map((row, index) => (
-                    <View key={`${row.label}-${index}`} style={styles.totalRow}>
-                      <Text
-                        style={[
-                          styles.totalLabel,
-                          row.bold ? styles.taxGroupLabel : styles.taxLabel,
-                        ]}
-                      >
-                        {row.label}
-                      </Text>
-                      <Text
-                        style={[
-                          styles.totalValue,
-                          row.bold ? styles.taxGroupValue : styles.taxValue,
-                        ]}
-                      >
-                        {formatMoney(row.amount)}
-                      </Text>
-                    </View>
-                  ))}
-
-                  {taxRows.length > 0 ? <View style={styles.totalDivider} /> : null}
-
-                  <View style={styles.finalTotalBox}>
-                    <Text style={styles.finalTotalLabel}>{t.total}</Text>
-                    <Text style={styles.finalTotalValue}>
-                      {formatMoney(parseAmount(selectedOrder.total))}
-                    </Text>
-                  </View>
-
-                </ScrollView>
-
-                <View style={styles.modalFooter}>
-                  <TouchableOpacity
-                    style={styles.reprintBtn}
-                    onPress={() => selectedOrder && printOrder(selectedOrder, restaurantCode)}
-                    activeOpacity={0.78}
+                <View style={styles.modalContentShell}>
+                  <ScrollView
+                    style={styles.productsScroll}
+                    contentContainerStyle={styles.productsScrollContent}
+                    showsVerticalScrollIndicator={false}
                   >
-                    <Ionicons name="print-outline" size={16} color={PRIMARY} />
-                    <Text style={styles.reprintBtnText}>{t.reprint}</Text>
-                  </TouchableOpacity>
+                    {selectedOrder.items.map((item, index) => (
+                      <View key={index} style={styles.itemRow}>
+                        <View style={styles.itemQtyBadge}>
+                          <Text style={styles.itemQtyText}>{item.quantity}</Text>
+                        </View>
+
+                        <View style={styles.itemInfo}>
+                          <Text style={styles.itemName}>{item.name}</Text>
+
+                          {item.variation ? (
+                            <Text style={styles.itemSub}>↳ {item.variation}</Text>
+                          ) : null}
+
+                          {item.addons?.map((addon: any, addonIndex: number) => (
+                            <Text key={addonIndex} style={styles.itemSub}>
+                              + {addon.label || addon.name}
+                            </Text>
+                          ))}
+                        </View>
+
+                        <Text style={styles.itemTotal}>
+                          {formatMoney(parseAmount(item.total))}
+                        </Text>
+                      </View>
+                    ))}
+
+                    {selectedOrder.note ? (
+                      <View style={styles.noteBox}>
+                        <Ionicons
+                          name="chatbubble-ellipses-outline"
+                          size={14}
+                          color="#F59E0B"
+                        />
+                        <Text style={styles.noteText}>{selectedOrder.note}</Text>
+                      </View>
+                    ) : null}
+                  </ScrollView>
+
+                  <View style={styles.fixedTotalsPanel}>
+                    {parseAmount(selectedOrder.discount) > 0 && (
+                      <>
+                        <View style={styles.totalRow}>
+                          <Text style={styles.totalLabel}>{t.subtotal}</Text>
+                          <Text style={styles.totalValue}>
+                            {formatMoney(
+                              parseAmount(
+                                selectedOrder.subtotal || selectedOrder.total
+                              )
+                            )}
+                          </Text>
+                        </View>
+
+                        <View style={styles.totalRow}>
+                          <Text style={[styles.totalLabel, styles.discountText]}>
+                            {t.discount}
+                          </Text>
+                          <Text style={[styles.totalValue, styles.discountText]}>
+                            - {formatMoney(parseAmount(selectedOrder.discount))}
+                          </Text>
+                        </View>
+                      </>
+                    )}
+
+                    {taxRows.map((row, index) => (
+                      <View key={`${row.label}-${index}`} style={styles.totalRow}>
+                        <Text
+                          style={[
+                            styles.totalLabel,
+                            row.bold ? styles.taxGroupLabel : styles.taxLabel,
+                          ]}
+                        >
+                          {row.label}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.totalValue,
+                            row.bold ? styles.taxGroupValue : styles.taxValue,
+                          ]}
+                        >
+                          {formatMoney(row.amount)}
+                        </Text>
+                      </View>
+                    ))}
+
+                    {taxRows.length > 0 ? <View style={styles.totalDivider} /> : null}
+
+                    <View style={styles.finalActionRow}>
+                      <TouchableOpacity
+                        style={styles.reprintBtn}
+                        onPress={() => selectedOrder && printOrder(selectedOrder, restaurantCode)}
+                        activeOpacity={0.78}
+                      >
+                        <Ionicons name="print-outline" size={16} color={PRIMARY} />
+                        <Text style={styles.reprintBtnText}>{t.reprint}</Text>
+                      </TouchableOpacity>
+
+                      <View style={styles.finalTotalBox}>
+                        <Text style={styles.finalTotalLabel}>{t.total}</Text>
+                        <Text style={styles.finalTotalValue}>
+                          {formatMoney(parseAmount(selectedOrder.total))}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
                 </View>
               </>
               );
@@ -2028,6 +2033,10 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
 
+  orderModalBox: {
+    height: '82%',
+  },
+
   zModalBox: {
     maxWidth: 460,
   },
@@ -2045,7 +2054,7 @@ const styles = StyleSheet.create({
   modalHeaderActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 40,
+    gap: 20,
   },
 
   modalKicker: {
@@ -2125,6 +2134,30 @@ const styles = StyleSheet.create({
 
   modalBody: {
     padding: 18,
+  },
+
+  modalContentShell: {
+    flex: 1,
+    minHeight: 0,
+  },
+
+  productsScroll: {
+    flex: 1,
+    minHeight: 0,
+  },
+
+  productsScrollContent: {
+    padding: 18,
+    paddingBottom: 12,
+  },
+
+  fixedTotalsPanel: {
+    borderTopWidth: thinBorder,
+    borderTopColor: BORDER,
+    backgroundColor: '#fff',
+    paddingHorizontal: 18,
+    paddingTop: 12,
+    paddingBottom: 18,
   },
 
   modalFooter: {
@@ -2259,12 +2292,21 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
 
+  finalActionRow: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    gap: 10,
+  },
+
   finalTotalBox: {
+    flex: 1,
+    minHeight: 56,
     backgroundColor: PRIMARY_SOFT,
     borderWidth: thinBorder,
     borderColor: PRIMARY_BORDER,
     borderRadius: radii.xl,
-    padding: 13,
+    paddingHorizontal: 13,
+    paddingVertical: 11,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -2285,14 +2327,16 @@ const styles = StyleSheet.create({
   },
 
   reprintBtn: {
+    minWidth: 128,
+    minHeight: 56,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
     backgroundColor: PRIMARY_SOFT,
     borderRadius: radii.xl,
-    paddingHorizontal: 14,
-    paddingVertical: 13,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
     borderWidth: thinBorder,
     borderColor: PRIMARY_BORDER,
   },
