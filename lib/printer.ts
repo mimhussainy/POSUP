@@ -112,7 +112,7 @@ function buildReceiptHTML(order: any, restaurantName: string, logoUrl?: string, 
         ${logoHTML ? `<div class="logo">${logoHTML}</div>` : `<div class="restaurant">${restaurantName.toUpperCase()}</div>`}
         <div class="order-num">${order.order_number || order.order_id || ''}</div>
         <div class="meta">${dateStr} ${timeStr}</div>
-        ${order.table && order.table !== 'Walk-in' ? `<div class="meta">${tr.table}: ${order.table}</div>` : ''}
+        ${shouldPrintTableLine(order) ? `<div class="meta">${tr.table}: ${order.table}</div>` : ''}
         ${order.customer_name && order.customer_name !== 'Walk-in Customer' ? `<div class="meta">${order.customer_name}</div>` : ''}
       </div>
       <div class="divider"></div>
@@ -280,6 +280,46 @@ function sunmiTaxIncluded(grossAmount: number, rate: number): number {
   return grossAmount - grossAmount / (1 + rate / 100);
 }
 
+function shouldPrintTableLine(order: any): boolean {
+  const table = sunmiClean(order?.table).toLowerCase();
+
+  if (!table) return false;
+
+  const hiddenTableValues = [
+    'walk-in',
+    'walk-in customer',
+    'not specified',
+    'laufkunden',
+    'laufkunde',
+    'takeaway',
+    'telefon',
+    'phone',
+  ];
+
+  if (hiddenTableValues.includes(table)) return false;
+
+  const orderType = sunmiClean(
+    order?.order_type ||
+    order?.type ||
+    order?.service_type ||
+    order?.fulfillment_type ||
+    order?.delivery_type ||
+    order?.order_method
+  ).toLowerCase();
+
+  if (
+    orderType.includes('takeaway') ||
+    orderType.includes('telefon') ||
+    orderType.includes('phone') ||
+    orderType.includes('pickup') ||
+    orderType.includes('delivery')
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
 type ReceiptTaxPrintRow = {
   label: string;
   amount: number;
@@ -438,8 +478,7 @@ function isSunmiDineInOrder(order: any): boolean {
     return true;
   }
 
-  const table = sunmiClean(order.table).toLowerCase();
-  return !!table && table !== 'walk-in' && table !== 'not specified';
+  return shouldPrintTableLine(order);
 }
 
 function buildSunmiTaxRows(order: any, language: string = 'de'): ReceiptTaxPrintRow[] {
@@ -560,7 +599,7 @@ function buildSunmiInstructions(
     pushText(dateTimeLabel, false, SUNMI_SIZE_META + 4, 'center');
   }
 
-  if (order.table && order.table !== 'Walk-in' && order.table !== 'Not specified') {
+  if (shouldPrintTableLine(order)) {
     pushText(`${tr.table}: ${order.table}`, false, SUNMI_SIZE_META, 'center');
   }
 
@@ -927,7 +966,7 @@ async function printViaTCP(order: any, restaurantName: string, logoUrl: string, 
   lines.push(restaurantName.toUpperCase());
   lines.push(order.order_number || '');
   lines.push(`${dateStr} ${timeStr}`);
-  if (order.table && order.table !== 'Walk-in') lines.push(`${tr.table}: ${order.table}`);
+  if (shouldPrintTableLine(order)) lines.push(`${tr.table}: ${order.table}`);
 
   const phonePrintInfo = getPhoneOrderPrintInfo(order, language);
 
