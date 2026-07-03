@@ -388,7 +388,7 @@ export async function printOrder(order: any, restaurantCode: string): Promise<vo
     }
   }
 
-  if (printerIp) {
+  if (printerIp && !printerModel.includes('sunmi')) {
     await printViaTCP(order, restaurantName, logoUrl, language);
   } else {
     const html = buildReceiptHTML(order, restaurantName, logoUrl, language);

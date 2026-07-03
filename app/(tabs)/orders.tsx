@@ -630,13 +630,13 @@ export default function NewOrderScreen() {
 
         try {
           await printOrder(placedOrder, restaurantCode);
-          const { lastSunmiError } = await import('../../lib/printer');
-          if (lastSunmiError) {
-            Alert.alert('Sunmi Print Debug', lastSunmiError);
-          }
         } catch (printErr: any) {
           console.log('Print failed:', printErr?.message);
-          Alert.alert('Print Failed', String(printErr?.message || printErr));
+          const { lastSunmiError } = await import('../../lib/printer');
+          Alert.alert(
+            'Print Failed',
+            `Sunmi: ${lastSunmiError || 'no error captured'}\n\nFallback: ${String(printErr?.message || printErr)}`
+          );
         }
       } else {
         showToast('Failed to place order', 'error');
