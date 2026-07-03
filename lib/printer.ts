@@ -62,6 +62,13 @@ function buildReceiptHTML(order: any, restaurantName: string, logoUrl?: string, 
     </tr>
   ` : '';
 
+  const taxRowsHTML = buildReceiptTaxRows(order, language).map(row => `
+    <tr class="tax-row">
+      <td colspan="2">${row.label}</td>
+      <td>CHF ${row.amount.toFixed(2)}</td>
+    </tr>
+  `).join('');
+
   const logoHTML = logoUrl ? `<img src="${logoUrl}" style="max-height:60px;max-width:160px;margin-bottom:8px;" />` : '';
 
   return `
@@ -87,6 +94,8 @@ function buildReceiptHTML(order: any, restaurantName: string, logoUrl?: string, 
         .sub { font-size: 15px; color: #000; font-weight: 400; }
         .subtotal td, .discount td { font-size: 14px; color: #000; }
         .discount td { font-weight: 600; }
+        .tax-row td { font-size: 14px; color: #000; font-weight: 600; }
+        .tax-row td:last-child { text-align: right; white-space: nowrap; }
         .total-row td { font-size: 16px; font-weight: 900; padding-top: 8px; color: #000; }
         .total-row td:last-child { text-align: right; }
         .payment td { font-size: 18px; color: #000; padding-top: 4px; font-weight: 700; }
@@ -109,6 +118,7 @@ function buildReceiptHTML(order: any, restaurantName: string, logoUrl?: string, 
       <table>${itemsHTML}</table>
       <table>
         ${discountHTML}
+        ${taxRowsHTML}
         <tr class="total-row"><td colspan="2">${tr.total}</td><td>CHF ${parseFloat(order.total).toFixed(2)}</td></tr>
         <tr class="payment"><td colspan="2">${tr.payment}</td><td>${order.payment_method === 'cash' ? tr.cash : tr.card}</td></tr>
       </table>
@@ -269,6 +279,140 @@ function sunmiTaxIncluded(grossAmount: number, rate: number): number {
   return grossAmount - grossAmount / (1 + rate / 100);
 }
 
+type ReceiptTaxPrintRow = {
+  label: string;
+  amount: number;
+};
+
+function formatTaxRateLabel(rate: number): string {
+  if (!Number.isFinite(rate) || rate <= 0) return '';
+
+  const fixed = rate.toFixed(1).replace(/\.0$/, '');
+  return `MWST inkl. ${fixed}%`;
+}
+
+function fallbackTaxGroupLabel(type: any, language: string): string {
+  const normalized = sunmiClean(type).toLowerCase();
+
+  if (normalized === 'alcohol') {
+    return language === 'de' ? 'Alkohol total' : 'Alcohol total';
+  }
+
+  return language === 'de' ? 'Speisen total' : 'Food total';
+}
+
+function buildReceiptTaxRows(order: any, language: string = 'de'): ReceiptTaxPrintRow[] {
+  const rows: ReceiptTaxPrintRow[] = [];
+  const summary = Array.isArray(order?.tax_summary) ? order.tax_summary : [];
+
+  if (summary.length > 0) {
+    summary.forEach((row: any) => {
+      const rate = sunmiNumber(row.rate);
+      const gross = sunmiNumber(row.gross);
+      const tax = sunmiNumber(row.tax ?? row.tax_total);
+      const groupLabel = sunmiClean(row.label) || fallbackTaxGroupLabel(row.type, language);
+      const taxLabel = sunmiClean(row.tax_label) || formatTaxRateLabel(rate);
+
+      if (gross > 0.004 && groupLabel) {
+        rows.push({
+          label: groupLabel,
+          amount: gross,
+        });
+      }
+
+      if (tax > 0.004 && taxLabel) {
+        rows.push({
+          label: taxLabel,
+          amount: tax,
+        });
+      }
+    });
+
+    return rows;
+  }
+
+  const items = Array.isArray(order?.items) ? order.items : [];
+  const orderTotal = sunmiNumber(order?.total);
+
+  if (orderTotal <= 0) return [];
+
+  if (isSunmiDineInOrder(order)) {
+    return [
+      {
+        label: formatTaxRateLabel(8.1),
+        amount: sunmiTaxIncluded(orderTotal, 8.1),
+      },
+    ];
+  }
+
+  const itemGrossTotal = items.reduce((sum: number, item: any) => {
+    return sum + sunmiNumber(item.discounted_total ?? item.total);
+  }, 0);
+
+  if (itemGrossTotal <= 0) {
+    return [
+      {
+        label: formatTaxRateLabel(2.6),
+        amount: sunmiTaxIncluded(orderTotal, 2.6),
+      },
+    ];
+  }
+
+  const grouped: Record<string, { type: string; label: string; rate: number; gross: number; tax: number }> = {};
+
+  items.forEach((item: any) => {
+    const type = sunmiClean(item.tax_type || (item.is_alcohol === true ? 'alcohol' : 'food')).toLowerCase() || 'food';
+    const rateFromItem = sunmiNumber(item.tax_rate);
+    const rate = rateFromItem > 0 ? rateFromItem : type === 'alcohol' ? 8.1 : 2.6;
+    const itemGross = sunmiNumber(item.discounted_total ?? item.total);
+    const taxFromItem = sunmiNumber(item.tax_total);
+    const tax = taxFromItem > 0 ? taxFromItem : sunmiTaxIncluded(itemGross, rate);
+    const key = `${type}_${rate.toFixed(1)}`;
+
+    if (!grouped[key]) {
+      grouped[key] = {
+        type,
+        label: fallbackTaxGroupLabel(type, language),
+        rate,
+        gross: 0,
+        tax: 0,
+      };
+    }
+
+    grouped[key].gross += itemGross;
+    grouped[key].tax += tax;
+  });
+
+  Object.values(grouped).forEach(group => {
+    if (group.gross > 0.004) {
+      rows.push({
+        label: group.label,
+        amount: group.gross,
+      });
+    }
+
+    if (group.tax > 0.004) {
+      rows.push({
+        label: formatTaxRateLabel(group.rate),
+        amount: group.tax,
+      });
+    }
+  });
+
+  return rows;
+}
+
+function formatTcpReceiptLine(label: string, value: string, width: number = 32): string {
+  const left = sunmiClean(label);
+  const right = sunmiClean(value);
+
+  if (!left) return right;
+  if (!right) return left;
+
+  const spaces = Math.max(1, width - left.length - right.length);
+  return `${left}${' '.repeat(spaces)}${right}`;
+}
+
 function isSunmiDineInOrder(order: any): boolean {
   const typeText = [
     order.order_type,
@@ -294,61 +438,8 @@ function isSunmiDineInOrder(order: any): boolean {
   return !!table && table !== 'walk-in' && table !== 'not specified';
 }
 
-function buildSunmiTaxRows(order: any): { label: string; amount: number }[] {
-  const items = Array.isArray(order.items) ? order.items : [];
-  const orderTotal = sunmiNumber(order.total);
-
-  if (orderTotal <= 0) return [];
-
-  if (isSunmiDineInOrder(order)) {
-    return [
-      {
-        label: 'MWST inkl. 8.1%',
-        amount: sunmiTaxIncluded(orderTotal, 8.1),
-      },
-    ];
-  }
-
-  const itemGrossTotal = items.reduce((sum: number, item: any) => {
-    return sum + sunmiNumber(item.total);
-  }, 0);
-
-  const alcoholGrossTotal = items.reduce((sum: number, item: any) => {
-    return item.is_alcohol === true ? sum + sunmiNumber(item.total) : sum;
-  }, 0);
-
-  if (itemGrossTotal <= 0) {
-    return [
-      {
-        label: 'MWST inkl. 2.6%',
-        amount: sunmiTaxIncluded(orderTotal, 2.6),
-      },
-    ];
-  }
-
-  const foodGrossTotal = Math.max(0, itemGrossTotal - alcoholGrossTotal);
-  const adjustmentFactor = orderTotal / itemGrossTotal;
-
-  const foodAdjustedTotal = foodGrossTotal * adjustmentFactor;
-  const alcoholAdjustedTotal = alcoholGrossTotal * adjustmentFactor;
-
-  const rows: { label: string; amount: number }[] = [];
-
-  if (foodAdjustedTotal > 0.005) {
-    rows.push({
-      label: 'MWST inkl. 2.6%',
-      amount: sunmiTaxIncluded(foodAdjustedTotal, 2.6),
-    });
-  }
-
-  if (alcoholAdjustedTotal > 0.005) {
-    rows.push({
-      label: 'MWST inkl. 8.1%',
-      amount: sunmiTaxIncluded(alcoholAdjustedTotal, 8.1),
-    });
-  }
-
-  return rows;
+function buildSunmiTaxRows(order: any, language: string = 'de'): { label: string; amount: number }[] {
+  return buildReceiptTaxRows(order, language);
 }
 
 function buildSunmiInstructions(
@@ -572,7 +663,7 @@ function buildSunmiInstructions(
     );
   }
 
-  const taxRows = buildSunmiTaxRows(order);
+  const taxRows = buildSunmiTaxRows(order, language);
 
   taxRows.forEach((row) => {
     pushColumns(
@@ -870,13 +961,17 @@ async function printViaTCP(order: any, restaurantName: string, logoUrl: string, 
 
   if (order.discount && parseFloat(order.discount) > 0) {
     const sub = `CHF ${parseFloat(order.subtotal).toFixed(2)}`;
-    lines.push(`${tr.subtotal.padEnd(32 - sub.length)}${sub}`);
+    lines.push(formatTcpReceiptLine(tr.subtotal, sub));
     const disc = `-CHF ${parseFloat(order.discount).toFixed(2)}`;
-    lines.push(`${tr.discount.padEnd(32 - disc.length)}${disc}`);
+    lines.push(formatTcpReceiptLine(tr.discount, disc));
   }
 
+  buildReceiptTaxRows(order, language).forEach(row => {
+    lines.push(formatTcpReceiptLine(row.label, sunmiMoney(row.amount)));
+  });
+
   const total = `CHF ${parseFloat(order.total).toFixed(2)}`;
-  lines.push(`${tr.total.padEnd(32 - total.length)}${total}`);
+  lines.push(formatTcpReceiptLine(tr.total, total));
   lines.push(`${tr.payment}: ${order.payment_method === 'cash' ? tr.cash : tr.card}`);
 
   const cleanOrderNote = sunmiClean(order.note || order.pos_note || '');
@@ -1112,10 +1207,13 @@ export async function testPrintReceipt(restaurantCode: string): Promise<void> {
     order_number: 'TEST-001',
     created_at: new Date().toISOString(),
     table: null,
-    items: [{ quantity: 1, name: 'Test Product', total: '10.00', variation: '', addons: [], category: '' }],
+    order_type: 'takeaway',
+    items: [{ quantity: 1, name: 'Test Product', total: '10.00', discounted_total: '10.00', tax_type: 'food', tax_rate: '2.6', tax_total: '0.25', variation: '', addons: [], category: '', is_alcohol: false }],
     subtotal: '10.00',
     discount: '0',
     total: '10.00',
+    tax_total: '0.25',
+    tax_summary: [{ type: 'food', label: 'Speisen total', rate: '2.6', gross: '10.00', net: '9.75', tax: '0.25' }],
     payment_method: 'cash',
     note: '',
   }, restaurantCode);
