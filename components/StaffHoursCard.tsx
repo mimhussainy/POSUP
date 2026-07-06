@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -87,6 +87,15 @@ export default function StaffHoursCard({
   const [verifying, setVerifying] = useState(false);
   const [pinError, setPinError] = useState('');
 
+  const pinInputRef = useRef<TextInput>(null);
+
+  useEffect(() => {
+    if (pinModal) {
+      const timer = setTimeout(() => pinInputRef.current?.focus(), 150);
+      return () => clearTimeout(timer);
+    }
+  }, [pinModal]);
+
   const [mainModal, setMainModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -132,8 +141,8 @@ export default function StaffHoursCard({
       } else {
         setPinError(res.error || tr('Incorrect PIN', 'Falsche PIN'));
       }
-    } catch (e) {
-      setPinError(tr('Could not verify PIN', 'PIN konnte nicht überprüft werden'));
+    } catch (e: any) {
+      setPinError(String(e?.message || e));
     } finally {
       setVerifying(false);
     }
@@ -225,6 +234,7 @@ export default function StaffHoursCard({
             </View>
             <View style={styles.modalBody}>
               <TextInput
+                ref={pinInputRef}
                 style={styles.pinInput}
                 placeholder={tr('Enter admin PIN', 'Admin-PIN eingeben')}
                 placeholderTextColor="#A8ACB7"
@@ -232,7 +242,6 @@ export default function StaffHoursCard({
                 onChangeText={setPinInput}
                 secureTextEntry
                 keyboardType="number-pad"
-                autoFocus
               />
               {pinError ? <Text style={styles.errorText}>{pinError}</Text> : null}
               <TouchableOpacity
@@ -499,7 +508,6 @@ const styles = StyleSheet.create({
     fontFamily: appFont,
     fontWeight: fontWeights.semibold,
     marginBottom: 14,
-    textAlign: 'center',
   },
   textInput: {
     borderWidth: thinBorder,

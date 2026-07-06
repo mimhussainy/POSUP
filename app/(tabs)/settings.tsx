@@ -428,9 +428,12 @@ export default function Settings() {
   };
 
   const confirmLogout = async () => {
-    await AsyncStorage.clear();
-    router.replace('/');
-  };
+  const allKeys = await AsyncStorage.getAllKeys();
+  const keysToPreserve = allKeys.filter(k => k.startsWith('posup_phone_customers_'));
+  const keysToRemove = allKeys.filter(k => !k.startsWith('posup_phone_customers_'));
+  await AsyncStorage.multiRemove(keysToRemove);
+  router.replace('/');
+};
 
   const reopenDay = async () => {
     await AsyncStorage.removeItem('day_closed_date');
@@ -723,12 +726,16 @@ export default function Settings() {
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.footer}
+                style={styles.sidebarItem}
                 onPress={() => setAboutModal(true)}
                 activeOpacity={0.75}
               >
-                <Ionicons name="hand-left-outline" size={14} color="#B8BBC4" />
-                <Text style={styles.footerText}>Powered by FoodUp.ch</Text>
+                <View style={styles.sidebarIconBox}>
+                  <Ionicons name="information-circle-outline" size={18} color="#6B7280" />
+                </View>
+                <Text style={styles.sidebarLabel}>
+                  {isGerman ? 'Über FoodUp' : 'About FoodUp'}
+                </Text>
               </TouchableOpacity>
             </ScrollView>
           </View>
