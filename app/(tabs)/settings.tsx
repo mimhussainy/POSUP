@@ -707,7 +707,16 @@ export default function Settings() {
                     <Text style={[styles.sidebarLabel, active && styles.sidebarLabelActive]}>
                       {item.label}
                     </Text>
-                    {isNarrow && <Ionicons name="chevron-forward" size={16} color="#C0C4CE" />}
+
+                    {item.key === 'staffHours' ? (
+                      <Ionicons
+                        name="lock-closed-outline"
+                        size={15}
+                        color={active ? PRIMARY : '#9CA3AF'}
+                      />
+                    ) : isNarrow ? (
+                      <Ionicons name="chevron-forward" size={16} color="#C0C4CE" />
+                    ) : null}
                   </TouchableOpacity>
                 );
               })}

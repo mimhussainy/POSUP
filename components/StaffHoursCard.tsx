@@ -10,6 +10,7 @@ import {
   StyleSheet,
   Alert,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, borders, radii, fontSizes, fontWeights } from '../lib/theme';
 import { appFont } from '../lib/fonts';
@@ -32,6 +33,9 @@ const SOFT_TEXT = colors.softText;
 const GREEN = colors.success;
 const RED = colors.danger;
 const thinBorder = borders.thin;
+const STAFF_PIN_LENGTH = 4;
+const STAFF_PIN_MAX_ATTEMPTS = 5;
+const STAFF_PIN_LOCK_MS = 15 * 60 * 1000;
 
 type Employee = {
   id: string;
@@ -102,6 +106,15 @@ function durationBetween(start: string, end: string | null) {
   return formatDurationFromMs(e.getTime() - s.getTime());
 }
 
+function formatLockRemaining(ms: number) {
+  if (!Number.isFinite(ms) || ms <= 0) return '0m';
+  const totalSeconds = Math.ceil(ms / 1000);
+  const mins = Math.floor(totalSeconds / 60);
+  const secs = totalSeconds % 60;
+  if (mins <= 0) return `${secs}s`;
+  return `${mins}m ${String(secs).padStart(2, '0')}s`;
+}
+
 function currentMonthString(offset: number = 0) {
   const d = new Date();
   d.setMonth(d.getMonth() + offset);
@@ -148,6 +161,11 @@ export default function StaffHoursCard({
   const [pinInput, setPinInput] = useState('');
   const [verifying, setVerifying] = useState(false);
   const [pinError, setPinError] = useState('');
+  const [pinAutoLength, setPinAutoLength] = useState(STAFF_PIN_LENGTH);
+  const [wrongPinCount, setWrongPinCount] = useState(0);
+  const [lockedUntil, setLockedUntil] = useState<number | null>(null);
+  const [lockTick, setLockTick] = useState(0);
+  void lockTick;
   const pinInputRef = useRef<TextInput>(null);
 
   const [loading, setLoading] = useState(false);
@@ -196,6 +214,117 @@ export default function StaffHoursCard({
     setSelectedEmployee(null);
   }, [restaurantCode]);
 
+  useEffect(() => {
+    let mounted = true;
+
+    (async () => {
+      try {
+        const savedPin = await AsyncStorage.getItem('owner_pin');
+        const savedLength = (savedPin || '').trim().length;
+        if (mounted) {
+          setPinAutoLength(savedLength >= STAFF_PIN_LENGTH ? savedLength : STAFF_PIN_LENGTH);
+        }
+      } catch {
+        if (mounted) setPinAutoLength(STAFF_PIN_LENGTH);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [restaurantCode]);
+
+  const pinGuardKey = useMemo(
+    () => `posup_staff_pin_guard_${restaurantCode || 'unknown'}`,
+    [restaurantCode]
+  );
+
+  const clearPinGuard = useCallback(async () => {
+    setWrongPinCount(0);
+    setLockedUntil(null);
+    try {
+      await AsyncStorage.removeItem(pinGuardKey);
+    } catch (e) {
+      console.log('Failed to clear staff PIN guard', e);
+    }
+  }, [pinGuardKey]);
+
+  const savePinGuard = useCallback(async (wrongCount: number, until: number | null) => {
+    setWrongPinCount(wrongCount);
+    setLockedUntil(until);
+    try {
+      await AsyncStorage.setItem(
+        pinGuardKey,
+        JSON.stringify({ wrongPinCount: wrongCount, lockedUntil: until })
+      );
+    } catch (e) {
+      console.log('Failed to save staff PIN guard', e);
+    }
+  }, [pinGuardKey]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    (async () => {
+      try {
+        const raw = await AsyncStorage.getItem(pinGuardKey);
+        if (!mounted) return;
+
+        if (!raw) {
+          setWrongPinCount(0);
+          setLockedUntil(null);
+          return;
+        }
+
+        const parsed = JSON.parse(raw);
+        const savedUntil = typeof parsed?.lockedUntil === 'number' ? parsed.lockedUntil : null;
+        const savedCount = typeof parsed?.wrongPinCount === 'number' ? parsed.wrongPinCount : 0;
+
+        if (savedUntil && Date.now() < savedUntil) {
+          setWrongPinCount(STAFF_PIN_MAX_ATTEMPTS);
+          setLockedUntil(savedUntil);
+          return;
+        }
+
+        if (savedUntil && Date.now() >= savedUntil) {
+          await AsyncStorage.removeItem(pinGuardKey);
+          if (!mounted) return;
+          setWrongPinCount(0);
+          setLockedUntil(null);
+          return;
+        }
+
+        setWrongPinCount(Math.max(0, Math.min(savedCount, STAFF_PIN_MAX_ATTEMPTS - 1)));
+        setLockedUntil(null);
+      } catch (e) {
+        console.log('Failed to load staff PIN guard', e);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [pinGuardKey]);
+
+  useEffect(() => {
+    if (!lockedUntil) return;
+
+    const timer = setInterval(() => {
+      setLockTick(value => value + 1);
+
+      if (Date.now() >= lockedUntil) {
+        clearPinGuard();
+        setPinError('');
+      }
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [lockedUntil, clearPinGuard]);
+
+  const isPinLocked = !!lockedUntil && Date.now() < lockedUntil;
+  const lockRemaining = isPinLocked ? formatLockRemaining(lockedUntil - Date.now()) : '';
+  const attemptsLeft = Math.max(0, STAFF_PIN_MAX_ATTEMPTS - wrongPinCount);
+
   const loadEmployees = useCallback(async (quiet = false) => {
     if (!restaurantCode) return;
 
@@ -218,28 +347,75 @@ export default function StaffHoursCard({
     }
   }, [restaurantCode]);
 
-  const handleVerifyPin = async () => {
-    if (!pinInput.trim() || verifying) return;
+  const handleVerifyPin = useCallback(async (pinOverride?: string) => {
+    const pin = (pinOverride ?? pinInput).trim();
+    if (!pin || verifying || isPinLocked) return;
 
     setVerifying(true);
     setPinError('');
 
     try {
-      const res = await verifyAdminPin(restaurantCode, pinInput.trim());
+      const res = await verifyAdminPin(restaurantCode, pin);
 
       if (res.success) {
+        await clearPinGuard();
         setUnlocked(true);
         setPinInput('');
         await loadEmployees(false);
       } else {
-        setPinError(res.error || tr('Incorrect PIN', 'Falsche PIN'));
+        const nextWrongCount = wrongPinCount + 1;
+
+        if (nextWrongCount >= STAFF_PIN_MAX_ATTEMPTS) {
+          const until = Date.now() + STAFF_PIN_LOCK_MS;
+          await savePinGuard(STAFF_PIN_MAX_ATTEMPTS, until);
+          setPinInput('');
+          setPinError(
+            tr(
+              'Too many wrong PIN attempts. Try again in 15 minutes.',
+              'Zu viele falsche PIN-Versuche. Bitte in 15 Minuten erneut versuchen.'
+            )
+          );
+        } else {
+          await savePinGuard(nextWrongCount, null);
+          setPinInput('');
+          setPinError(
+            res.error ||
+              tr(
+                `Incorrect PIN. ${STAFF_PIN_MAX_ATTEMPTS - nextWrongCount} attempts left.`,
+                `Falsche PIN. Noch ${STAFF_PIN_MAX_ATTEMPTS - nextWrongCount} Versuche.`
+              )
+          );
+        }
       }
     } catch (e: any) {
       setPinError(String(e?.message || e));
     } finally {
       setVerifying(false);
     }
-  };
+  }, [
+    pinInput,
+    verifying,
+    isPinLocked,
+    restaurantCode,
+    clearPinGuard,
+    loadEmployees,
+    wrongPinCount,
+    savePinGuard,
+    tr,
+  ]);
+
+  useEffect(() => {
+    if (unlocked || verifying || isPinLocked) return;
+
+    const cleanPin = pinInput.trim();
+    if (cleanPin.length !== pinAutoLength) return;
+
+    const timer = setTimeout(() => {
+      handleVerifyPin(cleanPin);
+    }, 260);
+
+    return () => clearTimeout(timer);
+  }, [pinInput, unlocked, verifying, isPinLocked, pinAutoLength, handleVerifyPin]);
 
   const handleToggleClock = async (employee: Employee) => {
     if (clockLoadingId) return;
@@ -357,59 +533,68 @@ export default function StaffHoursCard({
       </View>
 
       <View style={styles.unlockCard}>
-        <View style={styles.unlockTopIcon}>
-          <Ionicons name="lock-closed-outline" size={28} color={PRIMARY} />
+        <View style={styles.unlockHeaderRow}>
+          <View style={styles.unlockTopIcon}>
+            <Ionicons name="lock-closed-outline" size={18} color={PRIMARY} />
+          </View>
+
+          <View style={styles.unlockHeaderText}>
+            <Text style={styles.unlockTitle}>{tr('Staff Hours locked', 'Arbeitszeiten gesperrt')}</Text>
+            <Text style={styles.unlockSub}>
+              {isPinLocked
+                ? tr(`Try again in ${lockRemaining}`, `Noch ${lockRemaining} warten`)
+                : tr('Enter admin PIN to continue.', 'Admin-PIN eingeben zum Fortfahren.')}
+            </Text>
+          </View>
         </View>
 
-        <Text style={styles.unlockTitle}>{tr('Admin PIN required', 'Admin-PIN erforderlich')}</Text>
-        <Text style={styles.unlockSub}>
-          {tr(
-            'Enter the admin PIN to open staff clock in/out.',
-            'Admin-PIN eingeben, um die Mitarbeiter-Zeiterfassung zu öffnen.'
-          )}
-        </Text>
+        <View style={styles.pinActionRow}>
+          <View style={[styles.pinInputWrap, isPinLocked && styles.inputDisabled]}>
+            <Ionicons name="keypad-outline" size={17} color="#9CA3AF" />
+            <TextInput
+              ref={pinInputRef}
+              style={styles.pinInputInline}
+              placeholder={tr('PIN', 'PIN')}
+              placeholderTextColor="#A8ACB7"
+              value={pinInput}
+              onChangeText={text => {
+                const clean = text.replace(/\D/g, '').slice(0, pinAutoLength);
+                setPinInput(clean);
+                if (pinError) setPinError('');
+              }}
+              secureTextEntry
+              keyboardType="number-pad"
+              maxLength={pinAutoLength}
+              editable={!isPinLocked && !verifying}
+              onSubmitEditing={() => handleVerifyPin()}
+              returnKeyType="done"
+            />
+          </View>
 
-        <View style={styles.pinInputWrap}>
-          <Ionicons name="keypad-outline" size={18} color="#9CA3AF" />
-          <TextInput
-            ref={pinInputRef}
-            style={styles.pinInputInline}
-            placeholder={tr('Admin PIN', 'Admin-PIN')}
-            placeholderTextColor="#A8ACB7"
-            value={pinInput}
-            onChangeText={text => {
-              setPinInput(text);
-              if (pinError) setPinError('');
-            }}
-            secureTextEntry
-            keyboardType="number-pad"
-            onSubmitEditing={handleVerifyPin}
-            returnKeyType="done"
-          />
+          <TouchableOpacity
+            style={[styles.unlockBtn, (pinInput.trim().length < pinAutoLength || verifying || isPinLocked) && styles.btnDisabled]}
+            onPress={() => handleVerifyPin()}
+            disabled={pinInput.trim().length < pinAutoLength || verifying || isPinLocked}
+            activeOpacity={0.8}
+          >
+            {verifying ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.unlockBtnText}>{tr('Open', 'Öffnen')}</Text>
+            )}
+          </TouchableOpacity>
         </View>
 
         {pinError ? (
           <View style={styles.errorBox}>
-            <Ionicons name="alert-circle-outline" size={17} color={RED} />
+            <Ionicons name="alert-circle-outline" size={16} color={RED} />
             <Text style={styles.errorText}>{pinError}</Text>
           </View>
+        ) : wrongPinCount > 0 && !isPinLocked ? (
+          <Text style={styles.attemptText}>
+            {tr(`${attemptsLeft} attempts left`, `Noch ${attemptsLeft} Versuche`)}
+          </Text>
         ) : null}
-
-        <TouchableOpacity
-          style={[styles.unlockBtn, (!pinInput.trim() || verifying) && styles.btnDisabled]}
-          onPress={handleVerifyPin}
-          disabled={!pinInput.trim() || verifying}
-          activeOpacity={0.8}
-        >
-          {verifying ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <>
-              <Text style={styles.unlockBtnText}>{tr('Open Staff Hours', 'Arbeitszeiten öffnen')}</Text>
-              <Ionicons name="arrow-forward" size={18} color="#fff" />
-            </>
-          )}
-        </TouchableOpacity>
       </View>
     </View>
   );
@@ -854,51 +1039,68 @@ const styles = StyleSheet.create({
     borderRadius: radii.xxxl,
     borderWidth: thinBorder,
     borderColor: BORDER,
-    padding: 18,
+    padding: 13,
+  },
+
+  unlockHeaderRow: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 10,
+    marginBottom: 12,
   },
 
   unlockTopIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: radii.lg,
     backgroundColor: PRIMARY_SOFT,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 14,
+  },
+
+  unlockHeaderText: {
+    flex: 1,
+    minWidth: 0,
   },
 
   unlockTitle: {
-    fontSize: fontSizes.xxl,
+    fontSize: fontSizes.lg,
     fontWeight: fontWeights.black,
     color: TEXT,
     fontFamily: appFont,
-    textAlign: 'center',
   },
 
   unlockSub: {
-    marginTop: 7,
-    fontSize: fontSizes.mdl,
+    marginTop: 2,
+    fontSize: fontSizes.smd,
     fontWeight: fontWeights.semibold,
     color: MUTED,
-    lineHeight: 20,
-    textAlign: 'center',
+    lineHeight: 18,
     fontFamily: appFont,
-    maxWidth: 360,
+  },
+
+  pinActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
   },
 
   pinInputWrap: {
-    width: '100%',
-    marginTop: 18,
-    height: 50,
+    flex: 1,
+    height: 44,
     borderRadius: radii.lg,
     borderWidth: thinBorder,
     borderColor: BORDER,
     backgroundColor: '#FAFAFB',
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 13,
-    gap: 9,
+    paddingHorizontal: 12,
+    gap: 8,
+  },
+
+  inputDisabled: {
+    backgroundColor: '#F2F3F7',
+    opacity: 0.7,
   },
 
   pinInputInline: {
@@ -911,43 +1113,48 @@ const styles = StyleSheet.create({
   },
 
   errorBox: {
-    width: '100%',
     marginTop: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     gap: 6,
     backgroundColor: '#FEF2F2',
     borderRadius: radii.lg,
     borderWidth: thinBorder,
     borderColor: '#FECACA',
     paddingHorizontal: 10,
-    paddingVertical: 9,
+    paddingVertical: 8,
   },
 
   errorText: {
+    flex: 1,
     color: RED,
     fontSize: fontSizes.smd,
     fontWeight: fontWeights.bold,
     fontFamily: appFont,
-    textAlign: 'center',
+  },
+
+  attemptText: {
+    marginTop: 8,
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.bold,
+    color: MUTED,
+    fontFamily: appFont,
+    textAlign: 'right',
   },
 
   unlockBtn: {
-    width: '100%',
-    marginTop: 14,
-    minHeight: 50,
+    minWidth: 92,
+    height: 44,
     backgroundColor: PRIMARY,
-    borderRadius: radii.lgl,
-    flexDirection: 'row',
+    borderRadius: radii.lg,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    paddingHorizontal: 14,
   },
 
   unlockBtnText: {
     color: '#fff',
-    fontSize: fontSizes.mdl,
+    fontSize: fontSizes.smd,
     fontWeight: fontWeights.black,
     fontFamily: appFont,
   },
