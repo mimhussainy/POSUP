@@ -1,5 +1,4 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
-import { printStaffReport } from '../lib/printer';
 import {
   View,
   Text,
@@ -23,6 +22,7 @@ import {
   toggleStaffClock,
   fetchStaffReport,
 } from '../lib/api-staff';
+import { printStaffReport } from '../lib/printer';
 
 const PRIMARY = colors.primary;
 const PRIMARY_SOFT = colors.primarySoft;
@@ -131,6 +131,75 @@ function timeInputValue(iso: string | null | undefined) {
   return `${hours}:${mins}`;
 }
 
+function parseDateInput(value: string) {
+  const [year, month, day] = value.trim().split('-').map(Number);
+
+  if (!year || !month || !day) return null;
+
+  const d = new Date(year, month - 1, day, 12, 0, 0, 0);
+  if (Number.isNaN(d.getTime())) return null;
+  return d;
+}
+
+function formatDateInput(d: Date) {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function shiftDateAndTime(dateValue: string, timeValue: string, minutesDelta: number) {
+  const iso = combineLocalDateTime(dateValue, timeValue);
+  const d = iso ? new Date(iso) : new Date();
+
+  if (Number.isNaN(d.getTime())) return { dateValue, timeValue };
+
+  d.setMinutes(d.getMinutes() + minutesDelta);
+
+  return {
+    dateValue: formatDateInput(d),
+    timeValue: timeInputValue(d.toISOString()),
+  };
+}
+
+function monthInputValue(value: string) {
+  const d = parseDateInput(value) || new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  return `${year}-${month}`;
+}
+
+function shiftMonthInput(monthValue: string, offset: number) {
+  const [year, month] = monthValue.split('-').map(Number);
+  const d = new Date(year || new Date().getFullYear(), (month || new Date().getMonth() + 1) - 1, 1);
+  d.setMonth(d.getMonth() + offset);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function calendarMonthTitle(monthValue: string, isGerman: boolean) {
+  const [year, month] = monthValue.split('-').map(Number);
+  const d = new Date(year, month - 1, 1);
+  return d.toLocaleDateString(isGerman ? 'de-CH' : 'en-US', { month: 'long', year: 'numeric' });
+}
+
+function calendarDays(monthValue: string) {
+  const [year, month] = monthValue.split('-').map(Number);
+  const first = new Date(year, month - 1, 1);
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const mondayFirstOffset = (first.getDay() + 6) % 7;
+  const cells: (string | null)[] = [];
+
+  for (let i = 0; i < mondayFirstOffset; i++) cells.push(null);
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    cells.push(formatDateInput(new Date(year, month - 1, day, 12, 0, 0, 0)));
+  }
+
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  return cells;
+}
+
 function combineLocalDateTime(dateValue: string, timeValue: string) {
   const dateParts = dateValue.trim().split('-').map(Number);
   const timeParts = timeValue.trim().split(':').map(Number);
@@ -229,7 +298,7 @@ export default function StaffHoursCard({
   const [reportMonth, setReportMonth] = useState(currentMonthString());
   const [reportData, setReportData] = useState<ReportRow[]>([]);
   const [reportLoading, setReportLoading] = useState(false);
-    const [reportPrinting, setReportPrinting] = useState(false);
+  const [reportPrinting, setReportPrinting] = useState(false);
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
   const [adjustModal, setAdjustModal] = useState(false);
@@ -239,6 +308,8 @@ export default function StaffHoursCard({
   const [adjustOutDate, setAdjustOutDate] = useState('');
   const [adjustOutTime, setAdjustOutTime] = useState('');
   const [adjustSaving, setAdjustSaving] = useState(false);
+  const [datePickerTarget, setDatePickerTarget] = useState<'in' | 'out' | null>(null);
+  const [datePickerMonth, setDatePickerMonth] = useState(monthInputValue(dateInputValue(new Date().toISOString())));
 
   useEffect(() => {
     if (!unlocked) {
@@ -537,6 +608,37 @@ export default function StaffHoursCard({
     setAdjustShift(null);
   };
 
+  const openAdjustDatePicker = (target: 'in' | 'out') => {
+    const value = target === 'in' ? adjustInDate : adjustOutDate;
+    setDatePickerMonth(monthInputValue(value || dateInputValue(new Date().toISOString())));
+    setDatePickerTarget(target);
+  };
+
+  const selectAdjustDate = (value: string) => {
+    if (datePickerTarget === 'in') {
+      setAdjustInDate(value);
+    }
+
+    if (datePickerTarget === 'out') {
+      setAdjustOutDate(value);
+    }
+
+    setDatePickerTarget(null);
+  };
+
+  const changeAdjustTime = (target: 'in' | 'out', minutesDelta: number) => {
+    if (target === 'in') {
+      const next = shiftDateAndTime(adjustInDate, adjustInTime, minutesDelta);
+      setAdjustInDate(next.dateValue);
+      setAdjustInTime(next.timeValue);
+      return;
+    }
+
+    const next = shiftDateAndTime(adjustOutDate, adjustOutTime, minutesDelta);
+    setAdjustOutDate(next.dateValue);
+    setAdjustOutTime(next.timeValue);
+  };
+
   const handleSaveAdjustedShift = async () => {
     if (!adjustShift) return;
 
@@ -609,8 +711,8 @@ export default function StaffHoursCard({
     }
   };
 
-    const handlePrintReport = async () => {
-    if (reportLoading || reportData.length === 0) return;
+  const handlePrintReport = async () => {
+    if (reportLoading || reportData.length === 0 || reportPrinting) return;
 
     setReportPrinting(true);
 
@@ -621,7 +723,7 @@ export default function StaffHoursCard({
         employees: reportData,
       });
     } catch (e: any) {
-      alert(String(e?.message || e));
+      Alert.alert(tr('Print failed', 'Drucken fehlgeschlagen'), String(e?.message || e));
     } finally {
       setReportPrinting(false);
     }
@@ -1113,6 +1215,22 @@ export default function StaffHoursCard({
               </TouchableOpacity>
             </View>
 
+            <TouchableOpacity
+              style={[styles.printReportBtn, (reportLoading || reportData.length === 0 || reportPrinting) && styles.btnDisabled]}
+              onPress={handlePrintReport}
+              disabled={reportLoading || reportData.length === 0 || reportPrinting}
+              activeOpacity={0.78}
+            >
+              {reportPrinting ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <>
+                  <Ionicons name="print-outline" size={16} color="#fff" />
+                  <Text style={styles.printReportBtnText}>{tr('Print report', 'Bericht drucken')}</Text>
+                </>
+              )}
+            </TouchableOpacity>
+
             <View style={styles.reportSummaryRow}>
               <View style={styles.reportSummaryCard}>
                 <Text style={styles.reportSummaryValue}>{reportData.length}</Text>
@@ -1226,44 +1344,68 @@ export default function StaffHoursCard({
 
               <Text style={styles.fieldLabel}>{tr('Clock in', 'Einstempeln')}</Text>
               <View style={styles.adjustInputRow}>
-                <TextInput
-                  style={[styles.textInput, styles.adjustDateInput]}
-                  placeholder="YYYY-MM-DD"
-                  placeholderTextColor="#A8ACB7"
-                  value={adjustInDate}
-                  onChangeText={setAdjustInDate}
-                  autoCorrect={false}
-                />
-                <TextInput
-                  style={[styles.textInput, styles.adjustTimeInput]}
-                  placeholder="HH:MM"
-                  placeholderTextColor="#A8ACB7"
-                  value={adjustInTime}
-                  onChangeText={setAdjustInTime}
-                  autoCorrect={false}
-                />
+                <TouchableOpacity
+                  style={[styles.dateSelectBtn, styles.adjustDateInput]}
+                  onPress={() => openAdjustDatePicker('in')}
+                  activeOpacity={0.75}
+                >
+                  <Ionicons name="calendar-outline" size={16} color={PRIMARY} />
+                  <Text style={styles.dateSelectText}>{adjustInDate || 'YYYY-MM-DD'}</Text>
+                </TouchableOpacity>
+
+                <View style={[styles.timeStepperWrap, styles.adjustTimeInput]}>
+                  <TextInput
+                    style={styles.timeStepperInput}
+                    placeholder="HH:MM"
+                    placeholderTextColor="#A8ACB7"
+                    value={adjustInTime}
+                    onChangeText={setAdjustInTime}
+                    autoCorrect={false}
+                    keyboardType="numbers-and-punctuation"
+                  />
+                  <View style={styles.timeStepperButtons}>
+                    <TouchableOpacity style={styles.timeStepperBtn} onPress={() => changeAdjustTime('in', 10)} activeOpacity={0.75}>
+                      <Ionicons name="chevron-up" size={16} color={PRIMARY} />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.timeStepperBtn} onPress={() => changeAdjustTime('in', -10)} activeOpacity={0.75}>
+                      <Ionicons name="chevron-down" size={16} color={PRIMARY} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
               </View>
 
               {adjustShift?.clock_out ? (
                 <>
                   <Text style={styles.fieldLabel}>{tr('Clock out', 'Ausstempeln')}</Text>
                   <View style={styles.adjustInputRow}>
-                    <TextInput
-                      style={[styles.textInput, styles.adjustDateInput]}
-                      placeholder="YYYY-MM-DD"
-                      placeholderTextColor="#A8ACB7"
-                      value={adjustOutDate}
-                      onChangeText={setAdjustOutDate}
-                      autoCorrect={false}
-                    />
-                    <TextInput
-                      style={[styles.textInput, styles.adjustTimeInput]}
-                      placeholder="HH:MM"
-                      placeholderTextColor="#A8ACB7"
-                      value={adjustOutTime}
-                      onChangeText={setAdjustOutTime}
-                      autoCorrect={false}
-                    />
+                    <TouchableOpacity
+                      style={[styles.dateSelectBtn, styles.adjustDateInput]}
+                      onPress={() => openAdjustDatePicker('out')}
+                      activeOpacity={0.75}
+                    >
+                      <Ionicons name="calendar-outline" size={16} color={PRIMARY} />
+                      <Text style={styles.dateSelectText}>{adjustOutDate || 'YYYY-MM-DD'}</Text>
+                    </TouchableOpacity>
+
+                    <View style={[styles.timeStepperWrap, styles.adjustTimeInput]}>
+                      <TextInput
+                        style={styles.timeStepperInput}
+                        placeholder="HH:MM"
+                        placeholderTextColor="#A8ACB7"
+                        value={adjustOutTime}
+                        onChangeText={setAdjustOutTime}
+                        autoCorrect={false}
+                        keyboardType="numbers-and-punctuation"
+                      />
+                      <View style={styles.timeStepperButtons}>
+                        <TouchableOpacity style={styles.timeStepperBtn} onPress={() => changeAdjustTime('out', 10)} activeOpacity={0.75}>
+                          <Ionicons name="chevron-up" size={16} color={PRIMARY} />
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.timeStepperBtn} onPress={() => changeAdjustTime('out', -10)} activeOpacity={0.75}>
+                          <Ionicons name="chevron-down" size={16} color={PRIMARY} />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
                   </View>
                 </>
               ) : (
@@ -1273,7 +1415,7 @@ export default function StaffHoursCard({
               )}
 
               <TouchableOpacity
-                style={[styles.primaryBtn, adjustSaving && styles.btnDisabled]}
+                style={[styles.primaryBtn, styles.adjustSaveBtn, adjustSaving && styles.btnDisabled]}
                 onPress={handleSaveAdjustedShift}
                 disabled={adjustSaving}
                 activeOpacity={0.8}
@@ -1288,6 +1430,64 @@ export default function StaffHoursCard({
                 )}
               </TouchableOpacity>
             </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Date picker */}
+      <Modal visible={!!datePickerTarget} transparent animationType="fade">
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setDatePickerTarget(null)}>
+          <TouchableOpacity style={styles.calendarBox} activeOpacity={1} onPress={e => e.stopPropagation()}>
+            <View style={styles.calendarHeader}>
+              <TouchableOpacity
+                style={styles.calendarNavBtn}
+                onPress={() => setDatePickerMonth(value => shiftMonthInput(value, -1))}
+                activeOpacity={0.75}
+              >
+                <Ionicons name="chevron-back" size={18} color={PRIMARY} />
+              </TouchableOpacity>
+
+              <Text style={styles.calendarTitle}>{calendarMonthTitle(datePickerMonth, isGerman)}</Text>
+
+              <TouchableOpacity
+                style={styles.calendarNavBtn}
+                onPress={() => setDatePickerMonth(value => shiftMonthInput(value, 1))}
+                activeOpacity={0.75}
+              >
+                <Ionicons name="chevron-forward" size={18} color={PRIMARY} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.calendarWeekRow}>
+              {['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].map(day => (
+                <Text key={day} style={styles.calendarWeekText}>{day}</Text>
+              ))}
+            </View>
+
+            <View style={styles.calendarGrid}>
+              {calendarDays(datePickerMonth).map((dateValue, index) => {
+                const selectedValue = datePickerTarget === 'in' ? adjustInDate : adjustOutDate;
+                const selected = !!dateValue && dateValue === selectedValue;
+
+                return (
+                  <TouchableOpacity
+                    key={`${dateValue || 'blank'}-${index}`}
+                    style={[styles.calendarDayBtn, selected && styles.calendarDayBtnActive]}
+                    onPress={() => dateValue && selectAdjustDate(dateValue)}
+                    disabled={!dateValue}
+                    activeOpacity={0.75}
+                  >
+                    <Text style={[styles.calendarDayText, selected && styles.calendarDayTextActive]}>
+                      {dateValue ? String(parseDateInput(dateValue)?.getDate() || '') : ''}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <TouchableOpacity style={styles.calendarCancelBtn} onPress={() => setDatePickerTarget(null)} activeOpacity={0.75}>
+              <Text style={styles.calendarCancelText}>{tr('Cancel', 'Abbrechen')}</Text>
+            </TouchableOpacity>
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
@@ -1487,52 +1687,46 @@ const styles = StyleSheet.create({
 
   summaryGrid: {
     flexDirection: 'row',
-    gap: 8,
-    marginTop: 10,
+    gap: 10,
+    marginTop: 14,
   },
 
   summaryBox: {
     flex: 1,
-    minHeight: 34,
     backgroundColor: '#FAFAFB',
-    borderRadius: radii.mdl,
+    borderRadius: radii.lg,
     borderWidth: thinBorder,
     borderColor: BORDER,
-    paddingVertical: 5,
-    paddingHorizontal: 8,
+    paddingVertical: 11,
+    paddingHorizontal: 9,
     alignItems: 'center',
-    justifyContent: 'center',
   },
 
   summaryBoxGreen: {
     flex: 1,
-    minHeight: 34,
     backgroundColor: colors.successSoft,
-    borderRadius: radii.mdl,
+    borderRadius: radii.lg,
     borderWidth: thinBorder,
     borderColor: '#BBF7D0',
-    paddingVertical: 5,
-    paddingHorizontal: 8,
+    paddingVertical: 11,
+    paddingHorizontal: 9,
     alignItems: 'center',
-    justifyContent: 'center',
   },
 
   summaryNumber: {
-    fontSize: fontSizes.lg,
+    fontSize: fontSizes.xxl,
     fontWeight: fontWeights.black,
     color: TEXT,
     fontFamily: appFont,
-    lineHeight: 20,
   },
 
   summaryLabel: {
-    marginTop: 0,
+    marginTop: 2,
     fontSize: fontSizes.xs,
     fontWeight: fontWeights.bold,
     color: MUTED,
     fontFamily: appFont,
     textAlign: 'center',
-    lineHeight: 13,
   },
 
   toolbarRow: {
@@ -2264,6 +2458,26 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
+  printReportBtn: {
+    marginHorizontal: 14,
+    marginTop: 10,
+    marginBottom: 0,
+    minHeight: 42,
+    borderRadius: radii.lgl,
+    backgroundColor: PRIMARY,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 7,
+  },
+
+  printReportBtnText: {
+    color: '#fff',
+    fontSize: fontSizes.smd,
+    fontWeight: fontWeights.extrabold,
+    fontFamily: appFont,
+  },
+
   reportScroll: {
     maxHeight: 430,
   },
@@ -2415,6 +2629,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+    marginBottom: 4,
   },
 
   adjustDateInput: {
@@ -2423,8 +2638,66 @@ const styles = StyleSheet.create({
   },
 
   adjustTimeInput: {
-    flex: 0.8,
+    flex: 0.9,
     marginBottom: 0,
+  },
+
+  dateSelectBtn: {
+    minHeight: 46,
+    borderWidth: thinBorder,
+    borderColor: BORDER,
+    borderRadius: radii.lg,
+    paddingHorizontal: 12,
+    backgroundColor: '#FAFAFB',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+
+  dateSelectText: {
+    flex: 1,
+    fontSize: fontSizes.mdl,
+    color: TEXT,
+    fontFamily: appFont,
+    fontWeight: fontWeights.semibold,
+  },
+
+  timeStepperWrap: {
+    minHeight: 46,
+    borderWidth: thinBorder,
+    borderColor: BORDER,
+    borderRadius: radii.lg,
+    backgroundColor: '#FAFAFB',
+    flexDirection: 'row',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+
+  timeStepperInput: {
+    flex: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 0,
+    fontSize: fontSizes.mdl,
+    color: TEXT,
+    fontFamily: appFont,
+    fontWeight: fontWeights.semibold,
+  },
+
+  timeStepperButtons: {
+    width: 34,
+    alignSelf: 'stretch',
+    borderLeftWidth: thinBorder,
+    borderLeftColor: BORDER,
+  },
+
+  timeStepperBtn: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  adjustSaveBtn: {
+    marginTop: 16,
   },
 
   adjustOpenShiftNote: {
@@ -2442,21 +2715,97 @@ const styles = StyleSheet.create({
     fontFamily: appFont,
   },
 
-    printReportBtn: {
-    marginHorizontal: 18,
-    marginTop: 10,
-    marginBottom: 4,
-    minHeight: 42,
-    borderRadius: radii.lgl,
-    backgroundColor: PRIMARY,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    gap: 7,
+  calendarBox: {
+    width: '92%',
+    maxWidth: 360,
+    backgroundColor: '#fff',
+    borderRadius: radii.massive,
+    borderWidth: thinBorder,
+    borderColor: BORDER,
+    padding: 14,
   },
 
-  printReportBtnText: {
+  calendarHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+
+  calendarNavBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: radii.lg,
+    backgroundColor: PRIMARY_SOFT,
+    borderWidth: thinBorder,
+    borderColor: colors.primaryBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  calendarTitle: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: fontSizes.lg,
+    fontWeight: fontWeights.extrabold,
+    color: TEXT,
+    fontFamily: appFont,
+  },
+
+  calendarWeekRow: {
+    flexDirection: 'row',
+    marginBottom: 6,
+  },
+
+  calendarWeekText: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.extrabold,
+    color: MUTED,
+    fontFamily: appFont,
+  },
+
+  calendarGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+
+  calendarDayBtn: {
+    width: `${100 / 7}%`,
+    height: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radii.mdl,
+  },
+
+  calendarDayBtnActive: {
+    backgroundColor: PRIMARY,
+  },
+
+  calendarDayText: {
+    fontSize: fontSizes.smd,
+    fontWeight: fontWeights.bold,
+    color: TEXT,
+    fontFamily: appFont,
+  },
+
+  calendarDayTextActive: {
     color: '#fff',
+    fontWeight: fontWeights.extrabold,
+  },
+
+  calendarCancelBtn: {
+    marginTop: 12,
+    minHeight: 40,
+    borderRadius: radii.lgl,
+    backgroundColor: '#F3F4F8',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  calendarCancelText: {
+    color: '#555B66',
     fontSize: fontSizes.smd,
     fontWeight: fontWeights.extrabold,
     fontFamily: appFont,

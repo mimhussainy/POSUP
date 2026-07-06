@@ -669,28 +669,6 @@ export default function Settings() {
 
   return (
     <View style={styles.root}>
-      <View style={styles.headerOuter}>
-        <View style={styles.headerInner}>
-          <View style={styles.header}>
-            <View style={styles.headerLeft}>
-              <Text style={styles.headerTitle}>{t.settings}</Text>
-            </View>
-
-            <TouchableOpacity
-              style={styles.aboutHeaderBtn}
-              onPress={() => setAboutModal(true)}
-              activeOpacity={0.75}
-            >
-              <Image
-                source={require('../../assets/favicon-dashboard.png')}
-                style={styles.aboutHeaderIcon}
-                resizeMode="contain"
-              />
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-
       <View style={styles.splitContainer}>
         {showSidebar && (
           <View style={[styles.sidebar, isNarrow && styles.sidebarNarrow]}>
