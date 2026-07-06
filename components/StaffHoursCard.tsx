@@ -1034,7 +1034,7 @@ const styles = StyleSheet.create({
   },
 
   unlockCard: {
-    width: 200,
+    width: 700,
     alignSelf: 'center',
     backgroundColor: CARD_BG,
     borderRadius: radii.xxxl,
