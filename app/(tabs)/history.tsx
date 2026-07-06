@@ -10,8 +10,6 @@ import {
   Modal,
   RefreshControl,
   Dimensions,
-  Platform,
-  StatusBar,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -43,7 +41,6 @@ const RED = colors.danger;
 const PAGE_PADDING = 16;
 const MAX_CONTENT_WIDTH = 1480;
 const thinBorder = borders.thin;
-const ANALYTICS_PANEL_RATIO = 0.35;
 
 interface POSOrder {
   id: string;
@@ -105,6 +102,7 @@ type OrderTypeMeta = {
 };
 
 type ListItem = POSOrder | { id: string; placeholder: true };
+type HistorySection = 'history' | 'topProducts' | 'summary';
 
 const getNumColumns = (width: number) => {
   if (width >= 1050) return 3;
@@ -129,20 +127,15 @@ export default function HistoryScreen() {
   const [zReportModal, setZReportModal] = useState(false);
 
   const [windowWidth, setWindowWidth] = useState(Dimensions.get('window').width);
+  const [activeSection, setActiveSection] = useState<HistorySection>('history');
 
-  const contentWidth = Math.min(windowWidth - PAGE_PADDING * 2, MAX_CONTENT_WIDTH);
-const showAnalyticsPanel = windowWidth >= 1100;
-const splitGap = showAnalyticsPanel ? PAGE_PADDING : 0;
-
-const analyticsPanelWidth = showAnalyticsPanel
-  ? Math.floor((contentWidth - splitGap) * 0.35)
-  : 0;
-
-const listWidth = showAnalyticsPanel
-  ? contentWidth - splitGap - analyticsPanelWidth
-  : contentWidth;
-
-const numColumns = getNumColumns(listWidth);
+  const isNarrow = windowWidth < 760;
+  const sidebarWidth = isNarrow ? 0 : 260;
+  const contentWidth = Math.max(
+    320,
+    Math.min(windowWidth - sidebarWidth - PAGE_PADDING * 2, MAX_CONTENT_WIDTH)
+  );
+  const numColumns = getNumColumns(contentWidth);
   useEffect(() => {
     const sub = Dimensions.addEventListener('change', ({ window }) => {
       setWindowWidth(window.width);
@@ -658,6 +651,167 @@ const numColumns = getNumColumns(listWidth);
     setZReportModal(false);
   };
 
+  const sidebarItems: { key: HistorySection; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+    { key: 'history', label: historyTitle, icon: 'receipt-outline' },
+    { key: 'topProducts', label: 'Top Products', icon: 'bar-chart-outline' },
+    { key: 'summary', label: 'Summary', icon: 'analytics-outline' },
+  ];
+
+  const renderSidebarItem = (item: { key: HistorySection; label: string; icon: keyof typeof Ionicons.glyphMap }) => {
+    const active = activeSection === item.key;
+
+    return (
+      <TouchableOpacity
+        key={item.key}
+        style={[styles.sidebarItem, active && styles.sidebarItemActive]}
+        onPress={() => setActiveSection(item.key)}
+        activeOpacity={0.75}
+      >
+        <View style={[styles.sidebarIconBox, active && styles.sidebarIconBoxActive]}>
+          <Ionicons name={item.icon} size={18} color={active ? PRIMARY : '#6B7280'} />
+        </View>
+
+        <Text style={[styles.sidebarLabel, active && styles.sidebarLabelActive]}>
+          {item.label}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
+
+  const renderSidebar = () => {
+    return (
+      <View style={styles.sidebar}>
+        <View style={styles.sidebarActions}>
+          <Text style={styles.sidebarSectionLabel}>Actions</Text>
+
+          <TouchableOpacity
+            style={styles.sidebarActionButton}
+            onPress={() => restaurantCode && fetchOrders(restaurantCode, true)}
+            disabled={refreshing}
+            activeOpacity={0.78}
+          >
+            <View style={styles.sidebarActionIconBox}>
+              {refreshing ? (
+                <ActivityIndicator size="small" color={PRIMARY} />
+              ) : (
+                <Ionicons name="sync-outline" size={18} color={PRIMARY} />
+              )}
+            </View>
+
+            <Text style={styles.sidebarActionText}>
+              Refresh
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.sidebarActionButton,
+              styles.sidebarActionButtonPrimary,
+              dayClosed && styles.sidebarActionButtonClosed,
+            ]}
+            onPress={() => !dayClosed && setZReportModal(true)}
+            activeOpacity={dayClosed ? 1 : 0.78}
+          >
+            <View style={[
+              styles.sidebarActionIconBox,
+              styles.sidebarActionIconBoxPrimary,
+              dayClosed && styles.sidebarActionIconBoxClosed,
+            ]}>
+              <Ionicons
+                name="lock-closed-outline"
+                size={18}
+                color={dayClosed ? '#8E929D' : '#fff'}
+              />
+            </View>
+
+            <Text style={[
+              styles.sidebarActionText,
+              styles.sidebarActionTextPrimary,
+              dayClosed && styles.sidebarActionTextClosed,
+            ]}>
+              {dayClosed ? t.dayClosed : t.zReport}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.sidebarDivider} />
+
+        <View style={styles.sidebarMenu}>
+          <Text style={styles.sidebarSectionLabel}>Menu</Text>
+
+          {sidebarItems.map(renderSidebarItem)}
+        </View>
+      </View>
+    );
+  };
+
+  const renderMobileTools = () => {
+    return (
+      <View style={styles.mobileTopBar}>
+        <TouchableOpacity
+          style={styles.mobileRefreshBtn}
+          onPress={() => restaurantCode && fetchOrders(restaurantCode, true)}
+          disabled={refreshing}
+          activeOpacity={0.78}
+        >
+          {refreshing ? (
+            <ActivityIndicator size="small" color={PRIMARY} />
+          ) : (
+            <Ionicons name="sync-outline" size={17} color={PRIMARY} />
+          )}
+
+          <Text style={styles.mobileRefreshText}>Refresh</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.mobileZReportBtn, dayClosed && styles.mobileZReportBtnClosed]}
+          onPress={() => !dayClosed && setZReportModal(true)}
+          activeOpacity={dayClosed ? 1 : 0.78}
+        >
+          <Ionicons
+            name="lock-closed-outline"
+            size={14}
+            color={dayClosed ? '#8E929D' : '#fff'}
+          />
+
+          <Text style={[styles.mobileZReportText, dayClosed && styles.mobileZReportTextClosed]}>
+            {dayClosed ? t.dayClosed : t.zReport}
+          </Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
+  const renderMobileTabs = () => {
+    return (
+      <View style={styles.mobileSectionBar}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.mobileSectionScroll}
+        >
+          {sidebarItems.map(item => {
+            const active = activeSection === item.key;
+
+            return (
+              <TouchableOpacity
+                key={item.key}
+                style={[styles.mobileSectionChip, active && styles.mobileSectionChipActive]}
+                onPress={() => setActiveSection(item.key)}
+                activeOpacity={0.78}
+              >
+                <Ionicons name={item.icon} size={15} color={active ? '#fff' : PRIMARY} />
+                <Text style={[styles.mobileSectionChipText, active && styles.mobileSectionChipTextActive]}>
+                  {item.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
+    );
+  };
+
   const totalItemCount = (order: POSOrder) => {
     return order.items.reduce((sum, item) => sum + item.quantity, 0);
   };
@@ -773,106 +927,113 @@ const numColumns = getNumColumns(listWidth);
     );
   };
 
-  const renderAnalyticsFooter = () => {
+  const renderTopProductsCard = () => {
     const maxProductCount = topProducts[0]?.[1]?.count || 1;
 
     return (
-      <View style={styles.analyticsFooter}>
-        <View style={styles.analyticsCard}>
-          <View style={styles.sectionHeaderRow}>
-            <View>
-              <Text style={styles.sectionTitle}>Top Products</Text>
-            </View>
-
-            <View style={styles.sectionIconBox}>
-              <Ionicons name="bar-chart-outline" size={18} color={PRIMARY} />
-            </View>
+      <View style={styles.analyticsCard}>
+        <View style={styles.sectionHeaderRow}>
+          <View>
+            <Text style={styles.sectionTitle}>Top Products</Text>
           </View>
 
-          {topProducts.length === 0 ? (
-            <View style={styles.noProductsBox}>
-              <View style={styles.noProductsIcon}>
-                <Ionicons name="bar-chart-outline" size={34} color="#C6CBD6" />
-              </View>
-              <Text style={styles.noProductsText}>{t.noOrders}</Text>
-            </View>
-          ) : (
-            <View style={styles.topProductsGrid}>
-              {topProducts.map(([name, data], index) => {
-                const width = `${Math.max(8, (data.count / maxProductCount) * 100)}%`;
-
-                return (
-                  <View key={name} style={styles.topProductRow}>
-                    <View style={[
-                      styles.topProductRankBox,
-                      index === 0 && styles.topProductRankBoxFirst,
-                    ]}>
-                      <Text style={[
-                        styles.topProductRank,
-                        index === 0 && styles.topProductRankFirst,
-                      ]}>
-                        {index + 1}
-                      </Text>
-                    </View>
-
-                    <View style={styles.topProductMiddle}>
-                      <Text style={styles.topProductName} numberOfLines={1}>
-                        {name}
-                      </Text>
-
-                      <View style={styles.barTrack}>
-                        <View style={[styles.barFill, { width: width as any }]} />
-                      </View>
-                    </View>
-
-                    <View style={styles.topProductRight}>
-                      <Text style={styles.topProductCount}>{data.count}x</Text>
-                      <Text style={styles.topProductRevenue}>
-                        {formatMoney(data.revenue)}
-                      </Text>
-                    </View>
-                  </View>
-                );
-              })}
-            </View>
-          )}
+          <View style={styles.sectionIconBox}>
+            <Ionicons name="bar-chart-outline" size={18} color={PRIMARY} />
+          </View>
         </View>
 
-        <View style={styles.summaryCard}>
-          <View style={styles.sectionHeaderRow}>
-            <View>
-              <Text style={styles.sectionTitle}>Summary</Text>
+        {topProducts.length === 0 ? (
+          <View style={styles.noProductsBox}>
+            <View style={styles.noProductsIcon}>
+              <Ionicons name="bar-chart-outline" size={34} color="#C6CBD6" />
             </View>
 
-            <View style={styles.sectionIconBox}>
-              <Ionicons name="analytics-outline" size={18} color={PRIMARY} />
-            </View>
+            <Text style={styles.noProductsText}>{t.noOrders}</Text>
+          </View>
+        ) : (
+          <View style={styles.topProductsGrid}>
+            {topProducts.map(([name, data], index) => {
+              const width = `${Math.max(8, (data.count / maxProductCount) * 100)}%`;
+
+              return (
+                <View key={name} style={styles.topProductRow}>
+                  <View
+                    style={[
+                      styles.topProductRankBox,
+                      index === 0 && styles.topProductRankBoxFirst,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.topProductRank,
+                        index === 0 && styles.topProductRankFirst,
+                      ]}
+                    >
+                      {index + 1}
+                    </Text>
+                  </View>
+
+                  <View style={styles.topProductMiddle}>
+                    <Text style={styles.topProductName} numberOfLines={1}>
+                      {name}
+                    </Text>
+
+                    <View style={styles.barTrack}>
+                      <View style={[styles.barFill, { width: width as any }]} />
+                    </View>
+                  </View>
+
+                  <View style={styles.topProductRight}>
+                    <Text style={styles.topProductCount}>{data.count}x</Text>
+                    <Text style={styles.topProductRevenue}>
+                      {formatMoney(data.revenue)}
+                    </Text>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        )}
+      </View>
+    );
+  };
+
+  const renderSummaryCard = () => {
+    return (
+      <View style={styles.summaryCard}>
+        <View style={styles.sectionHeaderRow}>
+          <View>
+            <Text style={styles.sectionTitle}>Summary</Text>
           </View>
 
-          <View style={styles.summaryGrid}>
-            <View style={styles.summaryTile}>
-              <Text style={styles.summaryLabel}>{t.orders}</Text>
-              <Text style={styles.summaryValue}>{filteredOrders.length}</Text>
-            </View>
+          <View style={styles.sectionIconBox}>
+            <Ionicons name="analytics-outline" size={18} color={PRIMARY} />
+          </View>
+        </View>
 
-            <View style={styles.summaryTile}>
-              <Text style={styles.summaryLabel}>{t.revenue}</Text>
-              <Text style={[styles.summaryValue, styles.summaryValuePrimary]}>
-                {formatMoney(revenue)}
-              </Text>
-            </View>
+        <View style={styles.summaryGrid}>
+          <View style={styles.summaryTile}>
+            <Text style={styles.summaryLabel}>{t.orders}</Text>
+            <Text style={styles.summaryValue}>{filteredOrders.length}</Text>
+          </View>
 
-            <View style={styles.summaryTile}>
-              <Text style={styles.summaryLabel}>{t.orders} Ø</Text>
-              <Text style={styles.summaryValue}>{formatMoney(avgOrder)}</Text>
-            </View>
+          <View style={styles.summaryTile}>
+            <Text style={styles.summaryLabel}>{t.revenue}</Text>
+            <Text style={[styles.summaryValue, styles.summaryValuePrimary]}>
+              {formatMoney(revenue)}
+            </Text>
+          </View>
 
-            <View style={styles.summaryTile}>
-              <Text style={styles.summaryLabel}>{t.discount}</Text>
-              <Text style={[styles.summaryValue, discountTotal > 0 && styles.summaryValueDanger]}>
-                {formatMoney(discountTotal)}
-              </Text>
-            </View>
+          <View style={styles.summaryTile}>
+            <Text style={styles.summaryLabel}>{t.orders} Ø</Text>
+            <Text style={styles.summaryValue}>{formatMoney(avgOrder)}</Text>
+          </View>
+
+          <View style={styles.summaryTile}>
+            <Text style={styles.summaryLabel}>{t.discount}</Text>
+            <Text style={[styles.summaryValue, discountTotal > 0 && styles.summaryValueDanger]}>
+              {formatMoney(discountTotal)}
+            </Text>
           </View>
         </View>
       </View>
@@ -933,6 +1094,7 @@ const numColumns = getNumColumns(listWidth);
                     : BLUE
               }
             />
+
             <Text
               style={[
                 styles.payBadgeText,
@@ -963,6 +1125,65 @@ const numColumns = getNumColumns(listWidth);
     );
   };
 
+  const renderMainContent = () => {
+    if (activeSection === 'history') {
+      return (
+        <FlatList
+          data={paddedOrders}
+          keyExtractor={(item, index) =>
+            'placeholder' in item ? item.id : item.id || `${item.order_number}-${index}`
+          }
+          numColumns={numColumns}
+          key={numColumns}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => restaurantCode && fetchOrders(restaurantCode, true)}
+              colors={[PRIMARY]}
+            />
+          }
+          contentContainerStyle={[
+            styles.listContent,
+            paddedOrders.length === 0 && styles.listContentEmpty,
+          ]}
+          columnWrapperStyle={numColumns > 1 ? styles.columnWrapper : undefined}
+          showsVerticalScrollIndicator={false}
+          ListHeaderComponent={renderListHeader}
+          ListEmptyComponent={
+            <View style={styles.emptyCard}>
+              <View style={styles.emptyIconCircle}>
+                <Ionicons name="receipt-outline" size={42} color="#AEB6C4" />
+              </View>
+              <Text style={styles.emptyTitle}>{t.noOrders}</Text>
+            </View>
+          }
+          renderItem={({ item }) => renderOrderCard(item)}
+        />
+      );
+    }
+
+    return (
+      <ScrollView
+        style={styles.sectionScroll}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => restaurantCode && fetchOrders(restaurantCode, true)}
+            colors={[PRIMARY]}
+          />
+        }
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {renderListHeader()}
+
+        {activeSection === 'topProducts'
+          ? renderTopProductsCard()
+          : renderSummaryCard()}
+      </ScrollView>
+    );
+  };
+
   if (loading) {
     return (
       <View style={styles.center}>
@@ -976,101 +1197,29 @@ const numColumns = getNumColumns(listWidth);
 
   return (
     <View style={styles.container}>
-      <View style={styles.headerOuter}>
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
-          <Text style={styles.headerTitle}>{historyTitle}</Text>
-        </View>
+      <View style={styles.screenShell}>
+        {!isNarrow && renderSidebar()}
 
-          <View style={styles.headerRight}>
-            <TouchableOpacity
-              style={styles.refreshBtn}
-              onPress={() => restaurantCode && fetchOrders(restaurantCode, true)}
-              disabled={refreshing}
-              activeOpacity={0.78}
-            >
-              {refreshing ? (
-                <ActivityIndicator size="small" color={PRIMARY} />
-              ) : (
-                <Ionicons name="sync-outline" size={17} color={PRIMARY} />
-              )}
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.zReportBtn, dayClosed && styles.zReportBtnClosed]}
-              onPress={() => !dayClosed && setZReportModal(true)}
-              activeOpacity={dayClosed ? 1 : 0.78}
-            >
-              <Ionicons
-                name="lock-closed-outline"
-                size={14}
-                color={dayClosed ? '#8E929D' : '#fff'}
-              />
-              <Text style={[styles.zReportBtnText, dayClosed && styles.zReportBtnTextClosed]}>
-                {dayClosed ? t.dayClosed : t.zReport}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-
-      {dayClosed && (
-        <View style={styles.dayClosedBannerOuter}>
-          <View style={styles.dayClosedBanner}>
-            <Ionicons name="lock-closed" size={15} color="#6B4BB8" />
-            <Text style={styles.dayClosedText}>
-              {t.dayClosed} — {t.reopensAutomatically}
-            </Text>
-          </View>
-        </View>
-      )}
-
-      <View style={styles.bodyOuter}>
-        <View style={[styles.bodyShell, showAnalyticsPanel && styles.bodyShellSplit]}>
-          <View style={[styles.leftPane, showAnalyticsPanel && { width: listWidth }]}>
-            <FlatList
-              data={paddedOrders}
-              keyExtractor={(item, index) =>
-                'placeholder' in item ? item.id : item.id || `${item.order_number}-${index}`
-              }
-              numColumns={numColumns}
-              key={numColumns}
-              refreshControl={
-                <RefreshControl
-                  refreshing={refreshing}
-                  onRefresh={() => restaurantCode && fetchOrders(restaurantCode, true)}
-                  colors={[PRIMARY]}
-                />
-              }
-              contentContainerStyle={[
-                styles.listContent,
-                paddedOrders.length === 0 && styles.listContentEmpty,
-              ]}
-              columnWrapperStyle={numColumns > 1 ? styles.columnWrapper : undefined}
-              showsVerticalScrollIndicator={false}
-              ListHeaderComponent={renderListHeader}
-              ListEmptyComponent={
-                <View style={styles.emptyCard}>
-                  <View style={styles.emptyIconCircle}>
-                    <Ionicons name="receipt-outline" size={42} color="#AEB6C4" />
-                  </View>
-                  <Text style={styles.emptyTitle}>{t.noOrders}</Text>
-                </View>
-              }
-              ListFooterComponent={!showAnalyticsPanel ? renderAnalyticsFooter : null}
-              renderItem={({ item }) => renderOrderCard(item)}
-            />
-          </View>
-
-          {showAnalyticsPanel && (
-            <ScrollView
-              style={[styles.rightPane, { width: analyticsPanelWidth }]}
-              contentContainerStyle={styles.rightPaneContent}
-              showsVerticalScrollIndicator={false}
-            >
-              {renderAnalyticsFooter()}
-            </ScrollView>
+        <View style={styles.contentPane}>
+          {isNarrow && (
+            <>
+              {renderMobileTools()}
+              {renderMobileTabs()}
+            </>
           )}
+
+          {dayClosed && (
+            <View style={styles.dayClosedBannerOuter}>
+              <View style={styles.dayClosedBanner}>
+                <Ionicons name="lock-closed" size={15} color="#6B4BB8" />
+                <Text style={styles.dayClosedText}>
+                  {t.dayClosed} — {t.reopensAutomatically}
+                </Text>
+              </View>
+            </View>
+          )}
+
+          {renderMainContent()}
         </View>
       </View>
 
@@ -1380,6 +1529,251 @@ const styles = StyleSheet.create({
     fontFamily: appFont,
   },
 
+  screenShell: {
+    flex: 1,
+    flexDirection: 'row',
+    backgroundColor: APP_BG,
+  },
+
+  sidebar: {
+    width: 260,
+    backgroundColor: CARD_BG,
+    borderRightWidth: thinBorder,
+    borderRightColor: BORDER,
+    paddingTop: 14,
+  },
+
+  sidebarActions: {
+    paddingHorizontal: 14,
+    gap: 10,
+  },
+
+  sidebarSectionLabel: {
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.extrabold,
+    color: MUTED,
+    textTransform: 'uppercase',
+    letterSpacing: 0.7,
+    marginBottom: 2,
+    fontFamily: appFont,
+  },
+
+  sidebarActionButton: {
+    minHeight: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 11,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: radii.xl,
+    backgroundColor: '#F6F7FA',
+    borderWidth: thinBorder,
+    borderColor: BORDER,
+  },
+
+  sidebarActionButtonPrimary: {
+    backgroundColor: PRIMARY,
+    borderColor: PRIMARY,
+  },
+
+  sidebarActionButtonClosed: {
+    backgroundColor: colors.border,
+    borderColor: BORDER,
+  },
+
+  sidebarActionIconBox: {
+    width: 30,
+    height: 30,
+    borderRadius: radii.mdl,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  sidebarActionIconBoxPrimary: {
+    backgroundColor: 'rgba(255,255,255,0.18)',
+  },
+
+  sidebarActionIconBoxClosed: {
+    backgroundColor: '#F2F3F7',
+  },
+
+  sidebarActionText: {
+    flex: 1,
+    fontSize: fontSizes.mdl,
+    fontWeight: fontWeights.extrabold,
+    color: TEXT,
+    fontFamily: appFont,
+  },
+
+  sidebarActionTextPrimary: {
+    color: '#fff',
+  },
+
+  sidebarActionTextClosed: {
+    color: '#8E929D',
+  },
+
+  sidebarDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: BORDER,
+    marginVertical: 14,
+    marginHorizontal: 14,
+  },
+
+  sidebarMenu: {
+    paddingHorizontal: 14,
+    gap: 8,
+  },
+
+  sidebarItem: {
+    minHeight: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 11,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: radii.xl,
+  },
+
+  sidebarItemActive: {
+    backgroundColor: PRIMARY_SOFT,
+  },
+
+  sidebarIconBox: {
+    width: 30,
+    height: 30,
+    borderRadius: radii.mdl,
+    backgroundColor: '#F2F3F7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  sidebarIconBoxActive: {
+    backgroundColor: '#fff',
+  },
+
+  sidebarLabel: {
+    flex: 1,
+    fontSize: fontSizes.mdl,
+    fontWeight: fontWeights.bold,
+    color: TEXT,
+    fontFamily: appFont,
+  },
+
+  sidebarLabelActive: {
+    color: PRIMARY,
+    fontWeight: fontWeights.extrabold,
+  },
+
+  contentPane: {
+    flex: 1,
+    minWidth: 0,
+    backgroundColor: APP_BG,
+  },
+
+  sectionScroll: {
+    flex: 1,
+  },
+
+  mobileTopBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: PAGE_PADDING,
+    paddingTop: 12,
+    paddingBottom: 8,
+    backgroundColor: APP_BG,
+  },
+
+  mobileRefreshBtn: {
+    flex: 1,
+    minHeight: 42,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    backgroundColor: CARD_BG,
+    borderRadius: radii.lg,
+    borderWidth: thinBorder,
+    borderColor: BORDER,
+  },
+
+  mobileRefreshText: {
+    fontSize: fontSizes.smd,
+    fontWeight: fontWeights.extrabold,
+    color: PRIMARY,
+    fontFamily: appFont,
+  },
+
+  mobileZReportBtn: {
+    flex: 1,
+    minHeight: 42,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    backgroundColor: PRIMARY,
+    borderRadius: radii.lg,
+  },
+
+  mobileZReportBtnClosed: {
+    backgroundColor: colors.border,
+    borderWidth: thinBorder,
+    borderColor: BORDER,
+  },
+
+  mobileZReportText: {
+    fontSize: fontSizes.smd,
+    fontWeight: fontWeights.extrabold,
+    color: '#fff',
+    fontFamily: appFont,
+  },
+
+  mobileZReportTextClosed: {
+    color: '#8E929D',
+  },
+
+  mobileSectionBar: {
+    backgroundColor: APP_BG,
+    paddingHorizontal: PAGE_PADDING,
+    paddingBottom: 8,
+  },
+
+  mobileSectionScroll: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+
+  mobileSectionChip: {
+    minHeight: 36,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 13,
+    borderRadius: radii.full,
+    backgroundColor: CARD_BG,
+    borderWidth: thinBorder,
+    borderColor: BORDER,
+  },
+
+  mobileSectionChipActive: {
+    backgroundColor: PRIMARY,
+    borderColor: PRIMARY,
+  },
+
+  mobileSectionChipText: {
+    fontSize: fontSizes.smd,
+    fontWeight: fontWeights.extrabold,
+    color: PRIMARY,
+    fontFamily: appFont,
+  },
+
+  mobileSectionChipTextActive: {
+    color: '#fff',
+  },
+
   headerOuter: {
     height: 75,
     backgroundColor: CARD_BG,
@@ -1532,6 +1926,7 @@ const styles = StyleSheet.create({
 
   listContent: {
     paddingTop: 16,
+    paddingHorizontal: PAGE_PADDING,
     paddingBottom: 110,
   },
 
