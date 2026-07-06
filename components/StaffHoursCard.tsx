@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import { printStaffReport } from '../lib/printer';
 import {
   View,
   Text,
@@ -228,6 +229,7 @@ export default function StaffHoursCard({
   const [reportMonth, setReportMonth] = useState(currentMonthString());
   const [reportData, setReportData] = useState<ReportRow[]>([]);
   const [reportLoading, setReportLoading] = useState(false);
+    const [reportPrinting, setReportPrinting] = useState(false);
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
   const [adjustModal, setAdjustModal] = useState(false);
@@ -604,6 +606,24 @@ export default function StaffHoursCard({
       setReportData([]);
     } finally {
       setReportLoading(false);
+    }
+  };
+
+    const handlePrintReport = async () => {
+    if (reportLoading || reportData.length === 0) return;
+
+    setReportPrinting(true);
+
+    try {
+      await printStaffReport({
+        month: reportMonth,
+        monthLabel: monthLabel(reportMonth, isGerman),
+        employees: reportData,
+      });
+    } catch (e: any) {
+      alert(String(e?.message || e));
+    } finally {
+      setReportPrinting(false);
     }
   };
 
@@ -2419,6 +2439,26 @@ const styles = StyleSheet.create({
     fontWeight: fontWeights.semibold,
     color: '#92400E',
     lineHeight: 18,
+    fontFamily: appFont,
+  },
+
+    printReportBtn: {
+    marginHorizontal: 18,
+    marginTop: 10,
+    marginBottom: 4,
+    minHeight: 42,
+    borderRadius: radii.lgl,
+    backgroundColor: PRIMARY,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 7,
+  },
+
+  printReportBtnText: {
+    color: '#fff',
+    fontSize: fontSizes.smd,
+    fontWeight: fontWeights.extrabold,
     fontFamily: appFont,
   },
 

@@ -1121,6 +1121,497 @@ async function printZReportViaTCP(data: any, restaurantName: string, language: s
   });
 }
 
+
+type StaffReportShift = {
+  clock_in: string;
+  clock_out: string | null;
+};
+
+type StaffReportEmployee = {
+  employee_id?: string;
+  id?: string;
+  name: string;
+  total_hours: number;
+  shifts: StaffReportShift[];
+};
+
+export type StaffReportPrintData = {
+  month: string;
+  monthLabel?: string;
+  employees: StaffReportEmployee[];
+  printedBy?: string;
+};
+
+const staffReportTranslations: { [key: string]: { title: string; month: string; printed: string; employees: string; shifts: string; totalHours: string; total: string; open: string; now: string; noData: string; poweredBy: string; } } = {
+  de: {
+    title: 'MITARBEITER-BERICHT',
+    month: 'Monat',
+    printed: 'Gedruckt',
+    employees: 'Mitarbeiter',
+    shifts: 'Schichten',
+    totalHours: 'Stunden gesamt',
+    total: 'Total',
+    open: 'OFFEN',
+    now: 'jetzt',
+    noData: 'Keine Daten',
+    poweredBy: 'Powered by: FoodUp.ch',
+  },
+  en: {
+    title: 'STAFF HOURS REPORT',
+    month: 'Month',
+    printed: 'Printed',
+    employees: 'Employees',
+    shifts: 'Shifts',
+    totalHours: 'Total hours',
+    total: 'Total',
+    open: 'OPEN',
+    now: 'now',
+    noData: 'No data',
+    poweredBy: 'Powered by: FoodUp.ch',
+  },
+};
+
+function formatStaffReportHours(value: any): string {
+  const n = Number(value || 0);
+  if (!Number.isFinite(n) || n <= 0) return '0h 00m';
+
+  const totalMinutes = Math.round(n * 60);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  return `${hours}h ${String(minutes).padStart(2, '0')}m`;
+}
+
+function formatStaffReportDate(value: any): string {
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return sunmiClean(value);
+
+  return d.toLocaleDateString('de-CH', {
+    day: '2-digit',
+    month: '2-digit',
+  });
+}
+
+function formatStaffReportTime(value: any): string {
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return sunmiClean(value);
+
+  return d.toLocaleTimeString('de-CH', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function getStaffShiftDuration(shift: StaffReportShift): string {
+  const start = new Date(shift.clock_in).getTime();
+  const end = shift.clock_out ? new Date(shift.clock_out).getTime() : Date.now();
+
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return '0h 00m';
+
+  return formatStaffReportHours((end - start) / 1000 / 60 / 60);
+}
+
+function getStaffReportTotals(data: StaffReportPrintData) {
+  const employees = Array.isArray(data.employees) ? data.employees : [];
+  const totalHours = employees.reduce((sum, row) => sum + Number(row.total_hours || 0), 0);
+  const totalShifts = employees.reduce((sum, row) => sum + (Array.isArray(row.shifts) ? row.shifts.length : 0), 0);
+
+  return {
+    employees: employees.length,
+    totalHours,
+    totalShifts,
+  };
+}
+
+function buildStaffReportHTML(data: StaffReportPrintData, restaurantName: string, logoUrl: string, language: string = 'de'): string {
+  const tr = staffReportTranslations[language] || staffReportTranslations['de'];
+  const totals = getStaffReportTotals(data);
+  const now = new Date();
+  const printDateLabel = `${now.toLocaleDateString('de-CH')} ${now.toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' })}`;
+  const monthLabelText = data.monthLabel || data.month || '';
+  const logoHTML = logoUrl ? `<img src="${logoUrl}" style="max-height:50px;max-width:150px;margin-bottom:6px;" />` : '';
+
+  const employeesHTML = (data.employees || []).length > 0
+    ? (data.employees || []).map(employee => {
+        const shiftsHTML = (employee.shifts || []).length > 0
+          ? (employee.shifts || []).map(shift => {
+              const open = !shift.clock_out;
+              const line = `${formatStaffReportDate(shift.clock_in)}  ${formatStaffReportTime(shift.clock_in)} - ${open ? tr.now : formatStaffReportTime(shift.clock_out)}`;
+
+              return `
+                <tr class="shift-row">
+                  <td>${line}${open ? ` <span class="open-pill">${tr.open}</span>` : ''}</td>
+                  <td>${getStaffShiftDuration(shift)}</td>
+                </tr>
+              `;
+            }).join('')
+          : `<tr class="shift-row"><td colspan="2">${tr.noData}</td></tr>`;
+
+        return `
+          <div class="employee-block">
+            <table>
+              <tr class="employee-total-row">
+                <td>${sunmiClean(employee.name)}</td>
+                <td>${formatStaffReportHours(employee.total_hours)}</td>
+              </tr>
+              ${shiftsHTML}
+            </table>
+          </div>
+        `;
+      }).join('')
+    : `<div class="empty">${tr.noData}</div>`;
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        @page { margin: 0; size: 80mm auto; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif; font-size: 12px; width: 80mm; margin: 0 auto; padding: 8px; color: #000; }
+        .header { text-align: center; margin-bottom: 10px; }
+        .restaurant { font-size: 18px; font-weight: 900; letter-spacing: 1px; }
+        .title { font-size: 15px; font-weight: 900; margin-top: 4px; }
+        .meta { font-size: 12px; margin-top: 2px; }
+        .divider { border-top: 1px dashed #000; margin: 8px 0; }
+        .summary { border: 1px solid #000; border-radius: 5px; padding: 5px 6px; margin: 8px 0; }
+        table { width: 100%; border-collapse: collapse; }
+        td { padding: 3px 0; vertical-align: top; }
+        td:last-child { text-align: right; white-space: nowrap; font-weight: 700; }
+        .summary td { font-size: 13px; }
+        .employee-block { margin-top: 8px; padding-top: 7px; border-top: 1px dashed #000; }
+        .employee-total-row td { font-size: 15px; font-weight: 900; padding-bottom: 5px; }
+        .shift-row td { font-size: 12px; padding: 2px 0; }
+        .shift-row td:first-child { text-align: left; font-weight: 500; }
+        .shift-row td:last-child { font-weight: 700; }
+        .open-pill { font-size: 9px; font-weight: 900; border: 1px solid #000; border-radius: 3px; padding: 1px 3px; margin-left: 3px; }
+        .empty { text-align: center; padding: 14px 0; font-size: 13px; font-weight: 700; }
+        .footer { text-align: center; margin-top: 10px; font-size: 11px; font-weight: 500; }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        ${logoHTML}
+        <div class="restaurant">${restaurantName.toUpperCase()}</div>
+        <div class="title">${tr.title}</div>
+        <div class="meta">${tr.month}: ${monthLabelText}</div>
+        <div class="meta">${tr.printed}: ${printDateLabel}</div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="summary">
+        <table>
+          <tr><td>${tr.employees}</td><td>${totals.employees}</td></tr>
+          <tr><td>${tr.shifts}</td><td>${totals.totalShifts}</td></tr>
+          <tr><td>${tr.totalHours}</td><td>${formatStaffReportHours(totals.totalHours)}</td></tr>
+        </table>
+      </div>
+
+      ${employeesHTML}
+
+      <div class="divider"></div>
+      <div class="footer">${tr.poweredBy}</div>
+    </body>
+    </html>
+  `;
+}
+
+function buildSunmiStaffReportInstructions(
+  data: StaffReportPrintData,
+  restaurantName: string,
+  logoBase64: string,
+  language: string
+): any[] {
+  const tr = staffReportTranslations[language] || staffReportTranslations['de'];
+  const totals = getStaffReportTotals(data);
+  const now = new Date();
+  const dateTimeLabel = `${now.toLocaleDateString('de-CH')} ${now.toLocaleTimeString('de-CH', {
+    hour: '2-digit',
+    minute: '2-digit',
+  })}`;
+  const monthLabelText = data.monthLabel || data.month || '';
+
+  const instructions: any[] = [];
+
+  const pushBlank = (
+    size = SUNMI_GAP,
+    align: 'left' | 'center' | 'right' = 'left'
+  ) => {
+    instructions.push({
+      type: 'text',
+      content: ' ',
+      bold: false,
+      size,
+      align,
+    });
+  };
+
+  const pushText = (
+    content: any,
+    bold = false,
+    size = SUNMI_SIZE_BODY,
+    align: 'left' | 'center' | 'right' = 'left'
+  ) => {
+    const text = sunmiClean(content);
+    if (!text) return;
+
+    instructions.push({
+      type: 'text',
+      content: text,
+      bold,
+      size,
+      align,
+    });
+
+    pushBlank(SUNMI_LINE_AIR, align);
+  };
+
+  const pushDivider = () => {
+    pushBlank(SUNMI_DIVIDER_GAP_TOP, 'left');
+    instructions.push({ type: 'divider' });
+    pushBlank(SUNMI_DIVIDER_GAP_BOTTOM, 'left');
+  };
+
+  const pushColumns = (
+    content: any[],
+    widths: number[],
+    aligns: ('left' | 'center' | 'right')[],
+    bold = false,
+    size = SUNMI_SIZE_BODY
+  ) => {
+    instructions.push({
+      type: 'columns',
+      content: content.map(sunmiClean),
+      widths,
+      aligns,
+      bold,
+      size,
+    });
+
+    pushBlank(SUNMI_LINE_AIR, 'left');
+  };
+
+  if (logoBase64 && sunmiReceiptConfig.logo.enabled) {
+    const logoInstruction: any = {
+      type: 'bitmap',
+      base64: logoBase64,
+      align: 'center',
+      preserveAspect: sunmiReceiptConfig.logo.preserveAspect,
+      fallbackText: restaurantName.toUpperCase(),
+      fallbackBold: true,
+      fallbackSize: SUNMI_SIZE_RESTAURANT,
+    };
+
+    if (sunmiReceiptConfig.logo.mode === 'height') {
+      logoInstruction.height = sunmiReceiptConfig.logo.height;
+    } else {
+      logoInstruction.width = sunmiReceiptConfig.logo.width;
+    }
+
+    instructions.push(logoInstruction);
+    pushBlank(sunmiReceiptConfig.logo.gapAfter, 'center');
+  } else {
+    pushText(restaurantName.toUpperCase(), true, SUNMI_SIZE_RESTAURANT, 'center');
+  }
+
+  pushText(tr.title, true, SUNMI_SIZE_HEADER, 'center');
+  pushText(`${tr.month}: ${monthLabelText}`, false, SUNMI_SIZE_META, 'center');
+  pushText(`${tr.printed}: ${dateTimeLabel}`, false, SUNMI_SIZE_META, 'center');
+
+  pushDivider();
+
+  pushColumns([tr.employees, String(totals.employees)], [1, 1], ['left', 'right'], false, SUNMI_SIZE_BODY);
+  pushColumns([tr.shifts, String(totals.totalShifts)], [1, 1], ['left', 'right'], false, SUNMI_SIZE_BODY);
+  pushColumns([tr.totalHours, formatStaffReportHours(totals.totalHours)], [1, 1], ['left', 'right'], true, SUNMI_SIZE_TOTAL);
+
+  const employees = Array.isArray(data.employees) ? data.employees : [];
+
+  if (employees.length === 0) {
+    pushDivider();
+    pushText(tr.noData, true, SUNMI_SIZE_BODY, 'center');
+  }
+
+  employees.forEach(employee => {
+    pushDivider();
+
+    pushColumns(
+      [employee.name, formatStaffReportHours(employee.total_hours)],
+      [2, 1],
+      ['left', 'right'],
+      true,
+      SUNMI_SIZE_BODY + 3
+    );
+
+    const shifts = Array.isArray(employee.shifts) ? employee.shifts : [];
+
+    if (shifts.length === 0) {
+      pushText(tr.noData, false, SUNMI_SIZE_META, 'left');
+      return;
+    }
+
+    shifts.forEach(shift => {
+      const open = !shift.clock_out;
+      const shiftLine = `${formatStaffReportDate(shift.clock_in)} ${formatStaffReportTime(shift.clock_in)}-${open ? tr.now : formatStaffReportTime(shift.clock_out)}`;
+      const duration = open ? `${getStaffShiftDuration(shift)} ${tr.open}` : getStaffShiftDuration(shift);
+
+      pushColumns(
+        [shiftLine, duration],
+        [2, 1],
+        ['left', 'right'],
+        false,
+        SUNMI_SIZE_META + 1
+      );
+    });
+  });
+
+  pushDivider();
+  pushText(tr.poweredBy, false, SUNMI_SIZE_FOOTER, 'center');
+
+  for (let i = 0; i < sunmiReceiptConfig.spacing.bottomFeedLines; i++) {
+    pushBlank(sunmiReceiptConfig.spacing.bottomFeedSize, 'left');
+  }
+
+  return instructions;
+}
+
+async function printStaffReportViaTCP(data: StaffReportPrintData, restaurantName: string, language: string): Promise<void> {
+  const printerIp = await AsyncStorage.getItem('printer_ip');
+  const printerPort = parseInt(await AsyncStorage.getItem('printer_port') || '9100');
+
+  if (!printerIp) throw new Error('No printer IP configured');
+
+  const tr = staffReportTranslations[language] || staffReportTranslations['de'];
+  const totals = getStaffReportTotals(data);
+  const now = new Date();
+  const dateTimeLabel = `${now.toLocaleDateString('de-CH')} ${now.toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' })}`;
+  const monthLabelText = data.monthLabel || data.month || '';
+
+  const lines: string[] = [];
+  lines.push(restaurantName.toUpperCase());
+  lines.push(tr.title);
+  lines.push(`${tr.month}: ${monthLabelText}`);
+  lines.push(`${tr.printed}: ${dateTimeLabel}`);
+  lines.push('--------------------------------');
+  lines.push(formatTcpReceiptLine(tr.employees, String(totals.employees)));
+  lines.push(formatTcpReceiptLine(tr.shifts, String(totals.totalShifts)));
+  lines.push(formatTcpReceiptLine(tr.totalHours, formatStaffReportHours(totals.totalHours)));
+
+  const employees = Array.isArray(data.employees) ? data.employees : [];
+
+  if (employees.length === 0) {
+    lines.push('--------------------------------');
+    lines.push(tr.noData);
+  }
+
+  employees.forEach(employee => {
+    lines.push('--------------------------------');
+    lines.push(formatTcpReceiptLine(employee.name, formatStaffReportHours(employee.total_hours)));
+
+    const shifts = Array.isArray(employee.shifts) ? employee.shifts : [];
+
+    if (shifts.length === 0) {
+      lines.push(tr.noData);
+      return;
+    }
+
+    shifts.forEach(shift => {
+      const open = !shift.clock_out;
+      const shiftLine = `${formatStaffReportDate(shift.clock_in)} ${formatStaffReportTime(shift.clock_in)}-${open ? tr.now : formatStaffReportTime(shift.clock_out)}`;
+      const duration = open ? `${getStaffShiftDuration(shift)} ${tr.open}` : getStaffShiftDuration(shift);
+      lines.push(formatTcpReceiptLine(shiftLine, duration));
+    });
+  });
+
+  lines.push('--------------------------------');
+  lines.push(tr.poweredBy);
+  lines.push('', '', '');
+
+  const ESC = '\x1b';
+  const GS = '\x1d';
+  let pdata = ESC + '@';
+  pdata += ESC + 'a' + '\x01';
+  pdata += ESC + 'E' + '\x01';
+  pdata += lines[0] + '\n';
+  pdata += lines[1] + '\n';
+  pdata += ESC + 'E' + '\x00';
+  pdata += ESC + 'a' + '\x00';
+
+  for (let i = 2; i < lines.length; i++) {
+    pdata += lines[i] + '\n';
+  }
+
+  pdata += GS + 'V' + '\x00';
+
+  const TcpSocket = require('react-native-tcp-socket');
+  return new Promise((resolve, reject) => {
+    const client = TcpSocket.createConnection({ host: printerIp, port: printerPort }, () => {
+      client.write(pdata, 'binary');
+      setTimeout(() => { client.destroy(); resolve(); }, 1500);
+    });
+    client.on('error', (err: any) => { client.destroy(); reject(err); });
+    setTimeout(() => { client.destroy(); reject(new Error('Print timeout')); }, 6000);
+  });
+}
+
+export async function printStaffReport(staffData: StaffReportPrintData): Promise<void> {
+  const restaurantName = await AsyncStorage.getItem('restaurant_name') || 'Restaurant';
+  const logoUrl = await AsyncStorage.getItem('restaurant_logo') || '';
+  const language = await AsyncStorage.getItem('app_language') || 'de';
+  const printerIp = await AsyncStorage.getItem('printer_ip');
+  const printerModel = (await AsyncStorage.getItem('printer_model') || '').toLowerCase();
+
+  if (Platform.OS === 'web') {
+    const html = buildStaffReportHTML(staffData, restaurantName, logoUrl, language);
+    const win = (window as any).open('', '_blank', 'width=400,height=700');
+    if (win) {
+      win.document.write(html);
+      win.document.close();
+      win.focus();
+      setTimeout(() => { win.print(); win.close(); }, 500);
+    }
+    return;
+  }
+
+  if (printerModel.includes('sunmi')) {
+    try {
+      let logoBase64 = '';
+
+      if (logoUrl) {
+        try {
+          const FileSystem = await import('expo-file-system/legacy');
+          const fileUri = FileSystem.cacheDirectory + 'staff-report-logo.png';
+
+          await FileSystem.downloadAsync(logoUrl, fileUri);
+
+          logoBase64 = await FileSystem.readAsStringAsync(fileUri, {
+            encoding: FileSystem.EncodingType.Base64,
+          });
+        } catch (e) {
+          console.log('Logo download failed for native Sunmi staff report:', e);
+        }
+      }
+
+      const instructions = buildSunmiStaffReportInstructions(staffData, restaurantName, logoBase64, language);
+      const { printSunmiInstructionsNative } = await import('./nativeSunmiPrinter');
+      const ok = await printSunmiInstructionsNative(instructions);
+      if (ok) return;
+    } catch (e: any) {
+      console.log('Sunmi native staff report print failed:', e);
+      lastSunmiError = String(e?.message || e);
+      throw e;
+    }
+  }
+
+  if (printerIp && !printerModel.includes('sunmi')) {
+    await printStaffReportViaTCP(staffData, restaurantName, language);
+  } else {
+    const html = buildStaffReportHTML(staffData, restaurantName, logoUrl, language);
+    await Print.printAsync({ html });
+  }
+}
+
 export async function printOrder(order: any, restaurantCode: string): Promise<void> {
   const restaurantName = await AsyncStorage.getItem('restaurant_name') || restaurantCode;
   const logoUrl = await AsyncStorage.getItem('restaurant_logo') || '';
