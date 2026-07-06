@@ -299,6 +299,7 @@ export default function StaffHoursCard({
   const [reportData, setReportData] = useState<ReportRow[]>([]);
   const [reportLoading, setReportLoading] = useState(false);
   const [reportPrinting, setReportPrinting] = useState(false);
+  const [selectedReportEmployeeId, setSelectedReportEmployeeId] = useState<string | null>(null);
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
   const [adjustModal, setAdjustModal] = useState(false);
@@ -678,11 +679,14 @@ export default function StaffHoursCard({
         throw new Error(data.error || data.message || 'Failed to adjust shift');
       }
 
+      const adjustedEmployeeId = adjustShift.employee_id;
+
       setAdjustModal(false);
       setAdjustShift(null);
       setSelectedEmployee(null);
       await loadEmployees(true);
       await openReport(reportMonth);
+      setSelectedReportEmployeeId(adjustedEmployeeId);
     } catch (e: any) {
       Alert.alert(tr('Could not save', 'Konnte nicht speichern'), String(e?.message || e));
     } finally {
@@ -692,6 +696,7 @@ export default function StaffHoursCard({
 
   const openReport = async (month: string = reportMonth) => {
     setReportMonth(month);
+    setSelectedReportEmployeeId(null);
     setExpandedRow(null);
     setReportLoading(true);
     setReportModal(true);
@@ -711,8 +716,14 @@ export default function StaffHoursCard({
     }
   };
 
+  const closeReport = () => {
+    setReportModal(false);
+    setSelectedReportEmployeeId(null);
+    setExpandedRow(null);
+  };
+
   const handlePrintReport = async () => {
-    if (reportLoading || reportData.length === 0 || reportPrinting) return;
+    if (!selectedReportEmployee || reportLoading || reportPrinting) return;
 
     setReportPrinting(true);
 
@@ -720,7 +731,7 @@ export default function StaffHoursCard({
       await printStaffReport({
         month: reportMonth,
         monthLabel: monthLabel(reportMonth, isGerman),
-        employees: reportData,
+        employees: [selectedReportEmployee],
       });
     } catch (e: any) {
       Alert.alert(tr('Print failed', 'Drucken fehlgeschlagen'), String(e?.message || e));
@@ -738,10 +749,10 @@ export default function StaffHoursCard({
   const clockedInEmployees = useMemo(() => employees.filter(emp => emp.clocked_in), [employees]);
   const clockedOutEmployees = useMemo(() => employees.filter(emp => !emp.clocked_in), [employees]);
 
-  const totalReportHours = useMemo(
-    () => reportData.reduce((sum, row) => sum + (Number(row.total_hours) || 0), 0),
-    [reportData]
-  );
+  const selectedReportEmployee = useMemo(() => {
+    if (!selectedReportEmployeeId) return null;
+    return reportData.find(row => row.employee_id === selectedReportEmployeeId) || null;
+  }, [reportData, selectedReportEmployeeId]);
 
   const selectedCurrent = selectedEmployee
     ? employees.find(emp => emp.id === selectedEmployee.id) || selectedEmployee
@@ -1183,14 +1194,18 @@ export default function StaffHoursCard({
 
       {/* Monthly report */}
       <Modal visible={reportModal} transparent animationType="fade">
-        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setReportModal(false)}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={closeReport}>
           <TouchableOpacity style={[styles.modalBox, styles.reportBox]} activeOpacity={1} onPress={e => e.stopPropagation()}>
             <View style={styles.modalHeader}>
               <View>
-                <Text style={styles.modalTitle}>{tr('Monthly Report', 'Monatsbericht')}</Text>
+                <Text style={styles.modalTitle}>
+                  {selectedReportEmployee
+                    ? selectedReportEmployee.name
+                    : tr('Employee Reports', 'Mitarbeiterberichte')}
+                </Text>
                 <Text style={styles.modalSubTitle}>{monthLabel(reportMonth, isGerman)}</Text>
               </View>
-              <TouchableOpacity onPress={() => setReportModal(false)} style={styles.modalCloseBtn} activeOpacity={0.75}>
+              <TouchableOpacity onPress={closeReport} style={styles.modalCloseBtn} activeOpacity={0.75}>
                 <Ionicons name="close" size={18} color="#5B5F6B" />
               </TouchableOpacity>
             </View>
@@ -1215,107 +1230,112 @@ export default function StaffHoursCard({
               </TouchableOpacity>
             </View>
 
-            <TouchableOpacity
-              style={[styles.printReportBtn, (reportLoading || reportData.length === 0 || reportPrinting) && styles.btnDisabled]}
-              onPress={handlePrintReport}
-              disabled={reportLoading || reportData.length === 0 || reportPrinting}
-              activeOpacity={0.78}
-            >
-              {reportPrinting ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <>
-                  <Ionicons name="print-outline" size={16} color="#fff" />
-                  <Text style={styles.printReportBtnText}>{tr('Print report', 'Bericht drucken')}</Text>
-                </>
-              )}
-            </TouchableOpacity>
-
-            <View style={styles.reportSummaryRow}>
-              <View style={styles.reportSummaryCard}>
-                <Text style={styles.reportSummaryValue}>{reportData.length}</Text>
-                <Text style={styles.reportSummaryLabel}>{tr('Employees', 'Mitarbeiter')}</Text>
+            {reportLoading ? (
+              <View style={styles.reportLoadingBox}>
+                <ActivityIndicator color={PRIMARY} />
+                <Text style={styles.loadingInlineText}>{tr('Loading report...', 'Bericht wird geladen...')}</Text>
               </View>
-              <View style={styles.reportSummaryCard}>
-                <Text style={styles.reportSummaryValue}>{formatHours(totalReportHours)}</Text>
-                <Text style={styles.reportSummaryLabel}>{tr('Total hours', 'Stunden gesamt')}</Text>
+            ) : reportData.length === 0 ? (
+              <View style={styles.reportEmptyBox}>
+                <Ionicons name="calendar-clear-outline" size={36} color="#C0C4CE" />
+                <Text style={styles.emptyTitle}>{tr('No data for this month', 'Keine Daten für diesen Monat')}</Text>
               </View>
-            </View>
-
-            <ScrollView style={styles.reportScroll} contentContainerStyle={styles.reportScrollContent}>
-              {reportLoading ? (
-                <View style={styles.reportLoadingBox}>
-                  <ActivityIndicator color={PRIMARY} />
-                  <Text style={styles.loadingInlineText}>{tr('Loading report...', 'Bericht wird geladen...')}</Text>
-                </View>
-              ) : reportData.length === 0 ? (
-                <View style={styles.reportEmptyBox}>
-                  <Ionicons name="calendar-clear-outline" size={36} color="#C0C4CE" />
-                  <Text style={styles.emptyTitle}>{tr('No data for this month', 'Keine Daten für diesen Monat')}</Text>
-                </View>
-              ) : (
-                reportData.map(row => {
-                  const isExpanded = expandedRow === row.employee_id;
-
-                  return (
-                    <View key={row.employee_id} style={styles.reportEmployeeCard}>
-                      <TouchableOpacity
-                        style={styles.reportEmployeeHeader}
-                        onPress={() => setExpandedRow(isExpanded ? null : row.employee_id)}
-                        activeOpacity={0.75}
-                      >
-                        <View style={styles.reportAvatar}>
-                          <Text style={styles.reportAvatarText}>{initials(row.name)}</Text>
-                        </View>
-
-                        <View style={styles.reportEmployeeInfo}>
-                          <Text style={styles.reportEmployeeName} numberOfLines={1}>{row.name}</Text>
-                          <Text style={styles.reportEmployeeSub}>
-                            {row.shifts.length} {row.shifts.length === 1 ? tr('shift', 'Schicht') : tr('shifts', 'Schichten')}
-                          </Text>
-                        </View>
-
-                        <Text style={styles.reportHours}>{formatHours(row.total_hours)}</Text>
-                        <Ionicons name={isExpanded ? 'chevron-up' : 'chevron-down'} size={18} color="#9CA3AF" />
-                      </TouchableOpacity>
-
-                      {isExpanded ? (
-                        <View style={styles.shiftList}>
-                          {row.shifts.map((shift, i) => (
-                            <View key={`${shift.clock_in}-${i}`} style={styles.shiftRow}>
-                              <View style={styles.shiftDateBox}>
-                                <Text style={styles.shiftDateText}>{formatDate(shift.clock_in, isGerman)}</Text>
-                              </View>
-
-                              <View style={styles.shiftTimeBox}>
-                                <Text style={styles.shiftTimeText}>
-                                  {formatTime(shift.clock_in)} → {shift.clock_out ? formatTime(shift.clock_out) : tr('now', 'jetzt')}
-                                </Text>
-                                <Text style={styles.shiftDurationText}>{durationBetween(shift.clock_in, shift.clock_out)}</Text>
-                              </View>
-
-                              <TouchableOpacity
-                                style={styles.shiftEditBtn}
-                                onPress={() => openAdjustShift({
-                                  employee_id: row.employee_id,
-                                  name: row.name,
-                                  clock_in: shift.clock_in,
-                                  clock_out: shift.clock_out,
-                                  shift_index: i,
-                                })}
-                                activeOpacity={0.75}
-                              >
-                                <Ionicons name="create-outline" size={15} color={PRIMARY} />
-                              </TouchableOpacity>
-                            </View>
-                          ))}
-                        </View>
-                      ) : null}
+            ) : !selectedReportEmployee ? (
+              <ScrollView style={styles.reportScroll} contentContainerStyle={styles.reportPickerContent}>
+                {reportData.map(row => (
+                  <TouchableOpacity
+                    key={row.employee_id}
+                    style={styles.reportPickCard}
+                    onPress={() => {
+                      setSelectedReportEmployeeId(row.employee_id);
+                      setExpandedRow(row.employee_id);
+                    }}
+                    activeOpacity={0.76}
+                  >
+                    <View style={styles.reportPickTop}>
+                      <Text style={styles.reportPickName} numberOfLines={1}>{row.name}</Text>
+                      <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
                     </View>
-                  );
-                })
-              )}
-            </ScrollView>
+
+                    <Text style={styles.reportPickSub}>
+                      {row.shifts.length} {row.shifts.length === 1 ? tr('shift', 'Schicht') : tr('shifts', 'Schichten')}
+                    </Text>
+
+                    <Text style={styles.reportPickHours}>{formatHours(row.total_hours)}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            ) : (
+              <>
+                <View style={styles.selectedReportTopRow}>
+                  <TouchableOpacity
+                    style={styles.reportBackBtn}
+                    onPress={() => {
+                      setSelectedReportEmployeeId(null);
+                      setExpandedRow(null);
+                    }}
+                    activeOpacity={0.75}
+                  >
+                    <Ionicons name="chevron-back" size={18} color={PRIMARY} />
+                    <Text style={styles.reportBackText}>{tr('Employees', 'Mitarbeiter')}</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.printReportBtn, reportPrinting && styles.btnDisabled]}
+                    onPress={handlePrintReport}
+                    disabled={reportPrinting}
+                    activeOpacity={0.78}
+                  >
+                    {reportPrinting ? (
+                      <ActivityIndicator color="#fff" />
+                    ) : (
+                      <>
+                        <Ionicons name="print-outline" size={16} color="#fff" />
+                        <Text style={styles.printReportBtnText}>{tr('Print', 'Drucken')}</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.selectedReportSummaryCard}>
+                  <Text style={styles.selectedReportSummaryLabel}>{tr('Total hours', 'Stunden gesamt')}</Text>
+                  <Text style={styles.selectedReportSummaryValue}>{formatHours(selectedReportEmployee.total_hours)}</Text>
+                </View>
+
+                <ScrollView style={styles.reportScroll} contentContainerStyle={styles.reportScrollContent}>
+                  <View style={styles.shiftList}>
+                    {selectedReportEmployee.shifts.map((shift, i) => (
+                      <View key={`${shift.clock_in}-${i}`} style={styles.shiftRow}>
+                        <View style={styles.shiftDateBox}>
+                          <Text style={styles.shiftDateText}>{formatDate(shift.clock_in, isGerman)}</Text>
+                        </View>
+
+                        <View style={styles.shiftTimeBox}>
+                          <Text style={styles.shiftTimeText}>
+                            {formatTime(shift.clock_in)} → {shift.clock_out ? formatTime(shift.clock_out) : tr('now', 'jetzt')}
+                          </Text>
+                          <Text style={styles.shiftDurationText}>{durationBetween(shift.clock_in, shift.clock_out)}</Text>
+                        </View>
+
+                        <TouchableOpacity
+                          style={styles.shiftEditBtn}
+                          onPress={() => openAdjustShift({
+                            employee_id: selectedReportEmployee.employee_id,
+                            name: selectedReportEmployee.name,
+                            clock_in: shift.clock_in,
+                            clock_out: shift.clock_out,
+                            shift_index: i,
+                          })}
+                          activeOpacity={0.75}
+                        >
+                          <Ionicons name="create-outline" size={15} color={PRIMARY} />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </View>
+                </ScrollView>
+              </>
+            )}
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
@@ -2458,12 +2478,82 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
-  printReportBtn: {
-    marginHorizontal: 14,
-    marginTop: 10,
-    marginBottom: 0,
+  reportPickerContent: {
+    padding: 14,
+    gap: 10,
+  },
+
+  reportPickCard: {
+    backgroundColor: '#FAFAFB',
+    borderRadius: radii.lg,
+    borderWidth: thinBorder,
+    borderColor: BORDER,
+    padding: 13,
+  },
+
+  reportPickTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+
+  reportPickName: {
+    flex: 1,
+    fontSize: fontSizes.lg,
+    fontWeight: fontWeights.black,
+    color: TEXT,
+    fontFamily: appFont,
+  },
+
+  reportPickSub: {
+    marginTop: 4,
+    fontSize: fontSizes.smd,
+    fontWeight: fontWeights.semibold,
+    color: MUTED,
+    fontFamily: appFont,
+  },
+
+  reportPickHours: {
+    marginTop: 7,
+    fontSize: fontSizes.xxl,
+    fontWeight: fontWeights.black,
+    color: PRIMARY,
+    fontFamily: appFont,
+  },
+
+  selectedReportTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingTop: 12,
+  },
+
+  reportBackBtn: {
+    flex: 1,
     minHeight: 42,
-    borderRadius: radii.lgl,
+    borderRadius: radii.lg,
+    borderWidth: thinBorder,
+    borderColor: BORDER,
+    backgroundColor: '#FAFAFB',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+  },
+
+  reportBackText: {
+    fontSize: fontSizes.smd,
+    fontWeight: fontWeights.extrabold,
+    color: PRIMARY,
+    fontFamily: appFont,
+  },
+
+  printReportBtn: {
+    flex: 1,
+    minHeight: 42,
+    borderRadius: radii.lg,
     backgroundColor: PRIMARY,
     alignItems: 'center',
     justifyContent: 'center',
@@ -2475,6 +2565,33 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: fontSizes.smd,
     fontWeight: fontWeights.extrabold,
+    fontFamily: appFont,
+  },
+
+  selectedReportSummaryCard: {
+    marginHorizontal: 14,
+    marginTop: 10,
+    marginBottom: 4,
+    backgroundColor: PRIMARY_SOFT,
+    borderRadius: radii.lg,
+    borderWidth: thinBorder,
+    borderColor: colors.primaryBorder,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
+
+  selectedReportSummaryLabel: {
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.bold,
+    color: MUTED,
+    fontFamily: appFont,
+  },
+
+  selectedReportSummaryValue: {
+    marginTop: 2,
+    fontSize: fontSizes.xxl,
+    fontWeight: fontWeights.black,
+    color: PRIMARY,
     fontFamily: appFont,
   },
 
