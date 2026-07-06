@@ -27,6 +27,7 @@ import {
   loadPhoneCustomers,
   searchPhoneCustomers,
 } from '../../lib/phoneCustomers';
+import StaffHoursCard from '../../components/StaffHoursCard';
 
 import TcpSocket from 'react-native-tcp-socket';
 
@@ -51,6 +52,7 @@ const PAGE_PADDING = 16;
 const MAX_CONTENT_WIDTH = 760;
 const thinBorder = borders.thin;
 
+type SectionKey = 'restaurant' | 'addressBook' | 'printer' | 'staffHours' | 'dayManagement' | 'language';
 
 function PrinterStatusCard({
   t,
@@ -155,7 +157,7 @@ function PrinterStatusCard({
           : '#F2F3F7';
 
   return (
-    <View style={styles.section}>
+    <View>
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>{tr('printerStatus', 'Printer Status', 'Druckerstatus')}</Text>
       </View>
@@ -173,7 +175,7 @@ function PrinterStatusCard({
         </View>
 
         {printerIp ? (
-          <View style={Platform.OS !== 'web' ? styles.infoRow : [styles.infoRow, styles.infoRowLast]}>
+          <View style={[styles.infoRow, styles.infoRowLast]}>
             <View style={styles.iconBox}>
               <Ionicons name="wifi-outline" size={19} color={PRIMARY} />
             </View>
@@ -200,7 +202,7 @@ function PrinterStatusCard({
             </TouchableOpacity>
           </View>
         ) : (
-          <View style={Platform.OS !== 'web' ? styles.infoRow : [styles.infoRow, styles.infoRowLast]}>
+          <View style={[styles.infoRow, styles.infoRowLast]}>
             <View style={[styles.iconBox, styles.iconBoxMuted]}>
               <Ionicons name="alert-circle-outline" size={19} color="#9CA3AF" />
             </View>
@@ -213,8 +215,6 @@ function PrinterStatusCard({
             </View>
           </View>
         )}
-
-        
       </View>
     </View>
   );
@@ -242,14 +242,17 @@ export default function Settings() {
   const [printerPort, setPrinterPort] = useState('');
   const [printerModel, setPrinterModel] = useState('');
 
-  const [addressBookModal, setAddressBookModal] = useState(false);
   const [addressBookCustomers, setAddressBookCustomers] = useState<PhoneCustomer[]>([]);
   const [addressBookSearch, setAddressBookSearch] = useState('');
 
   const [windowWidth, setWindowWidth] = useState(Dimensions.get('window').width);
+  const [activeSection, setActiveSection] = useState<SectionKey | null>(null);
 
   const isNarrow = windowWidth < 760;
   const contentWidthStyle = isNarrow ? styles.contentInnerMobile : null;
+  const effectiveSection: SectionKey = activeSection ?? 'restaurant';
+  const showSidebar = !isNarrow || activeSection === null;
+  const showContent = !isNarrow || activeSection !== null;
 
   const isGerman = language === 'de';
 
@@ -275,6 +278,15 @@ export default function Settings() {
 
   const tr = (key: string, fallback: string) => ((t as any)?.[key] || fallback);
 
+  const sidebarItems: { key: SectionKey; label: string; icon: any }[] = [
+    { key: 'restaurant', label: tr('restaurantTitle', labels.restaurantTitle), icon: 'storefront-outline' },
+    { key: 'addressBook', label: (t as any).addressBook || (isGerman ? 'Adressbuch' : 'Address book'), icon: 'book-outline' },
+    { key: 'printer', label: (t as any)?.printerStatus || (isGerman ? 'Druckerstatus' : 'Printer Status'), icon: 'print-outline' },
+    { key: 'staffHours', label: isGerman ? 'Arbeitszeiten' : 'Staff Hours', icon: 'people-outline' },
+    { key: 'dayManagement', label: tr('dayManagementTitle', labels.dayManagementTitle), icon: 'refresh-circle-outline' },
+    { key: 'language', label: tr('languageTitle', labels.languageTitle), icon: 'language-outline' },
+  ];
+
   useEffect(() => {
     const sub = Dimensions.addEventListener('change', ({ window }) => {
       setWindowWidth(window.width);
@@ -283,14 +295,15 @@ export default function Settings() {
     return () => sub?.remove();
   }, []);
 
-  const openAddressBook = async () => {
-    const code = await AsyncStorage.getItem('restaurant_code') || '';
+  useEffect(() => {
+    if (effectiveSection !== 'addressBook') return;
 
-    const customers = await loadPhoneCustomers(code);
-    setAddressBookCustomers(customers);
-    setAddressBookSearch('');
-    setAddressBookModal(true);
-  };
+    (async () => {
+      const code = await AsyncStorage.getItem('restaurant_code') || '';
+      const customers = await loadPhoneCustomers(code);
+      setAddressBookCustomers(customers);
+    })();
+  }, [effectiveSection]);
 
   const handleDeleteAddressBookCustomer = async (customer: PhoneCustomer) => {
     const code = await AsyncStorage.getItem('restaurant_code') || '';
@@ -424,11 +437,217 @@ export default function Settings() {
     setReopenModal(true);
   };
 
-  const renderSectionHeader = (title: string) => (
+  const ContentHeader = ({ title }: { title: string }) => (
     <View style={styles.sectionHeader}>
       <Text style={styles.sectionTitle}>{title}</Text>
     </View>
   );
+
+  const renderContent = () => {
+    switch (effectiveSection) {
+      case 'restaurant':
+        return (
+          <>
+            <ContentHeader title={tr('restaurantTitle', labels.restaurantTitle)} />
+            <View style={styles.card}>
+              <View style={styles.infoRow}>
+                <View style={styles.iconBox}>
+                  <Ionicons name="storefront-outline" size={19} color={PRIMARY} />
+                </View>
+
+                <View style={styles.infoText}>
+                  <Text style={styles.infoLabel}>{t.restaurantCode}</Text>
+                  <Text style={styles.infoValue}>{restaurantCode || '—'}</Text>
+                </View>
+              </View>
+
+              {restaurantName ? (
+                <View style={styles.infoRow}>
+                  <View style={styles.iconBox}>
+                    <Ionicons name="business-outline" size={19} color={PRIMARY} />
+                  </View>
+
+                  <View style={styles.infoText}>
+                    <Text style={styles.infoLabel}>{t.restaurantNameLabel}</Text>
+                    <Text style={styles.infoValue}>{restaurantName}</Text>
+                  </View>
+                </View>
+              ) : null}
+
+              <View style={[styles.infoRow, styles.infoRowLast]}>
+                <View style={styles.iconBox}>
+                  <Ionicons name="key-outline" size={19} color={PRIMARY} />
+                </View>
+
+                <View style={styles.infoText}>
+                  <Text style={styles.infoLabel}>PIN</Text>
+                  <Text style={styles.infoValue}>••••</Text>
+                </View>
+
+                <TouchableOpacity
+                  style={styles.primarySmallBtn}
+                  onPress={() => setPinModal(true)}
+                  activeOpacity={0.78}
+                >
+                  <Text style={styles.primarySmallBtnText}>{t.changePin}</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </>
+        );
+
+      case 'addressBook':
+        return (
+          <>
+            <ContentHeader title={(t as any).addressBook || (isGerman ? 'Adressbuch' : 'Address book')} />
+            <View style={styles.card}>
+              <View style={styles.addressBookSearchWrap}>
+                <Ionicons name="search-outline" size={18} color="#9CA3AF" />
+                <TextInput
+                  style={styles.addressBookSearchInput}
+                  placeholder={(t as any).addressBookSearchPlaceholder || (language === 'de' ? 'Telefon, Name, Nachname, Strasse suchen...' : 'Search phone, name, last name, street...')}
+                  placeholderTextColor="#9CA3AF"
+                  value={addressBookSearch}
+                  onChangeText={setAddressBookSearch}
+                  autoCorrect={false}
+                  autoCapitalize="none"
+                />
+              </View>
+
+              <View style={styles.addressBookListInline}>
+                {filteredAddressBookCustomers.length === 0 ? (
+                  <View style={styles.addressBookEmpty}>
+                    <Ionicons name="person-circle-outline" size={48} color="#C7CBD4" />
+                    <Text style={styles.addressBookEmptyText}>
+                      {(t as any).noSavedCustomers || (language === 'de' ? 'Noch keine Kunden gespeichert' : 'No saved customers yet')}
+                    </Text>
+                  </View>
+                ) : (
+                  filteredAddressBookCustomers.map((customer, index) => {
+                    const name = `${customer.first_name} ${customer.last_name}`.trim() || ((t as any).unknownCustomer || 'Unknown customer');
+                    const address = `${customer.street}, ${customer.zip} ${customer.city}`.replace(/^,\s*/, '').trim();
+
+                    return (
+                      <View
+                        key={`${customer.phone}-${customer.street}-${index}`}
+                        style={styles.addressBookCustomerCard}
+                      >
+                        <View style={styles.addressBookAvatar}>
+                          <Text style={styles.addressBookAvatarText}>
+                            {name.trim()[0]?.toUpperCase() || '?'}
+                          </Text>
+                        </View>
+
+                        <View style={styles.addressBookCustomerInfo}>
+                          <Text style={styles.addressBookCustomerName} numberOfLines={1}>
+                            {name}
+                          </Text>
+
+                          <Text style={styles.addressBookCustomerPhone} numberOfLines={1}>
+                            {customer.phone || ((t as any).noPhone || 'No phone')}
+                          </Text>
+
+                          <Text style={styles.addressBookCustomerAddress} numberOfLines={1}>
+                            {address || ((t as any).noAddress || (language === 'de' ? 'Keine Adresse' : 'No address'))}
+                          </Text>
+                        </View>
+
+                        <TouchableOpacity
+                          style={styles.addressBookDeleteBtn}
+                          onPress={() => handleDeleteAddressBookCustomer(customer)}
+                          activeOpacity={0.75}
+                        >
+                          <Ionicons name="trash-outline" size={17} color="#EF4444" />
+                        </TouchableOpacity>
+                      </View>
+                    );
+                  })
+                )}
+              </View>
+            </View>
+          </>
+        );
+
+      case 'printer':
+        return (
+          <PrinterStatusCard
+            t={t}
+            language={language}
+            printerIp={printerIp}
+            printerPort={printerPort}
+            printerModel={printerModel}
+          />
+        );
+
+      case 'staffHours':
+        return <StaffHoursCard restaurantCode={restaurantCode} language={language} />;
+
+      case 'dayManagement':
+        return (
+          <>
+            <ContentHeader title={tr('dayManagementTitle', labels.dayManagementTitle)} />
+            <View style={styles.card}>
+              <TouchableOpacity
+                style={styles.actionRow}
+                onPress={reopenDay}
+                activeOpacity={0.78}
+              >
+                <View style={styles.greenIconBox}>
+                  <Ionicons name="refresh-circle-outline" size={21} color={GREEN} />
+                </View>
+
+                <View style={styles.infoText}>
+                  <Text style={styles.actionTitle}>{t.reopenDay}</Text>
+                  <Text style={styles.actionSub}>{t.removeDayCloseStatus}</Text>
+                </View>
+
+                <Ionicons name="chevron-forward" size={17} color="#C0C4CE" />
+              </TouchableOpacity>
+            </View>
+          </>
+        );
+
+      case 'language':
+        return (
+          <>
+            <ContentHeader title={tr('languageTitle', labels.languageTitle)} />
+            <View style={styles.card}>
+              <View style={styles.languageRow}>
+                {(['de', 'en'] as const).map(lang => {
+                  const active = language === lang;
+
+                  return (
+                    <TouchableOpacity
+                      key={lang}
+                      style={[
+                        styles.languageBtn,
+                        active && styles.languageBtnActive,
+                      ]}
+                      onPress={() => setLanguage(lang)}
+                      activeOpacity={0.78}
+                    >
+                      <Text
+                        style={[
+                          styles.languageText,
+                          active && styles.languageTextActive,
+                        ]}
+                      >
+                        {Platform.OS === 'web'
+                          ? lang === 'de' ? 'Deutsch' : 'English'
+                          : lang === 'de' ? '🇩🇪 Deutsch' : '🇬🇧 English'}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          </>
+        );
+
+      default:
+        return null;
+    }
+  };
 
   if (loading) {
     return (
@@ -465,182 +684,73 @@ export default function Settings() {
         </View>
       </View>
 
-      <ScrollView
-        style={styles.container}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={[styles.contentInner, contentWidthStyle]}>
-          <View style={styles.sectionsGrid}>
-            <View style={styles.section}>
-              {renderSectionHeader(tr('restaurantTitle', labels.restaurantTitle))}
+      <View style={styles.splitContainer}>
+        {showSidebar && (
+          <View style={[styles.sidebar, isNarrow && styles.sidebarNarrow]}>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {sidebarItems.map(item => {
+                const active = !isNarrow && effectiveSection === item.key;
 
-              <View style={styles.card}>
-                <View style={styles.infoRow}>
-                  <View style={styles.iconBox}>
-                    <Ionicons name="storefront-outline" size={19} color={PRIMARY} />
-                  </View>
-
-                  <View style={styles.infoText}>
-                    <Text style={styles.infoLabel}>{t.restaurantCode}</Text>
-                    <Text style={styles.infoValue}>{restaurantCode || '—'}</Text>
-                  </View>
-                </View>
-
-                {restaurantName ? (
-                  <View style={styles.infoRow}>
-                    <View style={styles.iconBox}>
-                      <Ionicons name="business-outline" size={19} color={PRIMARY} />
-                    </View>
-
-                    <View style={styles.infoText}>
-                      <Text style={styles.infoLabel}>{t.restaurantNameLabel}</Text>
-                      <Text style={styles.infoValue}>{restaurantName}</Text>
-                    </View>
-                  </View>
-                ) : null}
-
-                <View style={[styles.infoRow, styles.infoRowLast]}>
-                  <View style={styles.iconBox}>
-                    <Ionicons name="key-outline" size={19} color={PRIMARY} />
-                  </View>
-
-                  <View style={styles.infoText}>
-                    <Text style={styles.infoLabel}>PIN</Text>
-                    <Text style={styles.infoValue}>••••</Text>
-                  </View>
-
+                return (
                   <TouchableOpacity
-                    style={styles.primarySmallBtn}
-                    onPress={() => setPinModal(true)}
-                    activeOpacity={0.78}
+                    key={item.key}
+                    style={[styles.sidebarItem, active && styles.sidebarItemActive]}
+                    onPress={() => setActiveSection(item.key)}
+                    activeOpacity={0.75}
                   >
-                    <Text style={styles.primarySmallBtnText}>{t.changePin}</Text>
+                    <View style={[styles.sidebarIconBox, active && styles.sidebarIconBoxActive]}>
+                      <Ionicons name={item.icon} size={18} color={active ? PRIMARY : '#6B7280'} />
+                    </View>
+                    <Text style={[styles.sidebarLabel, active && styles.sidebarLabelActive]}>
+                      {item.label}
+                    </Text>
+                    {isNarrow && <Ionicons name="chevron-forward" size={16} color="#C0C4CE" />}
                   </TouchableOpacity>
-                </View>
-              </View>
-            </View>
+                );
+              })}
 
-            <View style={styles.section}>
-              {renderSectionHeader((t as any).savedCustomers || (language === 'de' ? 'Gespeicherte Kunden' : 'Saved customers'))}
+              <View style={styles.sidebarDivider} />
 
               <TouchableOpacity
-                style={styles.addressBookSettingsCard}
-                onPress={openAddressBook}
-                activeOpacity={0.78}
-              >
-                <View style={styles.addressBookSettingsIcon}>
-                  <Ionicons name="book-outline" size={22} color="#D97706" />
-                </View>
-
-                <View style={styles.addressBookSettingsTextWrap}>
-                  <Text style={styles.addressBookSettingsTitle}>
-                    {(t as any).addressBook || 'Address book'}
-                  </Text>
-                  <Text style={styles.addressBookSettingsSub}>
-                    {(t as any).addressBookSettingsSubtitle || (language === 'de' ? 'Gespeicherte Telefonkunden anzeigen' : 'View saved phone customers')}
-                  </Text>
-                </View>
-
-                <Ionicons name="chevron-forward" size={20} color="#A8ACB7" />
-              </TouchableOpacity>
-            </View>
-
-            <PrinterStatusCard
-              t={t}
-              language={language}
-              printerIp={printerIp}
-              printerPort={printerPort}
-              printerModel={printerModel}
-            />
-
-            <View style={styles.section}>
-              {renderSectionHeader(tr('dayManagementTitle', labels.dayManagementTitle))}
-
-              <View style={styles.card}>
-                <TouchableOpacity
-                  style={styles.actionRow}
-                  onPress={reopenDay}
-                  activeOpacity={0.78}
-                >
-                  <View style={styles.greenIconBox}>
-                    <Ionicons name="refresh-circle-outline" size={21} color={GREEN} />
-                  </View>
-
-                  <View style={styles.infoText}>
-                    <Text style={styles.actionTitle}>{t.reopenDay}</Text>
-                    <Text style={styles.actionSub}>{t.removeDayCloseStatus}</Text>
-                  </View>
-
-                  <Ionicons name="chevron-forward" size={17} color="#C0C4CE" />
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            <View style={styles.section}>
-              {renderSectionHeader(tr('languageTitle', labels.languageTitle))}
-
-              <View style={styles.card}>
-                <View style={styles.languageRow}>
-                  {(['de', 'en'] as const).map(lang => {
-                    const active = language === lang;
-
-                    return (
-                      <TouchableOpacity
-                        key={lang}
-                        style={[
-                          styles.languageBtn,
-                          active && styles.languageBtnActive,
-                        ]}
-                        onPress={() => setLanguage(lang)}
-                        activeOpacity={0.78}
-                      >
-                        <Text
-                          style={[
-                            styles.languageText,
-                            active && styles.languageTextActive,
-                          ]}
-                        >
-                          {Platform.OS === 'web'
-                            ? lang === 'de' ? 'Deutsch' : 'English'
-                            : lang === 'de' ? '🇩🇪 Deutsch' : '🇬🇧 English'}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              </View>
-            </View>
-
-            <View style={styles.section}>
-              <TouchableOpacity
-                style={styles.logoutBtn}
+                style={styles.sidebarItem}
                 onPress={() => setLogoutModal(true)}
-                activeOpacity={0.78}
+                activeOpacity={0.75}
               >
-                <View style={styles.logoutIconBox}>
-                  <Ionicons name="log-out-outline" size={19} color={RED} />
+                <View style={[styles.sidebarIconBox, { backgroundColor: colors.dangerSoft }]}>
+                  <Ionicons name="log-out-outline" size={18} color={RED} />
                 </View>
-
-                <View style={styles.infoText}>
-                  <Text style={styles.logoutTitle}>{t.logout}</Text>
-                </View>
-
-                <Ionicons name="chevron-forward" size={17} color="#FCA5A5" />
+                <Text style={[styles.sidebarLabel, styles.sidebarLabelDanger]}>{t.logout}</Text>
               </TouchableOpacity>
-            </View>
-          </View>
 
-          <TouchableOpacity
-            style={styles.footer}
-            onPress={() => setAboutModal(true)}
-            activeOpacity={0.75}
+              <TouchableOpacity
+                style={styles.footer}
+                onPress={() => setAboutModal(true)}
+                activeOpacity={0.75}
+              >
+                <Ionicons name="hand-left-outline" size={14} color="#B8BBC4" />
+                <Text style={styles.footerText}>Powered by FoodUp.ch</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        )}
+
+        {showContent && (
+          <ScrollView
+            style={styles.contentPane}
+            contentContainerStyle={[styles.contentInnerPane, contentWidthStyle]}
+            showsVerticalScrollIndicator={false}
           >
-            <Ionicons name="hand-left-outline" size={14} color="#B8BBC4" />
-            <Text style={styles.footerText}>Powered by FoodUp.ch</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
+            {isNarrow && (
+              <TouchableOpacity style={styles.backRow} onPress={() => setActiveSection(null)} activeOpacity={0.7}>
+                <Ionicons name="chevron-back" size={20} color={PRIMARY} />
+                <Text style={styles.backText}>{t.settings}</Text>
+              </TouchableOpacity>
+            )}
+
+            {renderContent()}
+          </ScrollView>
+        )}
+      </View>
 
       <Modal visible={reopenModal} transparent animationType="fade">
         <TouchableOpacity
@@ -814,108 +924,6 @@ export default function Settings() {
         </TouchableOpacity>
       </Modal>
 
-      <Modal visible={addressBookModal} transparent animationType="fade">
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setAddressBookModal(false)}
-        >
-          <TouchableOpacity
-            style={styles.addressBookModalBox}
-            activeOpacity={1}
-            onPress={e => e.stopPropagation()}
-          >
-            <View style={styles.addressBookModalHeader}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.addressBookModalTitle}>
-                  {(t as any).addressBook || 'Address book'}
-                </Text>
-                <Text style={styles.addressBookModalSub}>
-                  {(t as any).addressBookSearchSubtitle || (language === 'de' ? 'Suche nach Telefon, Name, Nachname oder Strasse' : 'Search by phone, name, last name or street')}
-                </Text>
-              </View>
-
-              <TouchableOpacity
-                onPress={() => setAddressBookModal(false)}
-                style={styles.addressBookCloseBtn}
-                activeOpacity={0.75}
-              >
-                <Ionicons name="close" size={18} color="#5B5F6B" />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.addressBookSearchWrap}>
-              <Ionicons name="search-outline" size={18} color="#9CA3AF" />
-              <TextInput
-                style={styles.addressBookSearchInput}
-                placeholder={(t as any).addressBookSearchPlaceholder || (language === 'de' ? 'Telefon, Name, Nachname, Strasse suchen...' : 'Search phone, name, last name, street...')}
-                placeholderTextColor="#9CA3AF"
-                value={addressBookSearch}
-                onChangeText={setAddressBookSearch}
-                autoCorrect={false}
-                autoCapitalize="none"
-              />
-            </View>
-
-            <ScrollView
-              style={styles.addressBookList}
-              contentContainerStyle={filteredAddressBookCustomers.length === 0 ? styles.addressBookListEmpty : undefined}
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-            >
-              {filteredAddressBookCustomers.length === 0 ? (
-                <View style={styles.addressBookEmpty}>
-                  <Ionicons name="person-circle-outline" size={48} color="#C7CBD4" />
-                  <Text style={styles.addressBookEmptyText}>
-                    {(t as any).noSavedCustomers || (language === 'de' ? 'Noch keine Kunden gespeichert' : 'No saved customers yet')}
-                  </Text>
-                </View>
-              ) : (
-                filteredAddressBookCustomers.map((customer, index) => {
-                  const name = `${customer.first_name} ${customer.last_name}`.trim() || ((t as any).unknownCustomer || 'Unknown customer');
-                  const address = `${customer.street}, ${customer.zip} ${customer.city}`.replace(/^,\s*/, '').trim();
-
-                  return (
-                    <View
-                      key={`${customer.phone}-${customer.street}-${index}`}
-                      style={styles.addressBookCustomerCard}
-                    >
-                      <View style={styles.addressBookAvatar}>
-                        <Text style={styles.addressBookAvatarText}>
-                          {name.trim()[0]?.toUpperCase() || '?'}
-                        </Text>
-                      </View>
-
-                      <View style={styles.addressBookCustomerInfo}>
-                        <Text style={styles.addressBookCustomerName} numberOfLines={1}>
-                          {name}
-                        </Text>
-
-                        <Text style={styles.addressBookCustomerPhone} numberOfLines={1}>
-                          {customer.phone || ((t as any).noPhone || 'No phone')}
-                        </Text>
-
-                        <Text style={styles.addressBookCustomerAddress} numberOfLines={1}>
-                          {address || ((t as any).noAddress || (language === 'de' ? 'Keine Adresse' : 'No address'))}
-                        </Text>
-                      </View>
-
-                      <TouchableOpacity
-                        style={styles.addressBookDeleteBtn}
-                        onPress={() => handleDeleteAddressBookCustomer(customer)}
-                        activeOpacity={0.75}
-                      >
-                        <Ionicons name="trash-outline" size={17} color="#EF4444" />
-                      </TouchableOpacity>
-                    </View>
-                  );
-                })
-              )}
-            </ScrollView>
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </Modal>
-
       <Modal visible={aboutModal} transparent animationType="fade">
         <TouchableOpacity
           style={styles.modalOverlay}
@@ -994,30 +1002,98 @@ const styles = StyleSheet.create({
     backgroundColor: APP_BG,
   },
 
-  container: {
+  splitContainer: {
+    flex: 1,
+    flexDirection: 'row',
+  },
+
+  sidebar: {
+    width: 260,
+    backgroundColor: CARD_BG,
+    borderRightWidth: thinBorder,
+    borderRightColor: BORDER,
+  },
+
+  sidebarNarrow: {
+    width: '100%',
+    borderRightWidth: 0,
+  },
+
+  sidebarItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+
+  sidebarItemActive: {
+    backgroundColor: PRIMARY_SOFT,
+  },
+
+  sidebarIconBox: {
+    width: 34,
+    height: 34,
+    borderRadius: radii.lg,
+    backgroundColor: '#F2F3F7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  sidebarIconBoxActive: {
+    backgroundColor: '#fff',
+  },
+
+  sidebarLabel: {
+    flex: 1,
+    fontSize: fontSizes.mdl,
+    fontWeight: fontWeights.bold,
+    color: TEXT,
+    fontFamily: appFont,
+  },
+
+  sidebarLabelActive: {
+    color: PRIMARY,
+    fontWeight: fontWeights.extrabold,
+  },
+
+  sidebarLabelDanger: {
+    color: RED,
+  },
+
+  sidebarDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: BORDER,
+    marginVertical: 8,
+    marginHorizontal: 16,
+  },
+
+  contentPane: {
     flex: 1,
     backgroundColor: APP_BG,
   },
 
-  content: {
-    paddingHorizontal: PAGE_PADDING,
-    paddingTop: 14,
+  contentInnerPane: {
+    padding: PAGE_PADDING,
     paddingBottom: Platform.OS === 'android' ? 150 : 130,
-  },
-
-  contentInner: {
-    width: '100%',
-    maxWidth: MAX_CONTENT_WIDTH,
-    alignSelf: 'center',
   },
 
   contentInnerMobile: {
     maxWidth: '100%',
   },
 
-  sectionsGrid: {
-    flexDirection: 'column',
-    gap: 14,
+  backRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 14,
+  },
+
+  backText: {
+    fontSize: fontSizes.mdl,
+    fontWeight: fontWeights.bold,
+    color: PRIMARY,
+    fontFamily: appFont,
   },
 
   center: {
@@ -1302,32 +1378,6 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
 
-  logoutBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: CARD_BG,
-    borderRadius: radii.xxxl,
-    padding: 14,
-    gap: 12,
-    borderWidth: thinBorder,
-    borderColor: BORDER,
-  },
-
-  logoutTitle: {
-    fontSize: fontSizes.lg,
-    fontWeight: fontWeights.extrabold,
-    color: RED,
-    fontFamily: appFont,
-  },
-
-  logoutSub: {
-    fontSize: fontSizes.smd,
-    color: '#B45353',
-    marginTop: 3,
-    fontWeight: fontWeights.semibold,
-    fontFamily: appFont,
-  },
-
   footer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1335,7 +1385,7 @@ const styles = StyleSheet.create({
     gap: 6,
     marginTop: 10,
     paddingHorizontal: 16,
-    paddingBottom: 8,
+    paddingVertical: 14,
   },
 
   footerText: {
@@ -1480,95 +1530,6 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
 
-addressBookSettingsCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: CARD_BG,
-    borderRadius: radii.xxxl,
-    padding: 14,
-    gap: 12,
-    borderWidth: thinBorder,
-    borderColor: BORDER,
-  },
-
-  addressBookSettingsIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: radii.lg,
-    backgroundColor: '#FFF7ED',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: thinBorder,
-    borderColor: '#FED7AA',
-  },
-
-  addressBookSettingsTextWrap: {
-    flex: 1,
-  },
-
-  addressBookSettingsTitle: {
-    fontSize: fontSizes.lg,
-    fontWeight: fontWeights.extrabold,
-    color: TEXT,
-    fontFamily: appFont,
-  },
-
-  addressBookSettingsSub: {
-    fontSize: fontSizes.smd,
-    color: MUTED,
-    marginTop: 3,
-    fontWeight: fontWeights.semibold,
-    fontFamily: appFont,
-  },
-
-  addressBookModalBox: {
-    backgroundColor: '#fff',
-    borderRadius: radii.massive,
-    width: '94%',
-    maxWidth: 720,
-    maxHeight: '84%',
-    overflow: 'hidden',
-    borderWidth: thinBorder,
-    borderColor: BORDER,
-  },
-
-  addressBookModalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    padding: 18,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: BORDER,
-    gap: 14,
-  },
-
-  addressBookModalTitle: {
-    marginTop: 3,
-    fontSize: fontSizes.xxl,
-    fontWeight: fontWeights.extrabold,
-    color: TEXT,
-    fontFamily: appFont,
-  },
-
-  addressBookModalSub: {
-    fontSize: fontSizes.smd,
-    color: MUTED,
-    fontWeight: fontWeights.semibold,
-    marginTop: 3,
-    fontFamily: appFont,
-  },
-
-  addressBookCloseBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: radii.lg,
-    backgroundColor: '#F7F8FA',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: thinBorder,
-    borderColor: BORDER,
-  },
-
   addressBookSearchWrap: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1592,14 +1553,9 @@ addressBookSettingsCard: {
     fontWeight: fontWeights.medium,
   },
 
-  addressBookList: {
+  addressBookListInline: {
     paddingHorizontal: 16,
-    maxHeight: 420,
-  },
-
-  addressBookListEmpty: {
-    flexGrow: 1,
-    justifyContent: 'center',
+    paddingBottom: 16,
   },
 
   addressBookEmpty: {
