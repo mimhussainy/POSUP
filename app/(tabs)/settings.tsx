@@ -1072,11 +1072,15 @@ const styles = StyleSheet.create({
   },
 
   contentInnerPane: {
+    width: 500,
+    maxWidth: 500,
+    alignSelf: 'flex-start',
     padding: PAGE_PADDING,
     paddingBottom: Platform.OS === 'android' ? 150 : 130,
   },
 
   contentInnerMobile: {
+    width: '100%',
     maxWidth: '100%',
   },
 
