@@ -346,24 +346,28 @@ export default function Settings() {
       setPrinterPort(savedPrinterPort);
       setPrinterModel(savedPrinterModel);
 
-      if (code) {
-        const { fetchAndSaveProfile } = await import('../../lib/api');
-        const profile = await fetchAndSaveProfile(code);
+      setLoading(false);
 
-        if (profile.printer_ip) setPrinterIp(profile.printer_ip);
-        if (profile.printer_port) setPrinterPort(profile.printer_port);
-        if (profile.printer_model) setPrinterModel(profile.printer_model);
+            setLoading(false);
+
+      if (code && effectiveSection === 'printer') {
+        const { fetchAndSaveProfile } = await import('../../lib/api');
+
+        fetchAndSaveProfile(code)
+          .then(profile => {
+            if (profile.printer_ip) setPrinterIp(profile.printer_ip);
+            if (profile.printer_port) setPrinterPort(profile.printer_port);
+            if (profile.printer_model) setPrinterModel(profile.printer_model);
+          })
+          .catch(e => {
+            console.log('Failed to refresh printer profile', e);
+          });
       }
     } catch (e) {
       console.log('Failed to load settings', e);
-    } finally {
       setLoading(false);
     }
-  }, []);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  }, [effectiveSection]);
 
   useFocusEffect(
     useCallback(() => {

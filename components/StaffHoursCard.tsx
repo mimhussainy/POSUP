@@ -1467,46 +1467,52 @@ const styles = StyleSheet.create({
 
   summaryGrid: {
     flexDirection: 'row',
-    gap: 10,
-    marginTop: 14,
+    gap: 8,
+    marginTop: 10,
   },
 
   summaryBox: {
     flex: 1,
+    minHeight: 34,
     backgroundColor: '#FAFAFB',
-    borderRadius: radii.lg,
+    borderRadius: radii.mdl,
     borderWidth: thinBorder,
     borderColor: BORDER,
-    paddingVertical: 11,
-    paddingHorizontal: 9,
+    paddingVertical: 5,
+    paddingHorizontal: 8,
     alignItems: 'center',
+    justifyContent: 'center',
   },
 
   summaryBoxGreen: {
     flex: 1,
+    minHeight: 34,
     backgroundColor: colors.successSoft,
-    borderRadius: radii.lg,
+    borderRadius: radii.mdl,
     borderWidth: thinBorder,
     borderColor: '#BBF7D0',
-    paddingVertical: 11,
-    paddingHorizontal: 9,
+    paddingVertical: 5,
+    paddingHorizontal: 8,
     alignItems: 'center',
+    justifyContent: 'center',
   },
 
   summaryNumber: {
-    fontSize: fontSizes.xxl,
+    fontSize: fontSizes.lg,
     fontWeight: fontWeights.black,
     color: TEXT,
     fontFamily: appFont,
+    lineHeight: 20,
   },
 
   summaryLabel: {
-    marginTop: 2,
+    marginTop: 0,
     fontSize: fontSizes.xs,
     fontWeight: fontWeights.bold,
     color: MUTED,
     fontFamily: appFont,
     textAlign: 'center',
+    lineHeight: 13,
   },
 
   toolbarRow: {
