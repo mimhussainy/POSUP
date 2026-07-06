@@ -249,8 +249,13 @@ export default function Settings() {
   const [activeSection, setActiveSection] = useState<SectionKey | null>(null);
 
   const isNarrow = windowWidth < 760;
-  const contentWidthStyle = isNarrow ? styles.contentInnerMobile : null;
   const effectiveSection: SectionKey = activeSection ?? 'restaurant';
+  const contentWidthStyle =
+    effectiveSection === 'staffHours'
+      ? styles.contentInnerFull
+      : isNarrow
+        ? styles.contentInnerMobile
+        : styles.contentInnerFixed;
   const showSidebar = !isNarrow || activeSection === null;
   const showContent = !isNarrow || activeSection !== null;
 
@@ -1071,12 +1076,21 @@ const styles = StyleSheet.create({
     backgroundColor: APP_BG,
   },
 
-  contentInnerPane: {
+    contentInnerPane: {
+    padding: PAGE_PADDING,
+    paddingBottom: Platform.OS === 'android' ? 150 : 130,
+  },
+
+  contentInnerFixed: {
     width: 500,
     maxWidth: 500,
     alignSelf: 'flex-start',
-    padding: PAGE_PADDING,
-    paddingBottom: Platform.OS === 'android' ? 150 : 130,
+  },
+
+  contentInnerFull: {
+    width: '100%',
+    maxWidth: '100%',
+    alignSelf: 'stretch',
   },
 
   contentInnerMobile: {
