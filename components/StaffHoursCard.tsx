@@ -161,7 +161,6 @@ export default function StaffHoursCard({
   const [pinInput, setPinInput] = useState('');
   const [verifying, setVerifying] = useState(false);
   const [pinError, setPinError] = useState('');
-  const [pinAutoLength, setPinAutoLength] = useState(STAFF_PIN_LENGTH);
   const [wrongPinCount, setWrongPinCount] = useState(0);
   const [lockedUntil, setLockedUntil] = useState<number | null>(null);
   const [lockTick, setLockTick] = useState(0);
@@ -179,6 +178,7 @@ export default function StaffHoursCard({
   void nowTick;
 
   const [addModal, setAddModal] = useState(false);
+  const [manageModal, setManageModal] = useState(false);
   const [newName, setNewName] = useState('');
   const [adding, setAdding] = useState(false);
 
@@ -212,25 +212,7 @@ export default function StaffHoursCard({
     setEmployees([]);
     setSearchText('');
     setSelectedEmployee(null);
-  }, [restaurantCode]);
-
-  useEffect(() => {
-    let mounted = true;
-
-    (async () => {
-      try {
-        await AsyncStorage.getItem('owner_pin');
-        if (mounted) {
-          setPinAutoLength(STAFF_PIN_LENGTH);
-        }
-      } catch {
-        if (mounted) setPinAutoLength(STAFF_PIN_LENGTH);
-      }
-    })();
-
-    return () => {
-      mounted = false;
-    };
+    setManageModal(false);
   }, [restaurantCode]);
 
   const pinGuardKey = useMemo(
@@ -407,14 +389,14 @@ export default function StaffHoursCard({
     if (unlocked || verifying || isPinLocked) return;
 
     const cleanPin = pinInput.trim();
-    if (cleanPin.length !== pinAutoLength) return;
+    if (cleanPin.length !== STAFF_PIN_LENGTH) return;
 
     const timer = setTimeout(() => {
       handleVerifyPin(cleanPin);
     }, 260);
 
     return () => clearTimeout(timer);
-  }, [pinInput, unlocked, verifying, isPinLocked, pinAutoLength, handleVerifyPin]);
+  }, [pinInput, unlocked, verifying, isPinLocked, handleVerifyPin]);
 
   const handleToggleClock = async (employee: Employee) => {
     if (clockLoadingId) return;
@@ -608,41 +590,43 @@ export default function StaffHoursCard({
         onPress={() => setSelectedEmployee(emp)}
         activeOpacity={0.78}
       >
-        <View style={[styles.avatar, isIn ? styles.avatarIn : styles.avatarOut]}>
-          <Text style={[styles.avatarText, isIn ? styles.avatarTextIn : styles.avatarTextOut]}>
-            {initials(emp.name)}
-          </Text>
-        </View>
-
-        <View style={styles.employeeInfo}>
-          <View style={styles.employeeNameRow}>
-            <Text style={styles.employeeName} numberOfLines={1}>{emp.name}</Text>
-            <View style={[styles.statusPill, isIn ? styles.statusPillIn : styles.statusPillOut]}>
-              <View style={[styles.statusDot, { backgroundColor: isIn ? GREEN : '#9CA3AF' }]} />
-              <Text style={[styles.statusPillText, { color: isIn ? GREEN : '#6B7280' }]}> 
-                {isIn ? tr('In', 'Drin') : tr('Out', 'Draussen')}
-              </Text>
-            </View>
+        <View style={styles.employeeCardTop}>
+          <View style={[styles.avatar, isIn ? styles.avatarIn : styles.avatarOut]}>
+            <Text style={[styles.avatarText, isIn ? styles.avatarTextIn : styles.avatarTextOut]}>
+              {initials(emp.name)}
+            </Text>
           </View>
 
-          {isIn ? (
-            <View style={styles.employeeMetaGrid}>
-              <View style={styles.employeeMetaItem}>
-                <Text style={styles.employeeMetaLabel}>{tr('Since', 'Seit')}</Text>
-                <Text style={styles.employeeMetaValue}>{formatTime(emp.clock_in_time)}</Text>
-              </View>
-              <View style={styles.employeeMetaItem}>
-                <Text style={styles.employeeMetaLabel}>{tr('Today', 'Heute')}</Text>
-                <Text style={styles.employeeMetaValue}>{durationSince(emp.clock_in_time)}</Text>
-              </View>
-            </View>
-          ) : (
-            <Text style={styles.employeeSub}>{tr('Tap to clock in', 'Tippen zum Einstempeln')}</Text>
-          )}
+          <View style={[styles.statusPill, isIn ? styles.statusPillIn : styles.statusPillOut]}>
+            <View style={[styles.statusDot, { backgroundColor: isIn ? GREEN : '#9CA3AF' }]} />
+            <Text style={[styles.statusPillText, { color: isIn ? GREEN : '#6B7280' }]}>
+              {isIn ? tr('In', 'Drin') : tr('Out', 'Draussen')}
+            </Text>
+          </View>
         </View>
 
-        <View style={[styles.cardActionIcon, isIn ? styles.cardActionIconOut : styles.cardActionIconIn]}>
-          <Ionicons name={isIn ? 'log-out-outline' : 'log-in-outline'} size={18} color={isIn ? RED : GREEN} />
+        <Text style={styles.employeeName} numberOfLines={1}>{emp.name}</Text>
+
+        {isIn ? (
+          <View style={styles.employeeMetaGrid}>
+            <View style={styles.employeeMetaItem}>
+              <Text style={styles.employeeMetaLabel}>{tr('Since', 'Seit')}</Text>
+              <Text style={styles.employeeMetaValue}>{formatTime(emp.clock_in_time)}</Text>
+            </View>
+            <View style={styles.employeeMetaItem}>
+              <Text style={styles.employeeMetaLabel}>{tr('Today', 'Heute')}</Text>
+              <Text style={styles.employeeMetaValue}>{durationSince(emp.clock_in_time)}</Text>
+            </View>
+          </View>
+        ) : (
+          <Text style={styles.employeeSub}>{tr('Tap to clock in', 'Tippen zum Einstempeln')}</Text>
+        )}
+
+        <View style={[styles.cardActionPill, isIn ? styles.cardActionPillOut : styles.cardActionPillIn]}>
+          <Ionicons name={isIn ? 'log-out-outline' : 'log-in-outline'} size={16} color={isIn ? RED : GREEN} />
+          <Text style={[styles.cardActionPillText, { color: isIn ? RED : GREEN }]}>
+            {isIn ? tr('Clock Out', 'Ausstempeln') : tr('Clock In', 'Einstempeln')}
+          </Text>
         </View>
       </TouchableOpacity>
     );
@@ -698,6 +682,11 @@ export default function StaffHoursCard({
           <TouchableOpacity style={styles.toolbarBtn} onPress={() => setAddModal(true)} activeOpacity={0.75}>
             <Ionicons name="person-add-outline" size={17} color={PRIMARY} />
             <Text style={styles.toolbarBtnText}>{tr('Add', 'Hinzufügen')}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.toolbarBtn} onPress={() => setManageModal(true)} activeOpacity={0.75}>
+            <Ionicons name="settings-outline" size={17} color={PRIMARY} />
+            <Text style={styles.toolbarBtnText}>{tr('Manage', 'Verwalten')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.toolbarBtn} onPress={() => openReport()} activeOpacity={0.75}>
@@ -831,25 +820,63 @@ export default function StaffHoursCard({
                       </>
                     )}
                   </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.removeBtn}
-                    onPress={() => requestDeactivate(selectedCurrent)}
-                    disabled={deleteLoadingId === selectedCurrent.id}
-                    activeOpacity={0.75}
-                  >
-                    {deleteLoadingId === selectedCurrent.id ? (
-                      <ActivityIndicator color={RED} />
-                    ) : (
-                      <>
-                        <Ionicons name="trash-outline" size={18} color={RED} />
-                        <Text style={styles.removeBtnText}>{tr('Remove employee', 'Mitarbeiter entfernen')}</Text>
-                      </>
-                    )}
-                  </TouchableOpacity>
                 </View>
               </>
             ) : null}
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+
+      {/* Manage employees */}
+      <Modal visible={manageModal} transparent animationType="fade">
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setManageModal(false)}>
+          <TouchableOpacity style={styles.modalBox} activeOpacity={1} onPress={e => e.stopPropagation()}>
+            <View style={styles.modalHeader}>
+              <View>
+                <Text style={styles.modalTitle}>{tr('Manage employees', 'Mitarbeiter verwalten')}</Text>
+                <Text style={styles.modalSubTitle}>{tr('Remove employees only from here.', 'Mitarbeiter nur hier entfernen.')}</Text>
+              </View>
+              <TouchableOpacity onPress={() => setManageModal(false)} style={styles.modalCloseBtn} activeOpacity={0.75}>
+                <Ionicons name="close" size={18} color="#5B5F6B" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.manageList}>
+              {employees.length === 0 ? (
+                <Text style={styles.manageEmptyText}>{tr('No employees yet', 'Noch keine Mitarbeiter')}</Text>
+              ) : (
+                employees.map(employee => (
+                  <View key={employee.id} style={styles.manageRow}>
+                    <View style={[styles.manageAvatar, employee.clocked_in ? styles.avatarIn : styles.avatarOut]}>
+                      <Text style={[styles.manageAvatarText, employee.clocked_in ? styles.avatarTextIn : styles.avatarTextOut]}>
+                        {initials(employee.name)}
+                      </Text>
+                    </View>
+
+                    <View style={styles.manageInfo}>
+                      <Text style={styles.manageName} numberOfLines={1}>{employee.name}</Text>
+                      <Text style={[styles.manageStatus, { color: employee.clocked_in ? GREEN : MUTED }]}>
+                        {employee.clocked_in ? tr('Clocked in', 'Eingestempelt') : tr('Clocked out', 'Ausgestempelt')}
+                      </Text>
+                    </View>
+
+                    <TouchableOpacity
+                      style={styles.manageRemoveBtn}
+                      onPress={() => requestDeactivate(employee)}
+                      disabled={deleteLoadingId === employee.id}
+                      activeOpacity={0.75}
+                    >
+                      {deleteLoadingId === employee.id ? (
+                        <ActivityIndicator color={RED} />
+                      ) : (
+                        <Ionicons name="trash-outline" size={18} color={RED} />
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                ))
+              )}
+            </ScrollView>
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
@@ -1033,9 +1060,10 @@ const styles = StyleSheet.create({
     fontFamily: appFont,
   },
 
-  unlockCard: {
-    width: 700,
-    alignSelf: 'center',
+    unlockCard: {
+    width: 500,
+    alignSelf: 'flex-start',
+    marginLeft: 0,
     backgroundColor: CARD_BG,
     borderRadius: radii.xxxl,
     borderWidth: thinBorder,
@@ -1304,18 +1332,21 @@ const styles = StyleSheet.create({
   },
 
   employeeList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 10,
   },
 
   employeeCard: {
+    width: '31.8%',
+    minHeight: 176,
     backgroundColor: CARD_BG,
     borderRadius: radii.xxxl,
     borderWidth: thinBorder,
     borderColor: BORDER,
-    padding: 13,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+    padding: 12,
+    justifyContent: 'space-between',
+    gap: 9,
   },
 
   employeeCardActive: {
@@ -1323,9 +1354,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#FBFFFC',
   },
 
+  employeeCardTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+
   avatar: {
-    width: 48,
-    height: 48,
+    width: 42,
+    height: 42,
     borderRadius: radii.full,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1365,7 +1403,6 @@ const styles = StyleSheet.create({
   },
 
   employeeName: {
-    flex: 1,
     fontSize: fontSizes.lg,
     fontWeight: fontWeights.black,
     color: TEXT,
@@ -1452,6 +1489,29 @@ const styles = StyleSheet.create({
 
   cardActionIconOut: {
     backgroundColor: colors.dangerSoft,
+  },
+
+  cardActionPill: {
+    minHeight: 36,
+    borderRadius: radii.full,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+
+  cardActionPillIn: {
+    backgroundColor: colors.successSoft,
+  },
+
+  cardActionPillOut: {
+    backgroundColor: colors.dangerSoft,
+  },
+
+  cardActionPillText: {
+    fontSize: fontSizes.smd,
+    fontWeight: fontWeights.black,
+    fontFamily: appFont,
   },
 
   loadingInlineCard: {
@@ -1691,6 +1751,74 @@ const styles = StyleSheet.create({
     fontWeight: fontWeights.black,
     color: RED,
     fontFamily: appFont,
+  },
+
+  manageList: {
+    maxHeight: 420,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+  },
+
+  manageEmptyText: {
+    paddingVertical: 24,
+    textAlign: 'center',
+    color: MUTED,
+    fontSize: fontSizes.smd,
+    fontWeight: fontWeights.bold,
+    fontFamily: appFont,
+  },
+
+  manageRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 11,
+    paddingVertical: 11,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#F0F1F5',
+  },
+
+  manageAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: radii.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  manageAvatarText: {
+    fontSize: fontSizes.smd,
+    fontWeight: fontWeights.black,
+    fontFamily: appFont,
+  },
+
+  manageInfo: {
+    flex: 1,
+    minWidth: 0,
+  },
+
+  manageName: {
+    fontSize: fontSizes.mdl,
+    fontWeight: fontWeights.black,
+    color: TEXT,
+    fontFamily: appFont,
+  },
+
+  manageStatus: {
+    marginTop: 2,
+    fontSize: fontSizes.smd,
+    fontWeight: fontWeights.bold,
+    fontFamily: appFont,
+  },
+
+  manageRemoveBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: radii.lg,
+    backgroundColor: '#FEF2F2',
+    borderWidth: thinBorder,
+    borderColor: '#FECACA',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   modalHeader: {
