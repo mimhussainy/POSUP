@@ -282,7 +282,7 @@ export default function Settings() {
     { key: 'restaurant', label: tr('restaurantTitle', labels.restaurantTitle), icon: 'storefront-outline' },
     { key: 'addressBook', label: (t as any).addressBook || (isGerman ? 'Adressbuch' : 'Address book'), icon: 'book-outline' },
     { key: 'printer', label: (t as any)?.printerStatus || (isGerman ? 'Druckerstatus' : 'Printer Status'), icon: 'print-outline' },
-    { key: 'staffHours', label: isGerman ? 'Arbeitszeiten' : 'Staff Hours', icon: 'people-outline' },
+    { key: 'staffHours', label: (t as any).staffHours || (isGerman ? 'Arbeitszeiten' : 'Staff Hours'), icon: 'people-outline' },
     { key: 'dayManagement', label: tr('dayManagementTitle', labels.dayManagementTitle), icon: 'refresh-circle-outline' },
     { key: 'language', label: tr('languageTitle', labels.languageTitle), icon: 'language-outline' },
   ];

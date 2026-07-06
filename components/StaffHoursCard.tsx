@@ -219,10 +219,9 @@ export default function StaffHoursCard({
 
     (async () => {
       try {
-        const savedPin = await AsyncStorage.getItem('owner_pin');
-        const savedLength = (savedPin || '').trim().length;
+        await AsyncStorage.getItem('owner_pin');
         if (mounted) {
-          setPinAutoLength(savedLength >= STAFF_PIN_LENGTH ? savedLength : STAFF_PIN_LENGTH);
+          setPinAutoLength(STAFF_PIN_LENGTH);
         }
       } catch {
         if (mounted) setPinAutoLength(STAFF_PIN_LENGTH);
@@ -558,13 +557,13 @@ export default function StaffHoursCard({
               placeholderTextColor="#A8ACB7"
               value={pinInput}
               onChangeText={text => {
-                const clean = text.replace(/\D/g, '').slice(0, pinAutoLength);
+                const clean = text.replace(/\D/g, '').slice(0, STAFF_PIN_LENGTH);
                 setPinInput(clean);
                 if (pinError) setPinError('');
               }}
               secureTextEntry
               keyboardType="number-pad"
-              maxLength={pinAutoLength}
+              maxLength={STAFF_PIN_LENGTH}
               editable={!isPinLocked && !verifying}
               onSubmitEditing={() => handleVerifyPin()}
               returnKeyType="done"
@@ -572,9 +571,9 @@ export default function StaffHoursCard({
           </View>
 
           <TouchableOpacity
-            style={[styles.unlockBtn, (pinInput.trim().length < pinAutoLength || verifying || isPinLocked) && styles.btnDisabled]}
+            style={[styles.unlockBtn, (pinInput.trim().length < STAFF_PIN_LENGTH || verifying || isPinLocked) && styles.btnDisabled]}
             onPress={() => handleVerifyPin()}
-            disabled={pinInput.trim().length < pinAutoLength || verifying || isPinLocked}
+            disabled={pinInput.trim().length < STAFF_PIN_LENGTH || verifying || isPinLocked}
             activeOpacity={0.8}
           >
             {verifying ? (
@@ -1035,11 +1034,13 @@ const styles = StyleSheet.create({
   },
 
   unlockCard: {
+    width: 200,
+    alignSelf: 'center',
     backgroundColor: CARD_BG,
     borderRadius: radii.xxxl,
     borderWidth: thinBorder,
     borderColor: BORDER,
-    padding: 13,
+    padding: 10,
   },
 
   unlockHeaderRow: {
