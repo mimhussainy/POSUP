@@ -5,7 +5,7 @@
 // and switches to a live order summary as items are added.
 
 import { useEffect, useState, useRef } from 'react';
-import { View, Text, Image, StyleSheet } from 'react-native';
+import { View, Text, Image, StyleSheet, ScrollView } from 'react-native';
 import { colors, radii, fontSizes, fontWeights } from '../lib/theme';
 import { appFont } from '../lib/fonts';
 import { subscribeDisplayState, DisplayState } from '../lib/customerDisplayStore';
@@ -34,6 +34,7 @@ export default function CustomerDisplay() {
   const [showThankYou, setShowThankYou] = useState(false);
   const prevItemCount = useRef(0);
   const thankYouTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const itemsScrollRef = useRef<ScrollView | null>(null);
 
   useEffect(() => {
     const unsubscribe = subscribeDisplayState(setState);
@@ -63,6 +64,14 @@ export default function CustomerDisplay() {
       if (thankYouTimer.current) clearTimeout(thankYouTimer.current);
     };
   }, [state.items.length]);
+
+  useEffect(() => {
+    if (state.items.length > 0) {
+      requestAnimationFrame(() => {
+        itemsScrollRef.current?.scrollToEnd({ animated: true });
+      });
+    }
+  }, [state.items.length, state.total]);
 
   const hasOrder = state.items.length > 0;
 
@@ -113,7 +122,13 @@ export default function CustomerDisplay() {
         <Text style={styles.orderClock}>{formatTime(now)}</Text>
       </View>
 
-      <View style={styles.itemsList}>
+      <ScrollView
+        ref={itemsScrollRef}
+        style={styles.itemsList}
+        contentContainerStyle={styles.itemsListContent}
+        showsVerticalScrollIndicator={false}
+        persistentScrollbar
+      >
         {state.items.map(item => (
           <View key={item.id} style={styles.itemRow}>
             <View style={styles.itemQtyBadge}>
@@ -137,7 +152,7 @@ export default function CustomerDisplay() {
             </Text>
           </View>
         ))}
-      </View>
+      </ScrollView>
 
       <View style={styles.totalsBox}>
         <View style={styles.totalRow}>
@@ -286,16 +301,20 @@ const styles = StyleSheet.create({
 
   itemsList: {
     flex: 1,
-    gap: 14,
+  },
+
+  itemsListContent: {
+    gap: 12,
+    paddingBottom: 4,
   },
 
   itemRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 16,
+    gap: 14,
     backgroundColor: colors.darkCard,
     borderRadius: radii.lg,
-    padding: 16,
+    padding: 14,
     borderWidth: 1,
     borderColor: colors.darkBorder,
   },
