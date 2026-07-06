@@ -36,6 +36,7 @@ const thinBorder = borders.thin;
 const STAFF_PIN_LENGTH = 4;
 const STAFF_PIN_MAX_ATTEMPTS = 5;
 const STAFF_PIN_LOCK_MS = 15 * 60 * 1000;
+const STAFF_ADJUST_SHIFT_URL = 'https://foodup-order-alerts-backend.onrender.com/staff/adjust-shift';
 
 type Employee = {
   id: string;
@@ -54,6 +55,14 @@ type ReportRow = {
   name: string;
   total_hours: number;
   shifts: ReportShift[];
+};
+
+type AdjustShiftTarget = {
+  employee_id: string;
+  name: string;
+  clock_in: string;
+  clock_out: string | null;
+  shift_index?: number;
 };
 
 function safeDate(value: string | null | undefined) {
@@ -104,6 +113,39 @@ function durationBetween(start: string, end: string | null) {
   const e = end ? safeDate(end) : new Date();
   if (!s || !e) return '0h 00m';
   return formatDurationFromMs(e.getTime() - s.getTime());
+}
+
+function dateInputValue(iso: string | null | undefined) {
+  const d = safeDate(iso) || new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function timeInputValue(iso: string | null | undefined) {
+  const d = safeDate(iso) || new Date();
+  const hours = String(d.getHours()).padStart(2, '0');
+  const mins = String(d.getMinutes()).padStart(2, '0');
+  return `${hours}:${mins}`;
+}
+
+function combineLocalDateTime(dateValue: string, timeValue: string) {
+  const dateParts = dateValue.trim().split('-').map(Number);
+  const timeParts = timeValue.trim().split(':').map(Number);
+
+  if (dateParts.length !== 3 || timeParts.length < 2) return null;
+
+  const [year, month, day] = dateParts;
+  const [hours, minutes] = timeParts;
+
+  if (!year || !month || !day || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+    return null;
+  }
+
+  const d = new Date(year, month - 1, day, hours, minutes, 0, 0);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toISOString();
 }
 
 function formatLockRemaining(ms: number) {
@@ -188,6 +230,14 @@ export default function StaffHoursCard({
   const [reportLoading, setReportLoading] = useState(false);
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
+  const [adjustModal, setAdjustModal] = useState(false);
+  const [adjustShift, setAdjustShift] = useState<AdjustShiftTarget | null>(null);
+  const [adjustInDate, setAdjustInDate] = useState('');
+  const [adjustInTime, setAdjustInTime] = useState('');
+  const [adjustOutDate, setAdjustOutDate] = useState('');
+  const [adjustOutTime, setAdjustOutTime] = useState('');
+  const [adjustSaving, setAdjustSaving] = useState(false);
+
   useEffect(() => {
     if (!unlocked) {
       const timer = setTimeout(() => pinInputRef.current?.focus(), 180);
@@ -213,6 +263,8 @@ export default function StaffHoursCard({
     setSearchText('');
     setSelectedEmployee(null);
     setManageModal(false);
+    setAdjustModal(false);
+    setAdjustShift(null);
   }, [restaurantCode]);
 
   const pinGuardKey = useMemo(
@@ -468,6 +520,72 @@ export default function StaffHoursCard({
     }
   };
 
+  const openAdjustShift = (target: AdjustShiftTarget) => {
+    setAdjustShift(target);
+    setAdjustInDate(dateInputValue(target.clock_in));
+    setAdjustInTime(timeInputValue(target.clock_in));
+    setAdjustOutDate(dateInputValue(target.clock_out || target.clock_in));
+    setAdjustOutTime(target.clock_out ? timeInputValue(target.clock_out) : timeInputValue(new Date().toISOString()));
+    setAdjustModal(true);
+  };
+
+  const closeAdjustModal = () => {
+    if (adjustSaving) return;
+    setAdjustModal(false);
+    setAdjustShift(null);
+  };
+
+  const handleSaveAdjustedShift = async () => {
+    if (!adjustShift) return;
+
+    const newClockIn = combineLocalDateTime(adjustInDate, adjustInTime);
+    const newClockOut = adjustShift.clock_out ? combineLocalDateTime(adjustOutDate, adjustOutTime) : null;
+
+    if (!newClockIn || (adjustShift.clock_out && !newClockOut)) {
+      Alert.alert(tr('Invalid time', 'Ungültige Zeit'), tr('Please enter date as YYYY-MM-DD and time as HH:MM.', 'Bitte Datum als YYYY-MM-DD und Zeit als HH:MM eingeben.'));
+      return;
+    }
+
+    if (newClockOut && safeDate(newClockOut) && safeDate(newClockIn) && safeDate(newClockOut)!.getTime() <= safeDate(newClockIn)!.getTime()) {
+      Alert.alert(tr('Invalid time', 'Ungültige Zeit'), tr('Clock out must be after clock in.', 'Ausstempeln muss nach Einstempeln sein.'));
+      return;
+    }
+
+    setAdjustSaving(true);
+
+    try {
+      const res = await fetch(STAFF_ADJUST_SHIFT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          restaurant_code: restaurantCode,
+          employee_id: adjustShift.employee_id,
+          original_clock_in: adjustShift.clock_in,
+          original_clock_out: adjustShift.clock_out,
+          clock_in: newClockIn,
+          clock_out: newClockOut,
+          shift_index: adjustShift.shift_index,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || data.message || 'Failed to adjust shift');
+      }
+
+      setAdjustModal(false);
+      setAdjustShift(null);
+      setSelectedEmployee(null);
+      await loadEmployees(true);
+      await openReport(reportMonth);
+    } catch (e: any) {
+      Alert.alert(tr('Could not save', 'Konnte nicht speichern'), String(e?.message || e));
+    } finally {
+      setAdjustSaving(false);
+    }
+  };
+
   const openReport = async (month: string = reportMonth) => {
     setReportMonth(month);
     setExpandedRow(null);
@@ -591,11 +709,7 @@ export default function StaffHoursCard({
         activeOpacity={0.78}
       >
         <View style={styles.employeeCardTop}>
-          <View style={[styles.avatar, isIn ? styles.avatarIn : styles.avatarOut]}>
-            <Text style={[styles.avatarText, isIn ? styles.avatarTextIn : styles.avatarTextOut]}>
-              {initials(emp.name)}
-            </Text>
-          </View>
+          <Text style={styles.employeeName} numberOfLines={1}>{emp.name}</Text>
 
           <View style={[styles.statusPill, isIn ? styles.statusPillIn : styles.statusPillOut]}>
             <View style={[styles.statusDot, { backgroundColor: isIn ? GREEN : '#9CA3AF' }]} />
@@ -604,8 +718,6 @@ export default function StaffHoursCard({
             </Text>
           </View>
         </View>
-
-        <Text style={styles.employeeName} numberOfLines={1}>{emp.name}</Text>
 
         {isIn ? (
           <View style={styles.employeeMetaGrid}>
@@ -757,14 +869,17 @@ export default function StaffHoursCard({
             {selectedCurrent ? (
               <>
                 <View style={styles.actionModalHeader}>
-                  <View style={[styles.avatarLarge, selectedCurrent.clocked_in ? styles.avatarIn : styles.avatarOut]}>
-                    <Text style={[styles.avatarLargeText, selectedCurrent.clocked_in ? styles.avatarTextIn : styles.avatarTextOut]}>
-                      {initials(selectedCurrent.name)}
-                    </Text>
-                  </View>
-
                   <View style={styles.actionModalTitleWrap}>
-                    <Text style={styles.actionModalName} numberOfLines={1}>{selectedCurrent.name}</Text>
+                    <View style={styles.actionTitleLine}>
+                      <Text style={styles.actionModalName} numberOfLines={1}>{selectedCurrent.name}</Text>
+                      <View style={[styles.statusPill, selectedCurrent.clocked_in ? styles.statusPillIn : styles.statusPillOut]}>
+                        <View style={[styles.statusDot, { backgroundColor: selectedCurrent.clocked_in ? GREEN : '#9CA3AF' }]} />
+                        <Text style={[styles.statusPillText, { color: selectedCurrent.clocked_in ? GREEN : '#6B7280' }]}>
+                          {selectedCurrent.clocked_in ? tr('In', 'Drin') : tr('Out', 'Draussen')}
+                        </Text>
+                      </View>
+                    </View>
+
                     <Text style={[styles.actionModalStatus, { color: selectedCurrent.clocked_in ? GREEN : MUTED }]}> 
                       {selectedCurrent.clocked_in
                         ? tr(
@@ -797,6 +912,22 @@ export default function StaffHoursCard({
                     {tr('Tap clock in when this employee starts working.', 'Tippe auf Einstempeln, wenn dieser Mitarbeiter anfängt zu arbeiten.')}
                   </Text>
                 )}
+
+                {selectedCurrent.clocked_in ? (
+                  <TouchableOpacity
+                    style={styles.adjustTimeBtn}
+                    onPress={() => openAdjustShift({
+                      employee_id: selectedCurrent.id,
+                      name: selectedCurrent.name,
+                      clock_in: selectedCurrent.clock_in_time || new Date().toISOString(),
+                      clock_out: null,
+                    })}
+                    activeOpacity={0.75}
+                  >
+                    <Ionicons name="create-outline" size={16} color={PRIMARY} />
+                    <Text style={styles.adjustTimeBtnText}>{tr('Adjust clock-in time', 'Einstempelzeit anpassen')}</Text>
+                  </TouchableOpacity>
+                ) : null}
 
                 <View style={styles.actionButtons}>
                   <TouchableOpacity
@@ -1024,6 +1155,20 @@ export default function StaffHoursCard({
                                 </Text>
                                 <Text style={styles.shiftDurationText}>{durationBetween(shift.clock_in, shift.clock_out)}</Text>
                               </View>
+
+                              <TouchableOpacity
+                                style={styles.shiftEditBtn}
+                                onPress={() => openAdjustShift({
+                                  employee_id: row.employee_id,
+                                  name: row.name,
+                                  clock_in: shift.clock_in,
+                                  clock_out: shift.clock_out,
+                                  shift_index: i,
+                                })}
+                                activeOpacity={0.75}
+                              >
+                                <Ionicons name="create-outline" size={15} color={PRIMARY} />
+                              </TouchableOpacity>
                             </View>
                           ))}
                         </View>
@@ -1033,6 +1178,96 @@ export default function StaffHoursCard({
                 })
               )}
             </ScrollView>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Adjust time */}
+      <Modal visible={adjustModal} transparent animationType="fade">
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={closeAdjustModal}>
+          <TouchableOpacity style={styles.modalBox} activeOpacity={1} onPress={e => e.stopPropagation()}>
+            <View style={styles.modalHeader}>
+              <View>
+                <Text style={styles.modalTitle}>{tr('Adjust time', 'Zeit anpassen')}</Text>
+                <Text style={styles.modalSubTitle}>{adjustShift?.name || ''}</Text>
+              </View>
+              <TouchableOpacity onPress={closeAdjustModal} style={styles.modalCloseBtn} activeOpacity={0.75}>
+                <Ionicons name="close" size={18} color="#5B5F6B" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.modalBody}>
+              <Text style={styles.adjustHelpText}>
+                {tr(
+                  'Use this only when someone forgot to clock in/out or tapped by mistake.',
+                  'Nur benutzen, wenn jemand das Ein-/Ausstempeln vergessen oder falsch getippt hat.'
+                )}
+              </Text>
+
+              <Text style={styles.fieldLabel}>{tr('Clock in', 'Einstempeln')}</Text>
+              <View style={styles.adjustInputRow}>
+                <TextInput
+                  style={[styles.textInput, styles.adjustDateInput]}
+                  placeholder="YYYY-MM-DD"
+                  placeholderTextColor="#A8ACB7"
+                  value={adjustInDate}
+                  onChangeText={setAdjustInDate}
+                  autoCorrect={false}
+                />
+                <TextInput
+                  style={[styles.textInput, styles.adjustTimeInput]}
+                  placeholder="HH:MM"
+                  placeholderTextColor="#A8ACB7"
+                  value={adjustInTime}
+                  onChangeText={setAdjustInTime}
+                  autoCorrect={false}
+                />
+              </View>
+
+              {adjustShift?.clock_out ? (
+                <>
+                  <Text style={styles.fieldLabel}>{tr('Clock out', 'Ausstempeln')}</Text>
+                  <View style={styles.adjustInputRow}>
+                    <TextInput
+                      style={[styles.textInput, styles.adjustDateInput]}
+                      placeholder="YYYY-MM-DD"
+                      placeholderTextColor="#A8ACB7"
+                      value={adjustOutDate}
+                      onChangeText={setAdjustOutDate}
+                      autoCorrect={false}
+                    />
+                    <TextInput
+                      style={[styles.textInput, styles.adjustTimeInput]}
+                      placeholder="HH:MM"
+                      placeholderTextColor="#A8ACB7"
+                      value={adjustOutTime}
+                      onChangeText={setAdjustOutTime}
+                      autoCorrect={false}
+                    />
+                  </View>
+                </>
+              ) : (
+                <Text style={styles.adjustOpenShiftNote}>
+                  {tr('This is an open shift. Only the clock-in time can be adjusted until the employee clocks out.', 'Dies ist eine offene Schicht. Bis zum Ausstempeln kann nur die Einstempelzeit angepasst werden.')}
+                </Text>
+              )}
+
+              <TouchableOpacity
+                style={[styles.primaryBtn, adjustSaving && styles.btnDisabled]}
+                onPress={handleSaveAdjustedShift}
+                disabled={adjustSaving}
+                activeOpacity={0.8}
+              >
+                {adjustSaving ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <>
+                    <Ionicons name="save-outline" size={18} color="#fff" />
+                    <Text style={styles.primaryBtnText}>{tr('Save time', 'Zeit speichern')}</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
@@ -1060,10 +1295,9 @@ const styles = StyleSheet.create({
     fontFamily: appFont,
   },
 
-    unlockCard: {
+  unlockCard: {
     width: 500,
     alignSelf: 'flex-start',
-    marginLeft: 0,
     backgroundColor: CARD_BG,
     borderRadius: radii.xxxl,
     borderWidth: thinBorder,
@@ -1339,7 +1573,7 @@ const styles = StyleSheet.create({
 
   employeeCard: {
     width: '31.8%',
-    minHeight: 176,
+    minHeight: 142,
     backgroundColor: CARD_BG,
     borderRadius: radii.xxxl,
     borderWidth: thinBorder,
@@ -1403,6 +1637,8 @@ const styles = StyleSheet.create({
   },
 
   employeeName: {
+    flex: 1,
+    minWidth: 0,
     fontSize: fontSizes.lg,
     fontWeight: fontWeights.black,
     color: TEXT,
@@ -1622,6 +1858,35 @@ const styles = StyleSheet.create({
     padding: 18,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: BORDER,
+  },
+
+  actionTitleLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+
+  adjustTimeBtn: {
+    marginHorizontal: 18,
+    marginTop: 0,
+    marginBottom: 12,
+    minHeight: 42,
+    borderRadius: radii.lg,
+    borderWidth: thinBorder,
+    borderColor: BORDER,
+    backgroundColor: '#FAFAFB',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+  },
+
+  adjustTimeBtnText: {
+    fontSize: fontSizes.smd,
+    fontWeight: fontWeights.extrabold,
+    color: PRIMARY,
+    fontFamily: appFont,
   },
 
   avatarLarge: {
@@ -2099,4 +2364,56 @@ const styles = StyleSheet.create({
     color: MUTED,
     fontFamily: appFont,
   },
+
+  shiftEditBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: radii.lg,
+    backgroundColor: PRIMARY_SOFT,
+    borderWidth: thinBorder,
+    borderColor: colors.primaryBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  adjustHelpText: {
+    fontSize: fontSizes.smd,
+    fontWeight: fontWeights.semibold,
+    color: MUTED,
+    lineHeight: 18,
+    fontFamily: appFont,
+    marginBottom: 12,
+  },
+
+  adjustInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+
+  adjustDateInput: {
+    flex: 1.35,
+    marginBottom: 0,
+  },
+
+  adjustTimeInput: {
+    flex: 0.8,
+    marginBottom: 0,
+  },
+
+  adjustOpenShiftNote: {
+    marginTop: 12,
+    marginBottom: 4,
+    padding: 10,
+    borderRadius: radii.lg,
+    backgroundColor: '#FFFBEB',
+    borderWidth: thinBorder,
+    borderColor: '#FDE68A',
+    fontSize: fontSizes.smd,
+    fontWeight: fontWeights.semibold,
+    color: '#92400E',
+    lineHeight: 18,
+    fontFamily: appFont,
+  },
+
 });
