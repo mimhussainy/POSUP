@@ -28,9 +28,9 @@ const CARD_BG = colors.cardBg;
 const BORDER = colors.borderStrong;
 const TEXT = colors.text;
 const MUTED = colors.muted;
+const SOFT_TEXT = colors.softText;
 const GREEN = colors.success;
 const RED = colors.danger;
-const ORANGE = colors.warning;
 const thinBorder = borders.thin;
 
 type Employee = {
@@ -52,19 +52,19 @@ type ReportRow = {
   shifts: ReportShift[];
 };
 
-function safeDate(value?: string | null) {
+function safeDate(value: string | null | undefined) {
   if (!value) return null;
   const d = new Date(value);
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
-function formatTime(iso?: string | null) {
+function formatTime(iso: string | null | undefined) {
   const d = safeDate(iso);
   if (!d) return '—';
   return d.toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' });
 }
 
-function formatDate(iso?: string | null, isGerman: boolean = true) {
+function formatDate(iso: string | null | undefined, isGerman: boolean) {
   const d = safeDate(iso);
   if (!d) return '—';
   return d.toLocaleDateString(isGerman ? 'de-CH' : 'en-US', {
@@ -75,28 +75,31 @@ function formatDate(iso?: string | null, isGerman: boolean = true) {
 }
 
 function formatHours(h: number) {
-  if (!Number.isFinite(h) || h <= 0) return '0h 0m';
+  if (!Number.isFinite(h) || h <= 0) return '0h 00m';
   const hrs = Math.floor(h);
   const mins = Math.round((h - hrs) * 60);
-  return `${hrs}h ${mins}m`;
+  return `${hrs}h ${String(mins).padStart(2, '0')}m`;
 }
 
-function minutesBetween(startIso?: string | null, endIso?: string | null, now: Date = new Date()) {
-  const start = safeDate(startIso);
-  const end = endIso ? safeDate(endIso) : now;
-  if (!start || !end) return 0;
-  return Math.max(0, Math.floor((end.getTime() - start.getTime()) / 60000));
+function formatDurationFromMs(ms: number) {
+  if (!Number.isFinite(ms) || ms <= 0) return '0h 00m';
+  const totalMinutes = Math.floor(ms / 60000);
+  const hrs = Math.floor(totalMinutes / 60);
+  const mins = totalMinutes % 60;
+  return `${hrs}h ${String(mins).padStart(2, '0')}m`;
 }
 
-function formatMinutes(totalMinutes: number) {
-  const safeMinutes = Math.max(0, Math.floor(totalMinutes));
-  const hrs = Math.floor(safeMinutes / 60);
-  const mins = safeMinutes % 60;
-  return `${hrs}h ${mins}m`;
+function durationSince(iso: string | null | undefined) {
+  const d = safeDate(iso);
+  if (!d) return '0h 00m';
+  return formatDurationFromMs(Date.now() - d.getTime());
 }
 
-function formatShiftDuration(shift: ReportShift, now: Date) {
-  return formatMinutes(minutesBetween(shift.clock_in, shift.clock_out, now));
+function durationBetween(start: string, end: string | null) {
+  const s = safeDate(start);
+  const e = end ? safeDate(end) : new Date();
+  if (!s || !e) return '0h 00m';
+  return formatDurationFromMs(e.getTime() - s.getTime());
 }
 
 function currentMonthString(offset: number = 0) {
@@ -124,15 +127,11 @@ function initials(name: string) {
   return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
 }
 
-function sortEmployees(list: Employee[]) {
-  return [...list].sort((a, b) => {
-    if (a.clocked_in !== b.clocked_in) return a.clocked_in ? -1 : 1;
-    return a.name.localeCompare(b.name);
-  });
-}
-
-function getErrorMessage(e: any, fallback: string) {
-  return String(e?.message || e?.error || fallback);
+function showConfirm(title: string, message: string, onConfirm: () => void, confirmText: string, cancelText: string) {
+  Alert.alert(title, message, [
+    { text: cancelText, style: 'cancel' },
+    { text: confirmText, style: 'destructive', onPress: onConfirm },
+  ]);
 }
 
 export default function StaffHoursCard({
@@ -145,582 +144,505 @@ export default function StaffHoursCard({
   const isGerman = language === 'de';
   const tr = (en: string, de: string) => (isGerman ? de : en);
 
-  const [pinModal, setPinModal] = useState(false);
+  const [unlocked, setUnlocked] = useState(false);
   const [pinInput, setPinInput] = useState('');
   const [verifying, setVerifying] = useState(false);
   const [pinError, setPinError] = useState('');
-
   const pinInputRef = useRef<TextInput>(null);
 
-  const [mainModal, setMainModal] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [employees, setEmployees] = useState<Employee[]>([]);
-  const [loadError, setLoadError] = useState('');
-  const [search, setSearch] = useState('');
-
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
-  const [clockingEmployeeId, setClockingEmployeeId] = useState<string | null>(null);
-  const [actionError, setActionError] = useState('');
+  const [searchText, setSearchText] = useState('');
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [clockLoadingId, setClockLoadingId] = useState<string | null>(null);
+  const [deleteLoadingId, setDeleteLoadingId] = useState<string | null>(null);
+  const [nowTick, setNowTick] = useState(0);
+  void nowTick;
 
   const [addModal, setAddModal] = useState(false);
   const [newName, setNewName] = useState('');
   const [adding, setAdding] = useState(false);
-  const [addError, setAddError] = useState('');
 
   const [reportModal, setReportModal] = useState(false);
   const [reportMonth, setReportMonth] = useState(currentMonthString());
   const [reportData, setReportData] = useState<ReportRow[]>([]);
   const [reportLoading, setReportLoading] = useState(false);
-  const [reportError, setReportError] = useState('');
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
-  const [now, setNow] = useState(new Date());
-
   useEffect(() => {
-    if (!pinModal) return undefined;
-    const timer = setTimeout(() => pinInputRef.current?.focus(), 150);
-    return () => clearTimeout(timer);
-  }, [pinModal]);
-
-  useEffect(() => {
-    if (!mainModal && !selectedEmployeeId && !reportModal) return undefined;
-    setNow(new Date());
-    const timer = setInterval(() => setNow(new Date()), 60000);
-    return () => clearInterval(timer);
-  }, [mainModal, selectedEmployeeId, reportModal]);
-
-  const clockedInEmployees = useMemo(
-    () => employees.filter(emp => emp.clocked_in),
-    [employees]
-  );
-
-  const filteredEmployees = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    const sorted = sortEmployees(employees);
-    if (!q) return sorted;
-    return sorted.filter(emp => emp.name.toLowerCase().includes(q));
-  }, [employees, search]);
-
-  const selectedEmployee = useMemo(
-    () => employees.find(emp => emp.id === selectedEmployeeId) || null,
-    [employees, selectedEmployeeId]
-  );
-
-  const reportTotalHours = useMemo(
-    () => reportData.reduce((sum, row) => sum + (Number(row.total_hours) || 0), 0),
-    [reportData]
-  );
-
-  const reportShiftCount = useMemo(
-    () => reportData.reduce((sum, row) => sum + (row.shifts?.length || 0), 0),
-    [reportData]
-  );
-
-  const loadEmployees = useCallback(async (): Promise<Employee[]> => {
-    if (!restaurantCode) {
-      setEmployees([]);
-      setLoadError(tr('Restaurant code missing', 'Restaurant-Code fehlt'));
-      return [];
+    if (!unlocked) {
+      const timer = setTimeout(() => pinInputRef.current?.focus(), 180);
+      return () => clearTimeout(timer);
     }
+  }, [unlocked]);
 
-    setLoading(true);
-    setLoadError('');
+  useEffect(() => {
+    if (!unlocked || !employees.some(emp => emp.clocked_in)) return;
+
+    const timer = setInterval(() => {
+      setNowTick(value => value + 1);
+    }, 60000);
+
+    return () => clearInterval(timer);
+  }, [unlocked, employees]);
+
+  useEffect(() => {
+    setUnlocked(false);
+    setPinInput('');
+    setPinError('');
+    setEmployees([]);
+    setSearchText('');
+    setSelectedEmployee(null);
+  }, [restaurantCode]);
+
+  const loadEmployees = useCallback(async (quiet = false) => {
+    if (!restaurantCode) return;
+
+    if (quiet) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
 
     try {
       const res = await fetchStaffEmployees(restaurantCode);
       if (res.success) {
-        const nextEmployees = Array.isArray(res.employees) ? res.employees : [];
-        setEmployees(nextEmployees);
-        return nextEmployees;
+        setEmployees(res.employees || []);
       }
-
-      setLoadError((res as any)?.error || tr('Could not load employees', 'Mitarbeiter konnten nicht geladen werden'));
-      return [];
     } catch (e) {
-      setLoadError(getErrorMessage(e, tr('Could not load employees', 'Mitarbeiter konnten nicht geladen werden')));
-      return [];
+      console.log('Failed to load employees', e);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  }, [restaurantCode, isGerman]);
-
-  const openPinModal = () => {
-    setPinInput('');
-    setPinError('');
-    setPinModal(true);
-  };
+  }, [restaurantCode]);
 
   const handleVerifyPin = async () => {
-    const pin = pinInput.trim();
-
-    if (!pin) {
-      setPinError(tr('Enter your admin PIN', 'Admin-PIN eingeben'));
-      return;
-    }
-
-    if (!restaurantCode) {
-      setPinError(tr('Restaurant code missing', 'Restaurant-Code fehlt'));
-      return;
-    }
+    if (!pinInput.trim() || verifying) return;
 
     setVerifying(true);
     setPinError('');
 
     try {
-      const res = await verifyAdminPin(restaurantCode, pin);
+      const res = await verifyAdminPin(restaurantCode, pinInput.trim());
+
       if (res.success) {
-        setPinModal(false);
-        setMainModal(true);
-        setSearch('');
-        setSelectedEmployeeId(null);
-        await loadEmployees();
+        setUnlocked(true);
+        setPinInput('');
+        await loadEmployees(false);
       } else {
-        setPinError((res as any)?.error || tr('Incorrect PIN', 'Falsche PIN'));
+        setPinError(res.error || tr('Incorrect PIN', 'Falsche PIN'));
       }
-    } catch (e) {
-      setPinError(getErrorMessage(e, tr('Could not verify PIN', 'PIN konnte nicht geprüft werden')));
+    } catch (e: any) {
+      setPinError(String(e?.message || e));
     } finally {
       setVerifying(false);
     }
   };
 
   const handleToggleClock = async (employee: Employee) => {
-    if (!restaurantCode || clockingEmployeeId) return;
+    if (clockLoadingId) return;
 
-    setClockingEmployeeId(employee.id);
-    setActionError('');
+    setClockLoadingId(employee.id);
 
     try {
-      await toggleStaffClock(employee.id, restaurantCode);
-      await loadEmployees();
+      const res = await toggleStaffClock(employee.id, restaurantCode);
+      if (res?.success === false) {
+        console.log('Clock toggle failed', res?.error || res);
+        return;
+      }
+
+      await loadEmployees(true);
+      setSelectedEmployee(null);
     } catch (e) {
-      setActionError(getErrorMessage(e, tr('Clock action failed', 'Stempelaktion fehlgeschlagen')));
+      console.log('Clock toggle failed', e);
     } finally {
-      setClockingEmployeeId(null);
+      setClockLoadingId(null);
     }
   };
 
   const handleAddEmployee = async () => {
     const name = newName.trim();
-
-    if (!name) {
-      setAddError(tr('Enter employee name', 'Mitarbeiternamen eingeben'));
-      return;
-    }
-
-    if (!restaurantCode) {
-      setAddError(tr('Restaurant code missing', 'Restaurant-Code fehlt'));
-      return;
-    }
+    if (!name || adding) return;
 
     setAdding(true);
-    setAddError('');
 
     try {
       const res = await addStaffEmployee(restaurantCode, name);
       if (res.success) {
         setNewName('');
         setAddModal(false);
-        await loadEmployees();
-      } else {
-        setAddError((res as any)?.error || tr('Could not add employee', 'Mitarbeiter konnte nicht hinzugefügt werden'));
+        await loadEmployees(true);
       }
     } catch (e) {
-      setAddError(getErrorMessage(e, tr('Could not add employee', 'Mitarbeiter konnte nicht hinzugefügt werden')));
+      console.log('Add employee failed', e);
     } finally {
       setAdding(false);
     }
   };
 
-  const handleDeactivate = (employee: Employee) => {
-    Alert.alert(
-      tr('Remove employee?', 'Mitarbeiter entfernen?'),
+  const requestDeactivate = (employee: Employee) => {
+    showConfirm(
+      tr('Remove employee', 'Mitarbeiter entfernen'),
       tr(
-        `${employee.name} will be hidden from the active staff list. Existing reports stay saved.`,
-        `${employee.name} wird aus der aktiven Mitarbeiterliste entfernt. Bestehende Berichte bleiben gespeichert.`
+        `Remove ${employee.name} from staff hours? Previous reports stay saved.`,
+        `${employee.name} aus den Arbeitszeiten entfernen? Frühere Berichte bleiben gespeichert.`
       ),
-      [
-        { text: tr('Cancel', 'Abbrechen'), style: 'cancel' },
-        {
-          text: tr('Remove', 'Entfernen'),
-          style: 'destructive',
-          onPress: async () => {
-            setClockingEmployeeId(employee.id);
-            setActionError('');
-
-            try {
-              await deactivateStaffEmployee(employee.id);
-              setSelectedEmployeeId(null);
-              await loadEmployees();
-            } catch (e) {
-              setActionError(getErrorMessage(e, tr('Could not remove employee', 'Mitarbeiter konnte nicht entfernt werden')));
-            } finally {
-              setClockingEmployeeId(null);
-            }
-          },
-        },
-      ]
+      () => handleDeactivate(employee.id),
+      tr('Remove', 'Entfernen'),
+      tr('Cancel', 'Abbrechen')
     );
   };
 
-  const openReport = async (month: string = reportMonth) => {
-    if (!restaurantCode) {
-      setReportError(tr('Restaurant code missing', 'Restaurant-Code fehlt'));
-      setReportModal(true);
-      return;
-    }
+  const handleDeactivate = async (id: string) => {
+    if (deleteLoadingId) return;
 
+    setDeleteLoadingId(id);
+
+    try {
+      await deactivateStaffEmployee(id);
+      setSelectedEmployee(null);
+      await loadEmployees(true);
+    } catch (e) {
+      console.log('Deactivate failed', e);
+    } finally {
+      setDeleteLoadingId(null);
+    }
+  };
+
+  const openReport = async (month: string = reportMonth) => {
     setReportMonth(month);
-    setReportLoading(true);
-    setReportError('');
     setExpandedRow(null);
+    setReportLoading(true);
     setReportModal(true);
 
     try {
       const res = await fetchStaffReport(restaurantCode, month);
       if (res.success) {
-        setReportData(Array.isArray(res.report) ? res.report : []);
+        setReportData(res.report || []);
       } else {
         setReportData([]);
-        setReportError((res as any)?.error || tr('Could not load report', 'Bericht konnte nicht geladen werden'));
       }
     } catch (e) {
+      console.log('Report load failed', e);
       setReportData([]);
-      setReportError(getErrorMessage(e, tr('Could not load report', 'Bericht konnte nicht geladen werden')));
     } finally {
       setReportLoading(false);
     }
   };
 
-  const closeAll = () => {
-    setMainModal(false);
-    setReportModal(false);
-    setAddModal(false);
-    setSelectedEmployeeId(null);
-    setActionError('');
-  };
+  const filteredEmployees = useMemo(() => {
+    const q = searchText.trim().toLowerCase();
+    if (!q) return employees;
+    return employees.filter(emp => emp.name.toLowerCase().includes(q));
+  }, [employees, searchText]);
+
+  const clockedInEmployees = useMemo(() => employees.filter(emp => emp.clocked_in), [employees]);
+  const clockedOutEmployees = useMemo(() => employees.filter(emp => !emp.clocked_in), [employees]);
+
+  const totalReportHours = useMemo(
+    () => reportData.reduce((sum, row) => sum + (Number(row.total_hours) || 0), 0),
+    [reportData]
+  );
+
+  const selectedCurrent = selectedEmployee
+    ? employees.find(emp => emp.id === selectedEmployee.id) || selectedEmployee
+    : null;
+
+  const renderPinGate = () => (
+    <View style={styles.section}>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>{tr('Staff Hours', 'Arbeitszeiten')}</Text>
+      </View>
+
+      <View style={styles.unlockCard}>
+        <View style={styles.unlockTopIcon}>
+          <Ionicons name="lock-closed-outline" size={28} color={PRIMARY} />
+        </View>
+
+        <Text style={styles.unlockTitle}>{tr('Admin PIN required', 'Admin-PIN erforderlich')}</Text>
+        <Text style={styles.unlockSub}>
+          {tr(
+            'Enter the admin PIN to open staff clock in/out.',
+            'Admin-PIN eingeben, um die Mitarbeiter-Zeiterfassung zu öffnen.'
+          )}
+        </Text>
+
+        <View style={styles.pinInputWrap}>
+          <Ionicons name="keypad-outline" size={18} color="#9CA3AF" />
+          <TextInput
+            ref={pinInputRef}
+            style={styles.pinInputInline}
+            placeholder={tr('Admin PIN', 'Admin-PIN')}
+            placeholderTextColor="#A8ACB7"
+            value={pinInput}
+            onChangeText={text => {
+              setPinInput(text);
+              if (pinError) setPinError('');
+            }}
+            secureTextEntry
+            keyboardType="number-pad"
+            onSubmitEditing={handleVerifyPin}
+            returnKeyType="done"
+          />
+        </View>
+
+        {pinError ? (
+          <View style={styles.errorBox}>
+            <Ionicons name="alert-circle-outline" size={17} color={RED} />
+            <Text style={styles.errorText}>{pinError}</Text>
+          </View>
+        ) : null}
+
+        <TouchableOpacity
+          style={[styles.unlockBtn, (!pinInput.trim() || verifying) && styles.btnDisabled]}
+          onPress={handleVerifyPin}
+          disabled={!pinInput.trim() || verifying}
+          activeOpacity={0.8}
+        >
+          {verifying ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <>
+              <Text style={styles.unlockBtnText}>{tr('Open Staff Hours', 'Arbeitszeiten öffnen')}</Text>
+              <Ionicons name="arrow-forward" size={18} color="#fff" />
+            </>
+          )}
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
 
   const renderEmployeeCard = (emp: Employee) => {
-    const isBusy = clockingEmployeeId === emp.id;
-    const shiftMinutes = emp.clocked_in ? minutesBetween(emp.clock_in_time, null, now) : 0;
+    const isIn = emp.clocked_in;
 
     return (
       <TouchableOpacity
         key={emp.id}
-        style={[styles.employeeCard, emp.clocked_in && styles.employeeCardActive]}
+        style={[styles.employeeCard, isIn && styles.employeeCardActive]}
+        onPress={() => setSelectedEmployee(emp)}
         activeOpacity={0.78}
-        onPress={() => {
-          setActionError('');
-          setSelectedEmployeeId(emp.id);
-        }}
       >
-        <View style={styles.employeeTopRow}>
-          <View style={[styles.avatar, emp.clocked_in && styles.avatarActive]}>
-            <Text style={[styles.avatarText, emp.clocked_in && styles.avatarTextActive]}>
-              {initials(emp.name)}
-            </Text>
-          </View>
-
-          <View style={[styles.statusPill, emp.clocked_in ? styles.statusPillIn : styles.statusPillOut]}>
-            <View style={[styles.statusDot, { backgroundColor: emp.clocked_in ? GREEN : '#9CA3AF' }]} />
-            <Text style={[styles.statusPillText, { color: emp.clocked_in ? GREEN : '#6B7280' }]}>
-              {emp.clocked_in ? tr('IN', 'DRIN') : tr('OUT', 'RAUS')}
-            </Text>
-          </View>
+        <View style={[styles.avatar, isIn ? styles.avatarIn : styles.avatarOut]}>
+          <Text style={[styles.avatarText, isIn ? styles.avatarTextIn : styles.avatarTextOut]}>
+            {initials(emp.name)}
+          </Text>
         </View>
 
-        <Text style={styles.employeeName} numberOfLines={1}>{emp.name}</Text>
-
-        {emp.clocked_in ? (
-          <>
-            <Text style={styles.employeeMeta} numberOfLines={1}>
-              {tr('Since', 'Seit')} {formatTime(emp.clock_in_time)}
-            </Text>
-            <Text style={styles.employeeDuration}>{formatMinutes(shiftMinutes)}</Text>
-          </>
-        ) : (
-          <>
-            <Text style={styles.employeeMeta} numberOfLines={1}>
-              {tr('Ready to clock in', 'Bereit zum Einstempeln')}
-            </Text>
-            <Text style={styles.employeeDurationMuted}>—</Text>
-          </>
-        )}
-
-        <View style={styles.employeeCardFooter}>
-          {isBusy ? (
-            <ActivityIndicator color={emp.clocked_in ? RED : GREEN} />
-          ) : (
-            <>
-              <Text style={[styles.employeeActionHint, { color: emp.clocked_in ? RED : GREEN }]}>
-                {emp.clocked_in ? tr('Clock out', 'Ausstempeln') : tr('Clock in', 'Einstempeln')}
+        <View style={styles.employeeInfo}>
+          <View style={styles.employeeNameRow}>
+            <Text style={styles.employeeName} numberOfLines={1}>{emp.name}</Text>
+            <View style={[styles.statusPill, isIn ? styles.statusPillIn : styles.statusPillOut]}>
+              <View style={[styles.statusDot, { backgroundColor: isIn ? GREEN : '#9CA3AF' }]} />
+              <Text style={[styles.statusPillText, { color: isIn ? GREEN : '#6B7280' }]}> 
+                {isIn ? tr('In', 'Drin') : tr('Out', 'Draussen')}
               </Text>
-              <Ionicons name="chevron-forward" size={16} color={emp.clocked_in ? RED : GREEN} />
-            </>
+            </View>
+          </View>
+
+          {isIn ? (
+            <View style={styles.employeeMetaGrid}>
+              <View style={styles.employeeMetaItem}>
+                <Text style={styles.employeeMetaLabel}>{tr('Since', 'Seit')}</Text>
+                <Text style={styles.employeeMetaValue}>{formatTime(emp.clock_in_time)}</Text>
+              </View>
+              <View style={styles.employeeMetaItem}>
+                <Text style={styles.employeeMetaLabel}>{tr('Today', 'Heute')}</Text>
+                <Text style={styles.employeeMetaValue}>{durationSince(emp.clock_in_time)}</Text>
+              </View>
+            </View>
+          ) : (
+            <Text style={styles.employeeSub}>{tr('Tap to clock in', 'Tippen zum Einstempeln')}</Text>
           )}
+        </View>
+
+        <View style={[styles.cardActionIcon, isIn ? styles.cardActionIconOut : styles.cardActionIconIn]}>
+          <Ionicons name={isIn ? 'log-out-outline' : 'log-in-outline'} size={18} color={isIn ? RED : GREEN} />
         </View>
       </TouchableOpacity>
     );
   };
 
-  return (
+  const renderEmployees = () => (
     <View style={styles.section}>
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>{tr('STAFF', 'PERSONAL')}</Text>
+      <View style={styles.staffHeaderCard}>
+        <View style={styles.staffHeaderTop}>
+          <View>
+            <Text style={styles.staffKicker}>{tr('STAFF CLOCK', 'PERSONAL-UHR')}</Text>
+            <Text style={styles.staffTitle}>{tr('Clock in / out', 'Ein- / Ausstempeln')}</Text>
+          </View>
+
+          <TouchableOpacity
+            style={styles.lockBtn}
+            onPress={() => {
+              setUnlocked(false);
+              setEmployees([]);
+              setSelectedEmployee(null);
+            }}
+            activeOpacity={0.75}
+          >
+            <Ionicons name="lock-closed-outline" size={16} color="#6B7280" />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.summaryGrid}>
+          <View style={styles.summaryBox}>
+            <Text style={styles.summaryNumber}>{employees.length}</Text>
+            <Text style={styles.summaryLabel}>{tr('Employees', 'Mitarbeiter')}</Text>
+          </View>
+          <View style={styles.summaryBoxGreen}>
+            <Text style={[styles.summaryNumber, { color: GREEN }]}>{clockedInEmployees.length}</Text>
+            <Text style={styles.summaryLabel}>{tr('Clocked in', 'Eingestempelt')}</Text>
+          </View>
+          <View style={styles.summaryBox}> 
+            <Text style={styles.summaryNumber}>{clockedOutEmployees.length}</Text>
+            <Text style={styles.summaryLabel}>{tr('Clocked out', 'Ausgestempelt')}</Text>
+          </View>
+        </View>
+
+        <View style={styles.toolbarRow}>
+          <TouchableOpacity style={styles.toolbarBtn} onPress={() => loadEmployees(true)} activeOpacity={0.75}>
+            {refreshing ? (
+              <ActivityIndicator size="small" color={PRIMARY} />
+            ) : (
+              <Ionicons name="refresh-outline" size={17} color={PRIMARY} />
+            )}
+            <Text style={styles.toolbarBtnText}>{tr('Refresh', 'Aktualisieren')}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.toolbarBtn} onPress={() => setAddModal(true)} activeOpacity={0.75}>
+            <Ionicons name="person-add-outline" size={17} color={PRIMARY} />
+            <Text style={styles.toolbarBtnText}>{tr('Add', 'Hinzufügen')}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.toolbarBtn} onPress={() => openReport()} activeOpacity={0.75}>
+            <Ionicons name="stats-chart-outline" size={17} color={PRIMARY} />
+            <Text style={styles.toolbarBtnText}>{tr('Report', 'Bericht')}</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
-      <TouchableOpacity style={styles.entryCard} activeOpacity={0.78} onPress={openPinModal}>
-        <View style={styles.entryIconBox}>
-          <Ionicons name="people-outline" size={21} color={PRIMARY} />
-        </View>
+      <View style={styles.searchWrap}>
+        <Ionicons name="search-outline" size={18} color="#9CA3AF" />
+        <TextInput
+          style={styles.searchInput}
+          placeholder={tr('Search employee...', 'Mitarbeiter suchen...')}
+          placeholderTextColor="#9CA3AF"
+          value={searchText}
+          onChangeText={setSearchText}
+          autoCorrect={false}
+        />
+        {searchText ? (
+          <TouchableOpacity onPress={() => setSearchText('')} style={styles.clearSearchBtn}>
+            <Ionicons name="close-circle" size={18} color="#9CA3AF" />
+          </TouchableOpacity>
+        ) : null}
+      </View>
 
-        <View style={styles.entryText}>
-          <Text style={styles.entryTitle}>{tr('Staff Hours', 'Arbeitszeiten')}</Text>
-          <Text style={styles.entrySub}>{tr('Employee clock in / clock out', 'Mitarbeiter ein- und ausstempeln')}</Text>
+      {loading ? (
+        <View style={styles.loadingInlineCard}>
+          <ActivityIndicator color={PRIMARY} />
+          <Text style={styles.loadingInlineText}>{tr('Loading employees...', 'Mitarbeiter werden geladen...')}</Text>
         </View>
-
-        <View style={styles.entryRight}>
-          <View style={styles.lockPill}>
-            <Ionicons name="lock-closed-outline" size={13} color={PRIMARY} />
-            <Text style={styles.lockPillText}>{tr('PIN', 'PIN')}</Text>
+      ) : employees.length === 0 ? (
+        <View style={styles.emptyCard}>
+          <View style={styles.emptyIconBox}>
+            <Ionicons name="people-outline" size={34} color="#C0C4CE" />
           </View>
-          <Ionicons name="chevron-forward" size={18} color="#C0C4CE" />
+          <Text style={styles.emptyTitle}>{tr('No employees yet', 'Noch keine Mitarbeiter')}</Text>
+          <Text style={styles.emptySub}>
+            {tr('Add your first employee to start using staff clock.', 'Füge den ersten Mitarbeiter hinzu, um die Zeiterfassung zu starten.')}
+          </Text>
+          <TouchableOpacity style={styles.emptyAddBtn} onPress={() => setAddModal(true)} activeOpacity={0.8}>
+            <Ionicons name="person-add-outline" size={17} color="#fff" />
+            <Text style={styles.emptyAddBtnText}>{tr('Add Employee', 'Mitarbeiter hinzufügen')}</Text>
+          </TouchableOpacity>
         </View>
-      </TouchableOpacity>
+      ) : filteredEmployees.length === 0 ? (
+        <View style={styles.emptyCard}>
+          <Ionicons name="search-outline" size={34} color="#C0C4CE" />
+          <Text style={styles.emptyTitle}>{tr('No match found', 'Kein Treffer gefunden')}</Text>
+          <Text style={styles.emptySub}>{tr('Try a different name.', 'Versuche einen anderen Namen.')}</Text>
+        </View>
+      ) : (
+        <View style={styles.employeeList}>
+          {filteredEmployees.map(renderEmployeeCard)}
+        </View>
+      )}
+    </View>
+  );
 
-      <Modal visible={pinModal} transparent animationType="fade" onRequestClose={() => setPinModal(false)}>
-        <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={() => setPinModal(false)}>
-          <TouchableOpacity style={styles.modalBox} activeOpacity={1} onPress={e => e.stopPropagation()}>
-            <View style={styles.modalHeader}>
-              <View style={styles.modalTitleWrap}>
-                <View style={styles.modalHeaderIcon}>
-                  <Ionicons name="shield-checkmark-outline" size={20} color={PRIMARY} />
-                </View>
-                <View style={styles.modalHeaderText}>
-                  <Text style={styles.modalTitle}>{tr('Admin PIN', 'Admin-PIN')}</Text>
-                  <Text style={styles.modalSub}>{tr('Unlock staff time tracking', 'Arbeitszeiten entsperren')}</Text>
-                </View>
-              </View>
+  return (
+    <>
+      {unlocked ? renderEmployees() : renderPinGate()}
 
-              <TouchableOpacity onPress={() => setPinModal(false)} style={styles.closeBtn} activeOpacity={0.75}>
-                <Ionicons name="close" size={18} color="#5B5F6B" />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.modalBody}>
-              <Text style={styles.fieldLabel}>{tr('PIN code', 'PIN-Code')}</Text>
-              <TextInput
-                ref={pinInputRef}
-                style={styles.textInput}
-                placeholder={tr('Enter admin PIN', 'Admin-PIN eingeben')}
-                placeholderTextColor="#A8ACB7"
-                value={pinInput}
-                onChangeText={setPinInput}
-                secureTextEntry
-                keyboardType="number-pad"
-                returnKeyType="done"
-                onSubmitEditing={handleVerifyPin}
-              />
-
-              {pinError ? <Text style={styles.errorText}>{pinError}</Text> : null}
-
-              <TouchableOpacity
-                style={[styles.primaryBtn, verifying && styles.btnDisabled]}
-                onPress={handleVerifyPin}
-                disabled={verifying}
-                activeOpacity={0.8}
-              >
-                {verifying ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.primaryBtnText}>{tr('Unlock', 'Entsperren')}</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </Modal>
-
-      <Modal visible={mainModal} transparent animationType="fade" onRequestClose={closeAll}>
-        <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={closeAll}>
-          <TouchableOpacity style={[styles.modalBox, styles.staffModalBox]} activeOpacity={1} onPress={e => e.stopPropagation()}>
-            <View style={styles.modalHeader}>
-              <View style={styles.modalTitleWrap}>
-                <View style={styles.modalHeaderIcon}>
-                  <Ionicons name="time-outline" size={20} color={PRIMARY} />
-                </View>
-                <View style={styles.modalHeaderText}>
-                  <Text style={styles.modalTitle}>{tr('Staff Hours', 'Arbeitszeiten')}</Text>
-                  <Text style={styles.modalSub}>{tr('Tap an employee card to clock in or out', 'Mitarbeiterkarte antippen zum Ein-/Ausstempeln')}</Text>
-                </View>
-              </View>
-
-              <View style={styles.headerActions}>
-                <TouchableOpacity style={styles.iconBtn} onPress={loadEmployees} activeOpacity={0.75} disabled={loading}>
-                  {loading ? <ActivityIndicator color={PRIMARY} /> : <Ionicons name="refresh-outline" size={18} color={PRIMARY} />}
-                </TouchableOpacity>
-
-                <TouchableOpacity onPress={closeAll} style={styles.closeBtn} activeOpacity={0.75}>
-                  <Ionicons name="close" size={18} color="#5B5F6B" />
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            <View style={styles.staffSummaryRow}>
-              <View style={styles.summaryCard}>
-                <Text style={styles.summaryNumber}>{clockedInEmployees.length}</Text>
-                <Text style={styles.summaryLabel}>{tr('Clocked in', 'Eingestempelt')}</Text>
-              </View>
-
-              <View style={styles.summaryCard}>
-                <Text style={styles.summaryNumber}>{employees.length}</Text>
-                <Text style={styles.summaryLabel}>{tr('Employees', 'Mitarbeiter')}</Text>
-              </View>
-            </View>
-
-            <View style={styles.searchWrap}>
-              <Ionicons name="search-outline" size={18} color="#9CA3AF" />
-              <TextInput
-                style={styles.searchInput}
-                value={search}
-                onChangeText={setSearch}
-                placeholder={tr('Search employee...', 'Mitarbeiter suchen...')}
-                placeholderTextColor="#9CA3AF"
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-              {search ? (
-                <TouchableOpacity onPress={() => setSearch('')} activeOpacity={0.75}>
-                  <Ionicons name="close-circle" size={18} color="#C0C4CE" />
-                </TouchableOpacity>
-              ) : null}
-            </View>
-
-            {loadError ? <Text style={styles.inlineError}>{loadError}</Text> : null}
-
-            <ScrollView
-              style={styles.staffScroll}
-              contentContainerStyle={styles.staffGrid}
-              showsVerticalScrollIndicator={false}
-            >
-              {loading && employees.length === 0 ? (
-                <View style={styles.loadingArea}>
-                  <ActivityIndicator color={PRIMARY} />
-                  <Text style={styles.loadingText}>{tr('Loading employees...', 'Mitarbeiter werden geladen...')}</Text>
-                </View>
-              ) : employees.length === 0 ? (
-                <View style={styles.emptyState}>
-                  <View style={styles.emptyIcon}>
-                    <Ionicons name="person-add-outline" size={34} color={PRIMARY} />
-                  </View>
-                  <Text style={styles.emptyTitle}>{tr('No employees yet', 'Noch keine Mitarbeiter')}</Text>
-                  <Text style={styles.emptySub}>{tr('Add your first employee to start time tracking.', 'Füge den ersten Mitarbeiter hinzu, um Arbeitszeiten zu erfassen.')}</Text>
-                  <TouchableOpacity style={styles.emptyBtn} onPress={() => setAddModal(true)} activeOpacity={0.78}>
-                    <Text style={styles.emptyBtnText}>{tr('Add Employee', 'Mitarbeiter hinzufügen')}</Text>
-                  </TouchableOpacity>
-                </View>
-              ) : filteredEmployees.length === 0 ? (
-                <View style={styles.emptyState}>
-                  <View style={styles.emptyIconMuted}>
-                    <Ionicons name="search-outline" size={32} color="#9CA3AF" />
-                  </View>
-                  <Text style={styles.emptyTitle}>{tr('No match found', 'Kein Treffer gefunden')}</Text>
-                  <Text style={styles.emptySub}>{tr('Try another employee name.', 'Versuche einen anderen Namen.')}</Text>
-                </View>
-              ) : (
-                filteredEmployees.map(renderEmployeeCard)
-              )}
-            </ScrollView>
-
-            <View style={styles.staffFooter}>
-              <TouchableOpacity style={styles.secondaryBtn} onPress={() => setAddModal(true)} activeOpacity={0.78}>
-                <Ionicons name="person-add-outline" size={16} color={PRIMARY} />
-                <Text style={styles.secondaryBtnText}>{tr('Add Employee', 'Mitarbeiter hinzufügen')}</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.secondaryBtn} onPress={() => openReport()} activeOpacity={0.78}>
-                <Ionicons name="stats-chart-outline" size={16} color={PRIMARY} />
-                <Text style={styles.secondaryBtnText}>{tr('Monthly Report', 'Monatsbericht')}</Text>
-              </TouchableOpacity>
-            </View>
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </Modal>
-
-      <Modal visible={!!selectedEmployee} transparent animationType="fade" onRequestClose={() => setSelectedEmployeeId(null)}>
-        <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={() => setSelectedEmployeeId(null)}>
-          <TouchableOpacity style={styles.modalBox} activeOpacity={1} onPress={e => e.stopPropagation()}>
-            {selectedEmployee ? (
+      {/* Employee action popup */}
+      <Modal visible={!!selectedCurrent} transparent animationType="fade">
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setSelectedEmployee(null)}>
+          <TouchableOpacity style={styles.actionModalBox} activeOpacity={1} onPress={e => e.stopPropagation()}>
+            {selectedCurrent ? (
               <>
-                <View style={styles.modalHeader}>
-                  <View style={styles.modalTitleWrap}>
-                    <View style={[styles.modalAvatar, selectedEmployee.clocked_in && styles.modalAvatarActive]}>
-                      <Text style={[styles.modalAvatarText, selectedEmployee.clocked_in && styles.modalAvatarTextActive]}>
-                        {initials(selectedEmployee.name)}
-                      </Text>
-                    </View>
-                    <View style={styles.modalHeaderText}>
-                      <Text style={styles.modalTitle} numberOfLines={1}>{selectedEmployee.name}</Text>
-                      <Text style={[styles.modalSub, { color: selectedEmployee.clocked_in ? GREEN : MUTED }]}>
-                        {selectedEmployee.clocked_in ? tr('Currently clocked in', 'Aktuell eingestempelt') : tr('Currently clocked out', 'Aktuell ausgestempelt')}
-                      </Text>
-                    </View>
+                <View style={styles.actionModalHeader}>
+                  <View style={[styles.avatarLarge, selectedCurrent.clocked_in ? styles.avatarIn : styles.avatarOut]}>
+                    <Text style={[styles.avatarLargeText, selectedCurrent.clocked_in ? styles.avatarTextIn : styles.avatarTextOut]}>
+                      {initials(selectedCurrent.name)}
+                    </Text>
                   </View>
 
-                  <TouchableOpacity onPress={() => setSelectedEmployeeId(null)} style={styles.closeBtn} activeOpacity={0.75}>
+                  <View style={styles.actionModalTitleWrap}>
+                    <Text style={styles.actionModalName} numberOfLines={1}>{selectedCurrent.name}</Text>
+                    <Text style={[styles.actionModalStatus, { color: selectedCurrent.clocked_in ? GREEN : MUTED }]}> 
+                      {selectedCurrent.clocked_in
+                        ? tr(
+                            `Clocked in since ${formatTime(selectedCurrent.clock_in_time)}`,
+                            `Eingestempelt seit ${formatTime(selectedCurrent.clock_in_time)}`
+                          )
+                        : tr('Currently clocked out', 'Aktuell ausgestempelt')}
+                    </Text>
+                  </View>
+
+                  <TouchableOpacity onPress={() => setSelectedEmployee(null)} style={styles.modalCloseBtn} activeOpacity={0.75}>
                     <Ionicons name="close" size={18} color="#5B5F6B" />
                   </TouchableOpacity>
                 </View>
 
-                <View style={styles.modalBody}>
-                  <View style={styles.employeeDetailPanel}>
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>{tr('Status', 'Status')}</Text>
-                      <Text style={[styles.detailValue, { color: selectedEmployee.clocked_in ? GREEN : MUTED }]}>
-                        {selectedEmployee.clocked_in ? tr('Clocked in', 'Eingestempelt') : tr('Clocked out', 'Ausgestempelt')}
-                      </Text>
+                {selectedCurrent.clocked_in ? (
+                  <View style={styles.currentShiftBox}>
+                    <View style={styles.currentShiftItem}>
+                      <Text style={styles.currentShiftLabel}>{tr('Clock in', 'Eingestempelt')}</Text>
+                      <Text style={styles.currentShiftValue}>{formatTime(selectedCurrent.clock_in_time)}</Text>
                     </View>
-
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>{tr('Clock in time', 'Einstempelzeit')}</Text>
-                      <Text style={styles.detailValue}>
-                        {selectedEmployee.clocked_in ? formatTime(selectedEmployee.clock_in_time) : '—'}
-                      </Text>
-                    </View>
-
-                    <View style={[styles.detailRow, styles.detailRowLast]}>
-                      <Text style={styles.detailLabel}>{tr('Current shift', 'Aktuelle Schicht')}</Text>
-                      <Text style={styles.detailValueStrong}>
-                        {selectedEmployee.clocked_in
-                          ? formatMinutes(minutesBetween(selectedEmployee.clock_in_time, null, now))
-                          : '—'}
-                      </Text>
+                    <View style={styles.currentShiftDivider} />
+                    <View style={styles.currentShiftItem}>
+                      <Text style={styles.currentShiftLabel}>{tr('Duration', 'Dauer')}</Text>
+                      <Text style={styles.currentShiftValue}>{durationSince(selectedCurrent.clock_in_time)}</Text>
                     </View>
                   </View>
+                ) : (
+                  <Text style={styles.actionHint}>
+                    {tr('Tap clock in when this employee starts working.', 'Tippe auf Einstempeln, wenn dieser Mitarbeiter anfängt zu arbeiten.')}
+                  </Text>
+                )}
 
-                  {actionError ? <Text style={styles.errorText}>{actionError}</Text> : null}
-
+                <View style={styles.actionButtons}>
                   <TouchableOpacity
-                    style={[
-                      styles.bigClockBtn,
-                      selectedEmployee.clocked_in ? styles.clockOutBtn : styles.clockInBtn,
-                      clockingEmployeeId === selectedEmployee.id && styles.btnDisabled,
-                    ]}
-                    onPress={() => handleToggleClock(selectedEmployee)}
-                    disabled={clockingEmployeeId === selectedEmployee.id}
+                    style={[styles.bigClockBtn, selectedCurrent.clocked_in ? styles.bigClockBtnOut : styles.bigClockBtnIn]}
+                    onPress={() => handleToggleClock(selectedCurrent)}
+                    disabled={clockLoadingId === selectedCurrent.id}
                     activeOpacity={0.82}
                   >
-                    {clockingEmployeeId === selectedEmployee.id ? (
+                    {clockLoadingId === selectedCurrent.id ? (
                       <ActivityIndicator color="#fff" />
                     ) : (
                       <>
                         <Ionicons
-                          name={selectedEmployee.clocked_in ? 'log-out-outline' : 'log-in-outline'}
-                          size={20}
+                          name={selectedCurrent.clocked_in ? 'log-out-outline' : 'log-in-outline'}
+                          size={22}
                           color="#fff"
                         />
                         <Text style={styles.bigClockBtnText}>
-                          {selectedEmployee.clocked_in ? tr('Clock Out', 'Ausstempeln') : tr('Clock In', 'Einstempeln')}
+                          {selectedCurrent.clocked_in ? tr('Clock Out', 'Ausstempeln') : tr('Clock In', 'Einstempeln')}
                         </Text>
                       </>
                     )}
@@ -728,11 +650,18 @@ export default function StaffHoursCard({
 
                   <TouchableOpacity
                     style={styles.removeBtn}
-                    onPress={() => handleDeactivate(selectedEmployee)}
+                    onPress={() => requestDeactivate(selectedCurrent)}
+                    disabled={deleteLoadingId === selectedCurrent.id}
                     activeOpacity={0.75}
                   >
-                    <Ionicons name="trash-outline" size={17} color={RED} />
-                    <Text style={styles.removeBtnText}>{tr('Remove employee', 'Mitarbeiter entfernen')}</Text>
+                    {deleteLoadingId === selectedCurrent.id ? (
+                      <ActivityIndicator color={RED} />
+                    ) : (
+                      <>
+                        <Ionicons name="trash-outline" size={18} color={RED} />
+                        <Text style={styles.removeBtnText}>{tr('Remove employee', 'Mitarbeiter entfernen')}</Text>
+                      </>
+                    )}
                   </TouchableOpacity>
                 </View>
               </>
@@ -741,21 +670,16 @@ export default function StaffHoursCard({
         </TouchableOpacity>
       </Modal>
 
-      <Modal visible={addModal} transparent animationType="fade" onRequestClose={() => setAddModal(false)}>
-        <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={() => setAddModal(false)}>
+      {/* Add employee */}
+      <Modal visible={addModal} transparent animationType="fade">
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setAddModal(false)}>
           <TouchableOpacity style={styles.modalBox} activeOpacity={1} onPress={e => e.stopPropagation()}>
             <View style={styles.modalHeader}>
-              <View style={styles.modalTitleWrap}>
-                <View style={styles.modalHeaderIcon}>
-                  <Ionicons name="person-add-outline" size={20} color={PRIMARY} />
-                </View>
-                <View style={styles.modalHeaderText}>
-                  <Text style={styles.modalTitle}>{tr('Add Employee', 'Mitarbeiter hinzufügen')}</Text>
-                  <Text style={styles.modalSub}>{tr('Create a new staff card', 'Neue Mitarbeiterkarte erstellen')}</Text>
-                </View>
+              <View>
+                <Text style={styles.modalTitle}>{tr('Add Employee', 'Mitarbeiter hinzufügen')}</Text>
+                <Text style={styles.modalSubTitle}>{tr('Create a new staff card.', 'Neue Mitarbeiterkarte erstellen.')}</Text>
               </View>
-
-              <TouchableOpacity onPress={() => setAddModal(false)} style={styles.closeBtn} activeOpacity={0.75}>
+              <TouchableOpacity onPress={() => setAddModal(false)} style={styles.modalCloseBtn} activeOpacity={0.75}>
                 <Ionicons name="close" size={18} color="#5B5F6B" />
               </TouchableOpacity>
             </View>
@@ -764,30 +688,28 @@ export default function StaffHoursCard({
               <Text style={styles.fieldLabel}>{tr('Employee name', 'Name des Mitarbeiters')}</Text>
               <TextInput
                 style={styles.textInput}
-                placeholder={tr('Example: Maria', 'Beispiel: Maria')}
+                placeholder={tr('e.g. Sara', 'z.B. Sara')}
                 placeholderTextColor="#A8ACB7"
                 value={newName}
-                onChangeText={text => {
-                  setNewName(text);
-                  setAddError('');
-                }}
+                onChangeText={setNewName}
                 autoFocus
                 returnKeyType="done"
                 onSubmitEditing={handleAddEmployee}
               />
 
-              {addError ? <Text style={styles.errorText}>{addError}</Text> : null}
-
               <TouchableOpacity
-                style={[styles.primaryBtn, adding && styles.btnDisabled]}
+                style={[styles.primaryBtn, (!newName.trim() || adding) && styles.btnDisabled]}
                 onPress={handleAddEmployee}
-                disabled={adding}
+                disabled={!newName.trim() || adding}
                 activeOpacity={0.8}
               >
                 {adding ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={styles.primaryBtnText}>{tr('Add Employee', 'Mitarbeiter hinzufügen')}</Text>
+                  <>
+                    <Ionicons name="person-add-outline" size={18} color="#fff" />
+                    <Text style={styles.primaryBtnText}>{tr('Add Employee', 'Mitarbeiter hinzufügen')}</Text>
+                  </>
                 )}
               </TouchableOpacity>
             </View>
@@ -795,21 +717,16 @@ export default function StaffHoursCard({
         </TouchableOpacity>
       </Modal>
 
-      <Modal visible={reportModal} transparent animationType="fade" onRequestClose={() => setReportModal(false)}>
-        <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={() => setReportModal(false)}>
-          <TouchableOpacity style={[styles.modalBox, styles.reportModalBox]} activeOpacity={1} onPress={e => e.stopPropagation()}>
+      {/* Monthly report */}
+      <Modal visible={reportModal} transparent animationType="fade">
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setReportModal(false)}>
+          <TouchableOpacity style={[styles.modalBox, styles.reportBox]} activeOpacity={1} onPress={e => e.stopPropagation()}>
             <View style={styles.modalHeader}>
-              <View style={styles.modalTitleWrap}>
-                <View style={styles.modalHeaderIcon}>
-                  <Ionicons name="stats-chart-outline" size={20} color={PRIMARY} />
-                </View>
-                <View style={styles.modalHeaderText}>
-                  <Text style={styles.modalTitle}>{tr('Monthly Report', 'Monatsbericht')}</Text>
-                  <Text style={styles.modalSub}>{tr('Hours and shifts per employee', 'Stunden und Schichten pro Mitarbeiter')}</Text>
-                </View>
+              <View>
+                <Text style={styles.modalTitle}>{tr('Monthly Report', 'Monatsbericht')}</Text>
+                <Text style={styles.modalSubTitle}>{monthLabel(reportMonth, isGerman)}</Text>
               </View>
-
-              <TouchableOpacity onPress={() => setReportModal(false)} style={styles.closeBtn} activeOpacity={0.75}>
+              <TouchableOpacity onPress={() => setReportModal(false)} style={styles.modalCloseBtn} activeOpacity={0.75}>
                 <Ionicons name="close" size={18} color="#5B5F6B" />
               </TouchableOpacity>
             </View>
@@ -836,31 +753,25 @@ export default function StaffHoursCard({
 
             <View style={styles.reportSummaryRow}>
               <View style={styles.reportSummaryCard}>
-                <Text style={styles.reportSummaryNumber}>{formatHours(reportTotalHours)}</Text>
-                <Text style={styles.reportSummaryLabel}>{tr('Total hours', 'Gesamtstunden')}</Text>
+                <Text style={styles.reportSummaryValue}>{reportData.length}</Text>
+                <Text style={styles.reportSummaryLabel}>{tr('Employees', 'Mitarbeiter')}</Text>
               </View>
-
               <View style={styles.reportSummaryCard}>
-                <Text style={styles.reportSummaryNumber}>{reportShiftCount}</Text>
-                <Text style={styles.reportSummaryLabel}>{tr('Shifts', 'Schichten')}</Text>
+                <Text style={styles.reportSummaryValue}>{formatHours(totalReportHours)}</Text>
+                <Text style={styles.reportSummaryLabel}>{tr('Total hours', 'Stunden gesamt')}</Text>
               </View>
             </View>
 
-            {reportError ? <Text style={styles.inlineError}>{reportError}</Text> : null}
-
-            <ScrollView style={styles.reportScroll} contentContainerStyle={styles.reportList} showsVerticalScrollIndicator={false}>
+            <ScrollView style={styles.reportScroll} contentContainerStyle={styles.reportScrollContent}>
               {reportLoading ? (
-                <View style={styles.loadingArea}>
+                <View style={styles.reportLoadingBox}>
                   <ActivityIndicator color={PRIMARY} />
-                  <Text style={styles.loadingText}>{tr('Loading report...', 'Bericht wird geladen...')}</Text>
+                  <Text style={styles.loadingInlineText}>{tr('Loading report...', 'Bericht wird geladen...')}</Text>
                 </View>
               ) : reportData.length === 0 ? (
-                <View style={styles.emptyState}>
-                  <View style={styles.emptyIconMuted}>
-                    <Ionicons name="calendar-outline" size={32} color="#9CA3AF" />
-                  </View>
+                <View style={styles.reportEmptyBox}>
+                  <Ionicons name="calendar-clear-outline" size={36} color="#C0C4CE" />
                   <Text style={styles.emptyTitle}>{tr('No data for this month', 'Keine Daten für diesen Monat')}</Text>
-                  <Text style={styles.emptySub}>{tr('Clocked shifts will appear here.', 'Gestempelte Schichten erscheinen hier.')}</Text>
                 </View>
               ) : (
                 reportData.map(row => {
@@ -880,7 +791,7 @@ export default function StaffHoursCard({
                         <View style={styles.reportEmployeeInfo}>
                           <Text style={styles.reportEmployeeName} numberOfLines={1}>{row.name}</Text>
                           <Text style={styles.reportEmployeeSub}>
-                            {(row.shifts?.length || 0)} {tr('shifts', 'Schichten')}
+                            {row.shifts.length} {row.shifts.length === 1 ? tr('shift', 'Schicht') : tr('shifts', 'Schichten')}
                           </Text>
                         </View>
 
@@ -890,24 +801,20 @@ export default function StaffHoursCard({
 
                       {isExpanded ? (
                         <View style={styles.shiftList}>
-                          {row.shifts?.length ? row.shifts.map((shift, i) => (
+                          {row.shifts.map((shift, i) => (
                             <View key={`${shift.clock_in}-${i}`} style={styles.shiftRow}>
-                              <View style={styles.shiftIconBox}>
-                                <Ionicons name={shift.clock_out ? 'checkmark-outline' : 'time-outline'} size={15} color={shift.clock_out ? GREEN : ORANGE} />
+                              <View style={styles.shiftDateBox}>
+                                <Text style={styles.shiftDateText}>{formatDate(shift.clock_in, isGerman)}</Text>
                               </View>
 
-                              <View style={styles.shiftTextWrap}>
-                                <Text style={styles.shiftDate}>{formatDate(shift.clock_in, isGerman)}</Text>
-                                <Text style={styles.shiftTime}>
+                              <View style={styles.shiftTimeBox}>
+                                <Text style={styles.shiftTimeText}>
                                   {formatTime(shift.clock_in)} → {shift.clock_out ? formatTime(shift.clock_out) : tr('now', 'jetzt')}
                                 </Text>
+                                <Text style={styles.shiftDurationText}>{durationBetween(shift.clock_in, shift.clock_out)}</Text>
                               </View>
-
-                              <Text style={styles.shiftDuration}>{formatShiftDuration(shift, now)}</Text>
                             </View>
-                          )) : (
-                            <Text style={styles.noShiftText}>{tr('No shifts saved', 'Keine Schichten gespeichert')}</Text>
-                          )}
+                          ))}
                         </View>
                       ) : null}
                     </View>
@@ -918,7 +825,7 @@ export default function StaffHoursCard({
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
-    </View>
+    </>
   );
 }
 
@@ -933,6 +840,7 @@ const styles = StyleSheet.create({
   },
 
   sectionTitle: {
+    marginTop: 2,
     fontSize: fontSizes.smd,
     fontWeight: fontWeights.extrabold,
     color: '#555B66',
@@ -941,72 +849,477 @@ const styles = StyleSheet.create({
     fontFamily: appFont,
   },
 
-  entryCard: {
-    minHeight: 76,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+  unlockCard: {
     backgroundColor: CARD_BG,
     borderRadius: radii.xxxl,
     borderWidth: thinBorder,
     borderColor: BORDER,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
+    padding: 18,
+    alignItems: 'center',
   },
 
-  entryIconBox: {
-    width: 42,
-    height: 42,
-    borderRadius: radii.lg,
+  unlockTopIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 22,
     backgroundColor: PRIMARY_SOFT,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 14,
   },
 
-  entryText: {
+  unlockTitle: {
+    fontSize: fontSizes.xxl,
+    fontWeight: fontWeights.black,
+    color: TEXT,
+    fontFamily: appFont,
+    textAlign: 'center',
+  },
+
+  unlockSub: {
+    marginTop: 7,
+    fontSize: fontSizes.mdl,
+    fontWeight: fontWeights.semibold,
+    color: MUTED,
+    lineHeight: 20,
+    textAlign: 'center',
+    fontFamily: appFont,
+    maxWidth: 360,
+  },
+
+  pinInputWrap: {
+    width: '100%',
+    marginTop: 18,
+    height: 50,
+    borderRadius: radii.lg,
+    borderWidth: thinBorder,
+    borderColor: BORDER,
+    backgroundColor: '#FAFAFB',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 13,
+    gap: 9,
+  },
+
+  pinInputInline: {
     flex: 1,
-    minWidth: 0,
+    fontSize: fontSizes.lg,
+    color: TEXT,
+    fontFamily: appFont,
+    fontWeight: fontWeights.extrabold,
+    padding: 0,
   },
 
-  entryTitle: {
-    fontSize: fontSizes.lg,
-    fontWeight: fontWeights.extrabold,
+  errorBox: {
+    width: '100%',
+    marginTop: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#FEF2F2',
+    borderRadius: radii.lg,
+    borderWidth: thinBorder,
+    borderColor: '#FECACA',
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+  },
+
+  errorText: {
+    color: RED,
+    fontSize: fontSizes.smd,
+    fontWeight: fontWeights.bold,
+    fontFamily: appFont,
+    textAlign: 'center',
+  },
+
+  unlockBtn: {
+    width: '100%',
+    marginTop: 14,
+    minHeight: 50,
+    backgroundColor: PRIMARY,
+    borderRadius: radii.lgl,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+
+  unlockBtnText: {
+    color: '#fff',
+    fontSize: fontSizes.mdl,
+    fontWeight: fontWeights.black,
+    fontFamily: appFont,
+  },
+
+  staffHeaderCard: {
+    backgroundColor: CARD_BG,
+    borderRadius: radii.xxxl,
+    borderWidth: thinBorder,
+    borderColor: BORDER,
+    padding: 14,
+    marginBottom: 12,
+  },
+
+  staffHeaderTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+
+  staffKicker: {
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.black,
+    color: PRIMARY,
+    letterSpacing: 0.8,
+    fontFamily: appFont,
+  },
+
+  staffTitle: {
+    marginTop: 2,
+    fontSize: fontSizes.xxl,
+    fontWeight: fontWeights.black,
     color: TEXT,
     fontFamily: appFont,
   },
 
-  entrySub: {
-    fontSize: fontSizes.smd,
-    color: MUTED,
-    marginTop: 3,
-    fontWeight: fontWeights.semibold,
+  lockBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: radii.lg,
+    backgroundColor: '#F7F8FA',
+    borderWidth: thinBorder,
+    borderColor: BORDER,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  summaryGrid: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 14,
+  },
+
+  summaryBox: {
+    flex: 1,
+    backgroundColor: '#FAFAFB',
+    borderRadius: radii.lg,
+    borderWidth: thinBorder,
+    borderColor: BORDER,
+    paddingVertical: 11,
+    paddingHorizontal: 9,
+    alignItems: 'center',
+  },
+
+  summaryBoxGreen: {
+    flex: 1,
+    backgroundColor: colors.successSoft,
+    borderRadius: radii.lg,
+    borderWidth: thinBorder,
+    borderColor: '#BBF7D0',
+    paddingVertical: 11,
+    paddingHorizontal: 9,
+    alignItems: 'center',
+  },
+
+  summaryNumber: {
+    fontSize: fontSizes.xxl,
+    fontWeight: fontWeights.black,
+    color: TEXT,
     fontFamily: appFont,
   },
 
-  entryRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-
-  lockPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: PRIMARY_SOFT,
-    borderRadius: radii.full,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-  },
-
-  lockPillText: {
+  summaryLabel: {
+    marginTop: 2,
     fontSize: fontSizes.xs,
+    fontWeight: fontWeights.bold,
+    color: MUTED,
+    fontFamily: appFont,
+    textAlign: 'center',
+  },
+
+  toolbarRow: {
+    flexDirection: 'row',
+    gap: 9,
+    marginTop: 13,
+  },
+
+  toolbarBtn: {
+    flex: 1,
+    minHeight: 42,
+    borderRadius: radii.lg,
+    borderWidth: thinBorder,
+    borderColor: BORDER,
+    backgroundColor: '#fff',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 8,
+  },
+
+  toolbarBtnText: {
+    fontSize: fontSizes.smd,
     fontWeight: fontWeights.extrabold,
     color: PRIMARY,
     fontFamily: appFont,
   },
 
-  overlay: {
+  searchWrap: {
+    height: 48,
+    backgroundColor: CARD_BG,
+    borderRadius: radii.lg,
+    borderWidth: thinBorder,
+    borderColor: BORDER,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 13,
+    gap: 9,
+    marginBottom: 12,
+  },
+
+  searchInput: {
+    flex: 1,
+    fontSize: fontSizes.mdl,
+    color: TEXT,
+    fontFamily: appFont,
+    fontWeight: fontWeights.semibold,
+    padding: 0,
+  },
+
+  clearSearchBtn: {
+    width: 28,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  employeeList: {
+    gap: 10,
+  },
+
+  employeeCard: {
+    backgroundColor: CARD_BG,
+    borderRadius: radii.xxxl,
+    borderWidth: thinBorder,
+    borderColor: BORDER,
+    padding: 13,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+
+  employeeCardActive: {
+    borderColor: '#BBF7D0',
+    backgroundColor: '#FBFFFC',
+  },
+
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: radii.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  avatarIn: {
+    backgroundColor: colors.successSoft,
+  },
+
+  avatarOut: {
+    backgroundColor: PRIMARY_SOFT,
+  },
+
+  avatarText: {
+    fontSize: fontSizes.mdl,
+    fontWeight: fontWeights.black,
+    fontFamily: appFont,
+  },
+
+  avatarTextIn: {
+    color: GREEN,
+  },
+
+  avatarTextOut: {
+    color: PRIMARY,
+  },
+
+  employeeInfo: {
+    flex: 1,
+    minWidth: 0,
+  },
+
+  employeeNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+
+  employeeName: {
+    flex: 1,
+    fontSize: fontSizes.lg,
+    fontWeight: fontWeights.black,
+    color: TEXT,
+    fontFamily: appFont,
+  },
+
+  statusPill: {
+    borderRadius: radii.full,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+
+  statusPillIn: {
+    backgroundColor: colors.successSoft,
+  },
+
+  statusPillOut: {
+    backgroundColor: '#F2F3F7',
+  },
+
+  statusDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 7,
+  },
+
+  statusPillText: {
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.black,
+    fontFamily: appFont,
+  },
+
+  employeeMetaGrid: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 9,
+  },
+
+  employeeMetaItem: {
+    flex: 1,
+    backgroundColor: '#FAFAFB',
+    borderRadius: radii.mdl,
+    paddingHorizontal: 9,
+    paddingVertical: 7,
+  },
+
+  employeeMetaLabel: {
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.bold,
+    color: MUTED,
+    fontFamily: appFont,
+  },
+
+  employeeMetaValue: {
+    marginTop: 1,
+    fontSize: fontSizes.smd,
+    fontWeight: fontWeights.black,
+    color: TEXT,
+    fontFamily: appFont,
+  },
+
+  employeeSub: {
+    marginTop: 4,
+    fontSize: fontSizes.smd,
+    fontWeight: fontWeights.semibold,
+    color: MUTED,
+    fontFamily: appFont,
+  },
+
+  cardActionIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: radii.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  cardActionIconIn: {
+    backgroundColor: colors.successSoft,
+  },
+
+  cardActionIconOut: {
+    backgroundColor: colors.dangerSoft,
+  },
+
+  loadingInlineCard: {
+    backgroundColor: CARD_BG,
+    borderRadius: radii.xxxl,
+    borderWidth: thinBorder,
+    borderColor: BORDER,
+    paddingVertical: 30,
+    alignItems: 'center',
+    gap: 10,
+  },
+
+  loadingInlineText: {
+    fontSize: fontSizes.smd,
+    fontWeight: fontWeights.semibold,
+    color: MUTED,
+    fontFamily: appFont,
+  },
+
+  emptyCard: {
+    backgroundColor: CARD_BG,
+    borderRadius: radii.xxxl,
+    borderWidth: thinBorder,
+    borderColor: BORDER,
+    padding: 24,
+    alignItems: 'center',
+  },
+
+  emptyIconBox: {
+    width: 68,
+    height: 68,
+    borderRadius: 24,
+    backgroundColor: '#F2F3F7',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+
+  emptyTitle: {
+    fontSize: fontSizes.lg,
+    fontWeight: fontWeights.black,
+    color: TEXT,
+    fontFamily: appFont,
+    textAlign: 'center',
+  },
+
+  emptySub: {
+    marginTop: 6,
+    fontSize: fontSizes.smd,
+    fontWeight: fontWeights.semibold,
+    color: MUTED,
+    lineHeight: 18,
+    textAlign: 'center',
+    fontFamily: appFont,
+  },
+
+  emptyAddBtn: {
+    marginTop: 16,
+    backgroundColor: PRIMARY,
+    borderRadius: radii.lgl,
+    paddingHorizontal: 16,
+    minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+  },
+
+  emptyAddBtnText: {
+    color: '#fff',
+    fontSize: fontSizes.smd,
+    fontWeight: fontWeights.black,
+    fontFamily: appFont,
+  },
+
+  modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(10,10,18,0.55)',
     justifyContent: 'center',
@@ -1015,25 +1328,161 @@ const styles = StyleSheet.create({
   },
 
   modalBox: {
-    width: '92%',
-    maxWidth: 440,
     backgroundColor: '#fff',
     borderRadius: radii.massive,
+    width: '92%',
+    maxWidth: 450,
     overflow: 'hidden',
     borderWidth: thinBorder,
     borderColor: BORDER,
   },
 
-  staffModalBox: {
-    width: '95%',
-    maxWidth: 660,
-    maxHeight: '88%',
+  actionModalBox: {
+    backgroundColor: '#fff',
+    borderRadius: radii.massive,
+    width: '92%',
+    maxWidth: 460,
+    overflow: 'hidden',
+    borderWidth: thinBorder,
+    borderColor: BORDER,
   },
 
-  reportModalBox: {
-    width: '95%',
-    maxWidth: 620,
-    maxHeight: '88%',
+  actionModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 18,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: BORDER,
+  },
+
+  avatarLarge: {
+    width: 58,
+    height: 58,
+    borderRadius: radii.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  avatarLargeText: {
+    fontSize: fontSizes.xl,
+    fontWeight: fontWeights.black,
+    fontFamily: appFont,
+  },
+
+  actionModalTitleWrap: {
+    flex: 1,
+    minWidth: 0,
+  },
+
+  actionModalName: {
+    fontSize: fontSizes.xxl,
+    fontWeight: fontWeights.black,
+    color: TEXT,
+    fontFamily: appFont,
+  },
+
+  actionModalStatus: {
+    marginTop: 3,
+    fontSize: fontSizes.smd,
+    fontWeight: fontWeights.bold,
+    fontFamily: appFont,
+  },
+
+  currentShiftBox: {
+    margin: 18,
+    borderRadius: radii.lg,
+    borderWidth: thinBorder,
+    borderColor: BORDER,
+    backgroundColor: '#FAFAFB',
+    flexDirection: 'row',
+    overflow: 'hidden',
+  },
+
+  currentShiftItem: {
+    flex: 1,
+    padding: 13,
+    alignItems: 'center',
+  },
+
+  currentShiftDivider: {
+    width: StyleSheet.hairlineWidth,
+    backgroundColor: BORDER,
+  },
+
+  currentShiftLabel: {
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.bold,
+    color: MUTED,
+    fontFamily: appFont,
+  },
+
+  currentShiftValue: {
+    marginTop: 3,
+    fontSize: fontSizes.lg,
+    fontWeight: fontWeights.black,
+    color: TEXT,
+    fontFamily: appFont,
+  },
+
+  actionHint: {
+    marginHorizontal: 18,
+    marginTop: 16,
+    marginBottom: 2,
+    fontSize: fontSizes.mdl,
+    fontWeight: fontWeights.semibold,
+    lineHeight: 20,
+    color: SOFT_TEXT,
+    fontFamily: appFont,
+    textAlign: 'center',
+  },
+
+  actionButtons: {
+    padding: 18,
+    gap: 10,
+  },
+
+  bigClockBtn: {
+    minHeight: 54,
+    borderRadius: radii.lgl,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+
+  bigClockBtnIn: {
+    backgroundColor: GREEN,
+  },
+
+  bigClockBtnOut: {
+    backgroundColor: RED,
+  },
+
+  bigClockBtnText: {
+    color: '#fff',
+    fontSize: fontSizes.lg,
+    fontWeight: fontWeights.black,
+    fontFamily: appFont,
+  },
+
+  removeBtn: {
+    minHeight: 46,
+    borderRadius: radii.lgl,
+    backgroundColor: '#FEF2F2',
+    borderWidth: thinBorder,
+    borderColor: '#FECACA',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+  },
+
+  removeBtnText: {
+    fontSize: fontSizes.smd,
+    fontWeight: fontWeights.black,
+    color: RED,
+    fontFamily: appFont,
   },
 
   modalHeader: {
@@ -1046,61 +1495,23 @@ const styles = StyleSheet.create({
     gap: 14,
   },
 
-  modalTitleWrap: {
-    flex: 1,
-    minWidth: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-
-  modalHeaderIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: radii.lg,
-    backgroundColor: PRIMARY_SOFT,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  modalHeaderText: {
-    flex: 1,
-    minWidth: 0,
-  },
-
   modalTitle: {
+    marginTop: 3,
     fontSize: fontSizes.xxl,
-    fontWeight: fontWeights.extrabold,
+    fontWeight: fontWeights.black,
     color: TEXT,
     fontFamily: appFont,
   },
 
-  modalSub: {
+  modalSubTitle: {
     marginTop: 3,
     fontSize: fontSizes.smd,
-    color: MUTED,
     fontWeight: fontWeights.semibold,
+    color: MUTED,
     fontFamily: appFont,
   },
 
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-
-  iconBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: radii.lg,
-    backgroundColor: '#F7F8FA',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: thinBorder,
-    borderColor: BORDER,
-  },
-
-  closeBtn: {
+  modalCloseBtn: {
     width: 34,
     height: 34,
     borderRadius: radii.lg,
@@ -1137,32 +1548,14 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
 
-  errorText: {
-    color: RED,
-    fontSize: fontSizes.smd,
-    marginBottom: 12,
-    fontWeight: fontWeights.semibold,
-    fontFamily: appFont,
-    textAlign: 'center',
-  },
-
-  inlineError: {
-    marginHorizontal: 18,
-    marginTop: 10,
-    color: RED,
-    fontSize: fontSizes.smd,
-    fontWeight: fontWeights.semibold,
-    fontFamily: appFont,
-    textAlign: 'center',
-  },
-
   primaryBtn: {
-    minHeight: 48,
     backgroundColor: PRIMARY,
     borderRadius: radii.lgl,
-    paddingVertical: 14,
+    minHeight: 50,
     alignItems: 'center',
     justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8,
   },
 
   btnDisabled: {
@@ -1172,428 +1565,22 @@ const styles = StyleSheet.create({
   primaryBtnText: {
     color: '#fff',
     fontSize: fontSizes.mdl,
-    fontWeight: fontWeights.extrabold,
-    fontFamily: appFont,
-  },
-
-  staffSummaryRow: {
-    flexDirection: 'row',
-    gap: 10,
-    paddingHorizontal: 18,
-    paddingTop: 14,
-  },
-
-  summaryCard: {
-    flex: 1,
-    backgroundColor: '#FAFAFB',
-    borderRadius: radii.lg,
-    borderWidth: thinBorder,
-    borderColor: BORDER,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-  },
-
-  summaryNumber: {
-    fontSize: fontSizes.xxl,
-    fontWeight: fontWeights.black,
-    color: TEXT,
-    fontFamily: appFont,
-  },
-
-  summaryLabel: {
-    marginTop: 2,
-    fontSize: fontSizes.smd,
-    fontWeight: fontWeights.bold,
-    color: MUTED,
-    fontFamily: appFont,
-  },
-
-  searchWrap: {
-    height: 46,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 9,
-    marginHorizontal: 18,
-    marginTop: 12,
-    paddingHorizontal: 13,
-    backgroundColor: '#FAFAFB',
-    borderRadius: radii.lg,
-    borderWidth: thinBorder,
-    borderColor: BORDER,
-  },
-
-  searchInput: {
-    flex: 1,
-    padding: 0,
-    fontSize: fontSizes.mdl,
-    color: TEXT,
-    fontWeight: fontWeights.medium,
-    fontFamily: appFont,
-  },
-
-  staffScroll: {
-    maxHeight: 430,
-  },
-
-  staffGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    padding: 18,
-    paddingBottom: 16,
-  },
-
-  employeeCard: {
-    flexGrow: 1,
-    flexBasis: '47%',
-    minWidth: 185,
-    backgroundColor: '#FAFAFB',
-    borderRadius: radii.xxl,
-    borderWidth: thinBorder,
-    borderColor: BORDER,
-    padding: 14,
-  },
-
-  employeeCardActive: {
-    backgroundColor: '#F0FDF4',
-    borderColor: '#BBF7D0',
-  },
-
-  employeeTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 10,
-    marginBottom: 12,
-  },
-
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: radii.full,
-    backgroundColor: PRIMARY_SOFT,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  avatarActive: {
-    backgroundColor: GREEN,
-  },
-
-  avatarText: {
-    fontSize: fontSizes.mdl,
-    fontWeight: fontWeights.black,
-    color: PRIMARY,
-    fontFamily: appFont,
-  },
-
-  avatarTextActive: {
-    color: '#fff',
-  },
-
-  statusPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    borderRadius: radii.full,
-    paddingHorizontal: 9,
-    paddingVertical: 6,
-  },
-
-  statusPillIn: {
-    backgroundColor: '#DCFCE7',
-  },
-
-  statusPillOut: {
-    backgroundColor: '#F2F3F7',
-  },
-
-  statusDot: {
-    width: 7,
-    height: 7,
-    borderRadius: radii.full,
-  },
-
-  statusPillText: {
-    fontSize: fontSizes.xs,
     fontWeight: fontWeights.black,
     fontFamily: appFont,
   },
 
-  employeeName: {
-    fontSize: fontSizes.lg,
-    fontWeight: fontWeights.black,
-    color: TEXT,
-    fontFamily: appFont,
-  },
-
-  employeeMeta: {
-    marginTop: 4,
-    fontSize: fontSizes.smd,
-    fontWeight: fontWeights.semibold,
-    color: MUTED,
-    fontFamily: appFont,
-  },
-
-  employeeDuration: {
-    marginTop: 8,
-    fontSize: fontSizes.xxl,
-    fontWeight: fontWeights.black,
-    color: GREEN,
-    fontFamily: appFont,
-  },
-
-  employeeDurationMuted: {
-    marginTop: 8,
-    fontSize: fontSizes.xxl,
-    fontWeight: fontWeights.black,
-    color: '#C0C4CE',
-    fontFamily: appFont,
-  },
-
-  employeeCardFooter: {
-    minHeight: 34,
-    marginTop: 12,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(0,0,0,0.06)',
-    paddingTop: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-
-  employeeActionHint: {
-    fontSize: fontSizes.smd,
-    fontWeight: fontWeights.extrabold,
-    fontFamily: appFont,
-  },
-
-  loadingArea: {
-    width: '100%',
-    minHeight: 180,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-  },
-
-  loadingText: {
-    fontSize: fontSizes.smd,
-    color: MUTED,
-    fontWeight: fontWeights.semibold,
-    fontFamily: appFont,
-  },
-
-  emptyState: {
-    width: '100%',
-    minHeight: 210,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-  },
-
-  emptyIcon: {
-    width: 72,
-    height: 72,
-    borderRadius: radii.xxl,
-    backgroundColor: PRIMARY_SOFT,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-  },
-
-  emptyIconMuted: {
-    width: 72,
-    height: 72,
-    borderRadius: radii.xxl,
-    backgroundColor: '#F2F3F7',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-  },
-
-  emptyTitle: {
-    fontSize: fontSizes.lg,
-    fontWeight: fontWeights.black,
-    color: TEXT,
-    fontFamily: appFont,
-    textAlign: 'center',
-  },
-
-  emptySub: {
-    marginTop: 5,
-    fontSize: fontSizes.smd,
-    fontWeight: fontWeights.semibold,
-    color: MUTED,
-    fontFamily: appFont,
-    textAlign: 'center',
-    lineHeight: 18,
-  },
-
-  emptyBtn: {
-    marginTop: 16,
-    backgroundColor: PRIMARY,
-    borderRadius: radii.lgl,
-    paddingHorizontal: 16,
-    paddingVertical: 11,
-  },
-
-  emptyBtnText: {
-    color: '#fff',
-    fontWeight: fontWeights.extrabold,
-    fontFamily: appFont,
-  },
-
-  staffFooter: {
-    flexDirection: 'row',
-    gap: 10,
-    padding: 18,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: BORDER,
-  },
-
-  secondaryBtn: {
-    flex: 1,
-    minHeight: 46,
-    flexDirection: 'row',
-    gap: 6,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: thinBorder,
-    borderColor: BORDER,
-    borderRadius: radii.lgl,
-    paddingHorizontal: 10,
-    paddingVertical: 12,
-    backgroundColor: '#fff',
-  },
-
-  secondaryBtnText: {
-    color: PRIMARY,
-    fontWeight: fontWeights.extrabold,
-    fontFamily: appFont,
-    fontSize: fontSizes.smd,
-    textAlign: 'center',
-  },
-
-  modalAvatar: {
-    width: 46,
-    height: 46,
-    borderRadius: radii.full,
-    backgroundColor: PRIMARY_SOFT,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  modalAvatarActive: {
-    backgroundColor: GREEN,
-  },
-
-  modalAvatarText: {
-    fontSize: fontSizes.lg,
-    fontWeight: fontWeights.black,
-    color: PRIMARY,
-    fontFamily: appFont,
-  },
-
-  modalAvatarTextActive: {
-    color: '#fff',
-  },
-
-  employeeDetailPanel: {
-    backgroundColor: '#FAFAFB',
-    borderRadius: radii.xl,
-    borderWidth: thinBorder,
-    borderColor: BORDER,
-    marginBottom: 14,
-    overflow: 'hidden',
-  },
-
-  detailRow: {
-    minHeight: 54,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 10,
-    paddingHorizontal: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: BORDER,
-  },
-
-  detailRowLast: {
-    borderBottomWidth: 0,
-  },
-
-  detailLabel: {
-    fontSize: fontSizes.smd,
-    color: MUTED,
-    fontWeight: fontWeights.bold,
-    fontFamily: appFont,
-  },
-
-  detailValue: {
-    fontSize: fontSizes.mdl,
-    color: TEXT,
-    fontWeight: fontWeights.extrabold,
-    fontFamily: appFont,
-  },
-
-  detailValueStrong: {
-    fontSize: fontSizes.lg,
-    color: TEXT,
-    fontWeight: fontWeights.black,
-    fontFamily: appFont,
-  },
-
-  bigClockBtn: {
-    minHeight: 54,
-    borderRadius: radii.lgl,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-
-  clockInBtn: {
-    backgroundColor: GREEN,
-  },
-
-  clockOutBtn: {
-    backgroundColor: RED,
-  },
-
-  bigClockBtnText: {
-    color: '#fff',
-    fontSize: fontSizes.lg,
-    fontWeight: fontWeights.black,
-    fontFamily: appFont,
-  },
-
-  removeBtn: {
-    minHeight: 44,
-    marginTop: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 7,
-    borderRadius: radii.lgl,
-    backgroundColor: '#FEF2F2',
-    borderWidth: thinBorder,
-    borderColor: '#FECACA',
-  },
-
-  removeBtnText: {
-    color: RED,
-    fontSize: fontSizes.smd,
-    fontWeight: fontWeights.extrabold,
-    fontFamily: appFont,
+  reportBox: {
+    maxWidth: 560,
+    maxHeight: '86%',
   },
 
   monthNav: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
-    paddingHorizontal: 18,
-    paddingVertical: 14,
+    gap: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: BORDER,
   },
@@ -1614,28 +1601,28 @@ const styles = StyleSheet.create({
     color: TEXT,
     fontFamily: appFont,
     textAlign: 'center',
-    textTransform: 'capitalize',
   },
 
   reportSummaryRow: {
     flexDirection: 'row',
     gap: 10,
-    paddingHorizontal: 18,
-    paddingTop: 14,
+    padding: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: BORDER,
   },
 
   reportSummaryCard: {
     flex: 1,
     backgroundColor: '#FAFAFB',
+    borderRadius: radii.lg,
     borderWidth: thinBorder,
     borderColor: BORDER,
-    borderRadius: radii.lg,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    padding: 12,
+    alignItems: 'center',
   },
 
-  reportSummaryNumber: {
-    fontSize: fontSizes.lg,
+  reportSummaryValue: {
+    fontSize: fontSizes.xl,
     fontWeight: fontWeights.black,
     color: PRIMARY,
     fontFamily: appFont,
@@ -1643,24 +1630,37 @@ const styles = StyleSheet.create({
 
   reportSummaryLabel: {
     marginTop: 3,
-    fontSize: fontSizes.smd,
+    fontSize: fontSizes.xs,
     fontWeight: fontWeights.bold,
     color: MUTED,
     fontFamily: appFont,
+    textAlign: 'center',
   },
 
   reportScroll: {
     maxHeight: 430,
   },
 
-  reportList: {
-    padding: 18,
+  reportScrollContent: {
+    padding: 14,
+    gap: 10,
+  },
+
+  reportLoadingBox: {
+    paddingVertical: 34,
+    alignItems: 'center',
+    gap: 10,
+  },
+
+  reportEmptyBox: {
+    paddingVertical: 34,
+    alignItems: 'center',
     gap: 10,
   },
 
   reportEmployeeCard: {
     backgroundColor: '#FAFAFB',
-    borderRadius: radii.xl,
+    borderRadius: radii.lg,
     borderWidth: thinBorder,
     borderColor: BORDER,
     overflow: 'hidden',
@@ -1674,8 +1674,8 @@ const styles = StyleSheet.create({
   },
 
   reportAvatar: {
-    width: 38,
-    height: 38,
+    width: 40,
+    height: 40,
     borderRadius: radii.full,
     backgroundColor: PRIMARY_SOFT,
     alignItems: 'center',
@@ -1683,9 +1683,9 @@ const styles = StyleSheet.create({
   },
 
   reportAvatarText: {
-    color: PRIMARY,
     fontSize: fontSizes.smd,
     fontWeight: fontWeights.black,
+    color: PRIMARY,
     fontFamily: appFont,
   },
 
@@ -1703,8 +1703,8 @@ const styles = StyleSheet.create({
 
   reportEmployeeSub: {
     marginTop: 2,
-    fontSize: fontSizes.smd,
-    fontWeight: fontWeights.semibold,
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.bold,
     color: MUTED,
     fontFamily: appFont,
   },
@@ -1717,65 +1717,50 @@ const styles = StyleSheet.create({
   },
 
   shiftList: {
-    paddingHorizontal: 12,
-    paddingBottom: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: BORDER,
+    padding: 10,
     gap: 8,
+    backgroundColor: '#fff',
   },
 
   shiftRow: {
     flexDirection: 'row',
+    gap: 10,
     alignItems: 'center',
-    gap: 9,
-    backgroundColor: '#fff',
-    borderRadius: radii.lg,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#EEF0F5',
-    paddingHorizontal: 10,
-    paddingVertical: 9,
   },
 
-  shiftIconBox: {
-    width: 28,
-    height: 28,
-    borderRadius: radii.full,
+  shiftDateBox: {
+    borderRadius: radii.mdl,
     backgroundColor: '#F2F3F7',
-    alignItems: 'center',
-    justifyContent: 'center',
+    paddingHorizontal: 9,
+    paddingVertical: 7,
   },
 
-  shiftTextWrap: {
+  shiftDateText: {
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.black,
+    color: '#555B66',
+    fontFamily: appFont,
+  },
+
+  shiftTimeBox: {
     flex: 1,
     minWidth: 0,
   },
 
-  shiftDate: {
+  shiftTimeText: {
     fontSize: fontSizes.smd,
-    fontWeight: fontWeights.extrabold,
+    fontWeight: fontWeights.bold,
     color: TEXT,
     fontFamily: appFont,
   },
 
-  shiftTime: {
+  shiftDurationText: {
     marginTop: 2,
-    fontSize: fontSizes.smd,
-    fontWeight: fontWeights.semibold,
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.bold,
     color: MUTED,
-    fontFamily: appFont,
-  },
-
-  shiftDuration: {
-    fontSize: fontSizes.smd,
-    fontWeight: fontWeights.black,
-    color: TEXT,
-    fontFamily: appFont,
-  },
-
-  noShiftText: {
-    paddingVertical: 12,
-    fontSize: fontSizes.smd,
-    fontWeight: fontWeights.semibold,
-    color: MUTED,
-    textAlign: 'center',
     fontFamily: appFont,
   },
 });
