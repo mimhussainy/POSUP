@@ -1764,7 +1764,7 @@ const styles = StyleSheet.create({
   },
 
     contentInnerPane: {
-    padding: PAGE_PADDING,
+    padding: 12,
     paddingBottom: Platform.OS === 'android' ? 150 : 130,
   },
 
@@ -2119,24 +2119,25 @@ const styles = StyleSheet.create({
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    padding: 18,
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: BORDER,
-    gap: 14,
+    gap: 10,
   },
 
   modalTitle: {
-    marginTop: 3,
-    fontSize: fontSizes.xxl,
+    marginTop: 0,
+    fontSize: fontSizes.lg,
     fontWeight: fontWeights.extrabold,
     color: TEXT,
     fontFamily: appFont,
   },
 
   modalCloseBtn: {
-    width: 34,
-    height: 34,
+    width: 30,
+    height: 30,
     borderRadius: radii.lg,
     backgroundColor: '#F7F8FA',
     justifyContent: 'center',
@@ -2146,7 +2147,7 @@ const styles = StyleSheet.create({
   },
 
   modalBody: {
-    padding: 18,
+    padding: 14,
   },
 
   successCircle: {
@@ -2177,10 +2178,12 @@ const styles = StyleSheet.create({
 
   cancelBtn: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: radii.lgl,
+    minHeight: 40,
+    paddingVertical: 10,
+    borderRadius: radii.mdl,
     backgroundColor: colors.border,
     alignItems: 'center',
+    justifyContent: 'center',
   },
 
   cancelBtnText: {
@@ -2236,10 +2239,10 @@ const styles = StyleSheet.create({
   addressBookHeaderRow: {
     width: '100%',
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 12,
-    marginBottom: 12,
+    gap: 8,
+    marginBottom: 8,
   },
 
   addressBookHeaderRowMobile: {
@@ -2247,25 +2250,25 @@ const styles = StyleSheet.create({
   },
 
   addressBookHeaderSub: {
-    marginTop: 4,
-    maxWidth: 620,
-    fontSize: fontSizes.smd,
+    display: 'none',
+    marginTop: 0,
+    fontSize: fontSizes.xs,
     color: MUTED,
     fontWeight: fontWeights.semibold,
-    lineHeight: 18,
+    lineHeight: 14,
     fontFamily: appFont,
   },
 
   addressBookAddBtn: {
-    minHeight: 42,
+    minHeight: 36,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 7,
+    gap: 6,
     backgroundColor: PRIMARY,
-    borderRadius: radii.lg,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    borderRadius: radii.mdl,
+    paddingHorizontal: 11,
+    paddingVertical: 7,
   },
 
   addressBookAddBtnText: {
@@ -2279,72 +2282,73 @@ const styles = StyleSheet.create({
     width: '100%',
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
-    marginBottom: 12,
+    gap: 7,
+    marginBottom: 8,
   },
 
   addressBookStatCard: {
     flexGrow: 1,
-    flexBasis: 145,
-    minHeight: 92,
+    flexBasis: 118,
+    minHeight: 58,
     backgroundColor: CARD_BG,
-    borderRadius: radii.xxl,
+    borderRadius: radii.lg,
     borderWidth: thinBorder,
     borderColor: BORDER,
-    padding: 14,
+    paddingHorizontal: 9,
+    paddingVertical: 8,
   },
 
   addressBookStatCardWide: {
     flexGrow: 2,
-    flexBasis: 220,
-    minHeight: 92,
+    flexBasis: 180,
+    minHeight: 58,
     backgroundColor: PRIMARY_SOFT,
-    borderRadius: radii.xxl,
+    borderRadius: radii.lg,
     borderWidth: thinBorder,
     borderColor: PRIMARY_BORDER,
-    padding: 14,
+    paddingHorizontal: 9,
+    paddingVertical: 8,
     justifyContent: 'center',
   },
 
   addressBookStatIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: radii.mdl,
+    width: 26,
+    height: 26,
+    borderRadius: radii.sm,
     backgroundColor: PRIMARY_SOFT,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
   },
 
   addressBookStatValue: {
-    fontSize: fontSizes.xxl,
+    fontSize: fontSizes.lg,
     fontWeight: fontWeights.black,
     color: TEXT,
-    lineHeight: 26,
+    lineHeight: 20,
     fontFamily: appFont,
   },
 
   addressBookStatLabel: {
-    marginTop: 3,
-    fontSize: fontSizes.sm,
+    marginTop: 2,
+    fontSize: fontSizes.xs,
     fontWeight: fontWeights.extrabold,
     color: MUTED,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.35,
     fontFamily: appFont,
   },
 
   addressBookTopCustomerName: {
-    marginTop: 6,
-    fontSize: fontSizes.lg,
+    marginTop: 4,
+    fontSize: fontSizes.mdl,
     fontWeight: fontWeights.black,
     color: PRIMARY,
     fontFamily: appFont,
   },
 
   addressBookTopCustomerSub: {
-    marginTop: 3,
-    fontSize: fontSizes.smd,
+    marginTop: 2,
+    fontSize: fontSizes.xs,
     fontWeight: fontWeights.semibold,
     color: SOFT_TEXT,
     fontFamily: appFont,
@@ -2354,7 +2358,7 @@ const styles = StyleSheet.create({
     width: '100%',
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 12,
+    gap: 8,
   },
 
   addressBookLayoutMobile: {
@@ -2367,27 +2371,27 @@ const styles = StyleSheet.create({
   },
 
   addressBookListCard: {
-    flex: 0.92,
-    minWidth: 310,
+    flex: 0.96,
+    minWidth: 280,
     backgroundColor: CARD_BG,
-    borderRadius: radii.xxxl,
+    borderRadius: radii.xl,
     borderWidth: thinBorder,
     borderColor: BORDER,
     overflow: 'hidden',
   },
 
   addressBookRightColumn: {
-    flex: 1.08,
-    minWidth: 330,
-    gap: 12,
+    flex: 1.04,
+    minWidth: 300,
+    gap: 8,
   },
 
   addressBookInsightsCard: {
     backgroundColor: CARD_BG,
-    borderRadius: radii.xxxl,
+    borderRadius: radii.xl,
     borderWidth: thinBorder,
     borderColor: BORDER,
-    padding: 16,
+    padding: 10,
   },
 
   addressBookPanelHeader: {
@@ -2416,28 +2420,28 @@ const styles = StyleSheet.create({
   },
 
   addressBookPanelTitle: {
-    fontSize: fontSizes.lg,
+    fontSize: fontSizes.mdl,
     fontWeight: fontWeights.black,
     color: TEXT,
     fontFamily: appFont,
   },
 
   addressBookPanelSub: {
-    marginTop: 3,
-    fontSize: fontSizes.smd,
+    marginTop: 2,
+    fontSize: fontSizes.xs,
     color: MUTED,
     fontWeight: fontWeights.semibold,
     fontFamily: appFont,
   },
 
   addressBookMiniBtn: {
-    minHeight: 34,
+    minHeight: 30,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 5,
-    paddingHorizontal: 10,
-    borderRadius: radii.mdl,
+    paddingHorizontal: 8,
+    borderRadius: radii.sm,
     backgroundColor: PRIMARY_SOFT,
     borderWidth: thinBorder,
     borderColor: PRIMARY_BORDER,
@@ -2454,14 +2458,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FAFAFB',
-    borderRadius: radii.lg,
-    marginHorizontal: 16,
-    marginBottom: 10,
-    paddingHorizontal: 13,
-    gap: 9,
+    borderRadius: radii.mdl,
+    marginHorizontal: 10,
+    marginBottom: 7,
+    paddingHorizontal: 10,
+    gap: 7,
     borderWidth: thinBorder,
     borderColor: BORDER,
-    height: 46,
+    height: 38,
   },
 
   addressBookSearchInput: {
@@ -2474,20 +2478,20 @@ const styles = StyleSheet.create({
   },
 
   addressBookListInline: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    maxHeight: 560,
+    paddingHorizontal: 10,
+    paddingBottom: 10,
+    maxHeight: 500,
   },
 
   addressBookEmpty: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 38,
-    gap: 8,
+    paddingVertical: 22,
+    gap: 6,
   },
 
   addressBookEmptyText: {
-    fontSize: fontSizes.md,
+    fontSize: fontSizes.smd,
     color: MUTED,
     fontWeight: fontWeights.bold,
     fontFamily: appFont,
@@ -2498,12 +2502,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FAFAFB',
-    borderRadius: radii.lg,
+    borderRadius: radii.mdl,
     borderWidth: thinBorder,
     borderColor: BORDER,
-    padding: 12,
-    marginBottom: 10,
-    gap: 11,
+    paddingHorizontal: 8,
+    paddingVertical: 7,
+    marginBottom: 6,
+    gap: 8,
   },
 
   addressBookCustomerCardActive: {
@@ -2512,8 +2517,8 @@ const styles = StyleSheet.create({
   },
 
   addressBookAvatar: {
-    width: 42,
-    height: 42,
+    width: 32,
+    height: 32,
     borderRadius: radii.full,
     backgroundColor: PRIMARY_SOFT,
     alignItems: 'center',
@@ -2521,7 +2526,7 @@ const styles = StyleSheet.create({
   },
 
   addressBookAvatarText: {
-    fontSize: fontSizes.lgl,
+    fontSize: fontSizes.md,
     fontWeight: fontWeights.black,
     color: PRIMARY,
     fontFamily: appFont,
@@ -2540,7 +2545,7 @@ const styles = StyleSheet.create({
 
   addressBookCustomerName: {
     flex: 1,
-    fontSize: fontSizes.mdl,
+    fontSize: fontSizes.smd,
     fontWeight: fontWeights.black,
     color: TEXT,
     fontFamily: appFont,
@@ -2549,39 +2554,39 @@ const styles = StyleSheet.create({
   addressBookOrderPill: {
     borderRadius: radii.full,
     backgroundColor: '#fff',
-    paddingHorizontal: 7,
-    paddingVertical: 3,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
     borderWidth: thinBorder,
     borderColor: PRIMARY_BORDER,
   },
 
   addressBookOrderPillText: {
-    fontSize: fontSizes.xs,
+    fontSize: 10,
     fontWeight: fontWeights.black,
     color: PRIMARY,
     fontFamily: appFont,
   },
 
   addressBookCustomerPhone: {
-    marginTop: 2,
-    fontSize: fontSizes.smd,
+    marginTop: 1,
+    fontSize: fontSizes.xs,
     fontWeight: fontWeights.bold,
     color: '#4B5563',
     fontFamily: appFont,
   },
 
   addressBookCustomerAddress: {
-    marginTop: 2,
-    fontSize: fontSizes.smd,
+    marginTop: 1,
+    fontSize: fontSizes.xs,
     fontWeight: fontWeights.medium,
     color: MUTED,
     fontFamily: appFont,
   },
 
   addressBookDeleteBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: radii.lg,
+    width: 30,
+    height: 30,
+    borderRadius: radii.mdl,
     backgroundColor: '#FEF2F2',
     alignItems: 'center',
     justifyContent: 'center',
@@ -2591,7 +2596,7 @@ const styles = StyleSheet.create({
 
   addressBookFormGrid: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 7,
   },
 
   addressBookFieldHalf: {
@@ -2599,7 +2604,7 @@ const styles = StyleSheet.create({
   },
 
   addressBookZipField: {
-    width: 110,
+    width: 88,
   },
 
   addressBookCityField: {
@@ -2607,12 +2612,13 @@ const styles = StyleSheet.create({
   },
 
   addressBookInput: {
+    height: 38,
     borderWidth: thinBorder,
     borderColor: BORDER,
-    borderRadius: radii.lg,
-    paddingHorizontal: 13,
-    paddingVertical: 12,
-    fontSize: fontSizes.mdl,
+    borderRadius: radii.mdl,
+    paddingHorizontal: 10,
+    paddingVertical: 0,
+    fontSize: fontSizes.smd,
     color: TEXT,
     backgroundColor: '#FAFAFB',
     fontFamily: appFont,
@@ -2638,9 +2644,9 @@ const styles = StyleSheet.create({
   },
 
   addressBookInsightIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: radii.lg,
+    width: 28,
+    height: 28,
+    borderRadius: radii.mdl,
     backgroundColor: PRIMARY_SOFT,
     alignItems: 'center',
     justifyContent: 'center',
@@ -2649,16 +2655,16 @@ const styles = StyleSheet.create({
   addressBookEmptyChart: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 30,
-    gap: 8,
+    paddingVertical: 16,
+    gap: 6,
   },
 
   addressBookChartList: {
-    gap: 12,
+    gap: 8,
   },
 
   addressBookChartRow: {
-    gap: 7,
+    gap: 4,
   },
 
   addressBookChartRowTop: {
@@ -2670,28 +2676,28 @@ const styles = StyleSheet.create({
 
   addressBookChartName: {
     flex: 1,
-    fontSize: fontSizes.smd,
+    fontSize: fontSizes.xs,
     fontWeight: fontWeights.bold,
     color: TEXT,
     fontFamily: appFont,
   },
 
   addressBookChartCount: {
-    fontSize: fontSizes.smd,
+    fontSize: fontSizes.xs,
     fontWeight: fontWeights.black,
     color: PRIMARY,
     fontFamily: appFont,
   },
 
   addressBookChartTrack: {
-    height: 8,
+    height: 6,
     borderRadius: radii.full,
     backgroundColor: '#EEF0F5',
     overflow: 'hidden',
   },
 
   addressBookChartFill: {
-    height: 8,
+    height: 6,
     borderRadius: radii.full,
     backgroundColor: PRIMARY,
   },
@@ -2713,8 +2719,8 @@ const styles = StyleSheet.create({
   },
 
   addressBookSelectedLine: {
-    marginTop: 4,
-    fontSize: fontSizes.smd,
+    marginTop: 0,
+    fontSize: fontSizes.xs,
     fontWeight: fontWeights.semibold,
     color: MUTED,
     fontFamily: appFont,
@@ -2773,17 +2779,17 @@ const styles = StyleSheet.create({
 
   customerToast: {
     width: '100%',
-    minHeight: 46,
+    minHeight: 36,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 9,
+    gap: 7,
     backgroundColor: colors.successSoft,
-    borderRadius: radii.lg,
+    borderRadius: radii.mdl,
     borderWidth: thinBorder,
     borderColor: '#BBF7D0',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    marginBottom: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginBottom: 8,
   },
 
   customerToastError: {
@@ -2793,7 +2799,7 @@ const styles = StyleSheet.create({
 
   customerToastText: {
     flex: 1,
-    fontSize: fontSizes.smd,
+    fontSize: fontSizes.xs,
     fontWeight: fontWeights.extrabold,
     color: GREEN,
     fontFamily: appFont,
@@ -2807,43 +2813,46 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     alignItems: 'center',
-    justifyContent: 'center',
-    padding: 18,
+    justifyContent: 'flex-start',
+    paddingHorizontal: 12,
+    paddingTop: Platform.OS === 'android' ? 10 : 18,
+    paddingBottom: 12,
   },
 
   customerFormModalBox: {
-    maxWidth: 560,
-    maxHeight: '88%',
+    maxWidth: 520,
+    maxHeight: '78%',
   },
 
   customerModalSubText: {
-    marginTop: 4,
-    fontSize: fontSizes.smd,
+    display: 'none',
+    marginTop: 0,
+    fontSize: fontSizes.xs,
     color: MUTED,
     fontWeight: fontWeights.semibold,
     fontFamily: appFont,
   },
 
   customerFormScroll: {
-    maxHeight: 560,
+    maxHeight: 360,
   },
 
   customerFormModalContent: {
-    padding: 18,
-    gap: 12,
+    padding: 12,
+    gap: 8,
   },
 
   customerFormErrorBox: {
-    minHeight: 42,
+    minHeight: 34,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
     backgroundColor: colors.dangerSoft,
     borderWidth: thinBorder,
     borderColor: '#FECACA',
-    borderRadius: radii.lg,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
+    borderRadius: radii.mdl,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
   },
 
   customerFormErrorText: {
@@ -2856,19 +2865,19 @@ const styles = StyleSheet.create({
 
   customerFormActions: {
     flexDirection: 'row',
-    gap: 10,
-    marginTop: 4,
+    gap: 7,
+    marginTop: 2,
   },
 
   customerFormSaveBtn: {
     flex: 1.25,
-    minHeight: 46,
+    minHeight: 40,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: 6,
     backgroundColor: PRIMARY,
-    borderRadius: radii.lgl,
+    borderRadius: radii.mdl,
   },
 
   addressBookHeaderTextWrap: {
@@ -2885,8 +2894,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 10,
-    marginBottom: 9,
+    gap: 6,
+    marginBottom: 4,
   },
 
   addressBookStatIconActive: {
@@ -2895,23 +2904,24 @@ const styles = StyleSheet.create({
 
   addressBookPanelHeaderCompact: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 12,
-    padding: 16,
-    paddingBottom: 12,
+    gap: 8,
+    paddingHorizontal: 10,
+    paddingTop: 10,
+    paddingBottom: 7,
   },
 
   addressBookPanelHeaderNoPadding: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 12,
-    marginBottom: 14,
+    gap: 8,
+    marginBottom: 8,
   },
 
   addressBookListScroll: {
-    maxHeight: 600,
+    maxHeight: 520,
   },
 
   addressBookInsightTitleWrap: {
@@ -2920,34 +2930,34 @@ const styles = StyleSheet.create({
   },
 
   addressBookInsightValueBox: {
-    minWidth: 58,
-    maxWidth: 170,
-    minHeight: 42,
+    minWidth: 48,
+    maxWidth: 150,
+    minHeight: 32,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: PRIMARY_SOFT,
-    borderRadius: radii.lg,
+    borderRadius: radii.mdl,
     borderWidth: thinBorder,
     borderColor: PRIMARY_BORDER,
-    paddingHorizontal: 12,
+    paddingHorizontal: 9,
   },
 
   addressBookInsightValue: {
-    fontSize: fontSizes.lgl,
+    fontSize: fontSizes.mdl,
     fontWeight: fontWeights.black,
     color: PRIMARY,
     fontFamily: appFont,
   },
 
   addressBookSelectedSummaryClean: {
-    gap: 10,
+    gap: 6,
   },
 
   addressBookDetailRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 9,
-    paddingVertical: 3,
+    gap: 7,
+    paddingVertical: 2,
   },
 
 });
