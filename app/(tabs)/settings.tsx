@@ -372,7 +372,7 @@ export default function Settings() {
 
   const addressBookStorageKey = (code: string) => `posup_phone_customers_${code}`;
 
-  const normalizeCustomerPhone = (value: any) => String(value || '').replace(/\s+/g, '').trim();
+  const normalizeCustomerPhone = (value: any) => String(value || '').replace(/\D/g, '');
 
   const getCustomerMergeKey = (customer: Partial<PhoneCustomer>) => {
     const phone = normalizeCustomerPhone(customer.phone);

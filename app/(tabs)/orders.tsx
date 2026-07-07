@@ -1049,9 +1049,7 @@ export default function NewOrderScreen() {
           order_id: data.order_id,
         };
 
-        if (orderType === 'phone') {
-          await savePhoneCustomerOrderHistory(cleanedPhoneCustomer);
-        }
+        if (orderType === 'phone')
 
         setCart([]);
         setNote('');
