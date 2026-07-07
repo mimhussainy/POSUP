@@ -372,6 +372,56 @@ export default function Settings() {
 
   const addressBookStorageKey = (code: string) => `posup_phone_customers_${code}`;
 
+  const normalizeCustomerPhone = (value: any) => String(value || '').replace(/\s+/g, '').trim();
+
+  const getCustomerMergeKey = (customer: Partial<PhoneCustomer>) => {
+    const phone = normalizeCustomerPhone(customer.phone);
+    return phone || getCustomerKey(customer);
+  };
+
+  const mergeAddressBookCustomers = (localCustomers: PhoneCustomer[], backendCustomers: PhoneCustomer[]) => {
+    const merged = [...localCustomers];
+
+    backendCustomers.forEach(backendCustomer => {
+      const backendKey = getCustomerMergeKey(backendCustomer);
+      const existingIndex = merged.findIndex(localCustomer => getCustomerMergeKey(localCustomer) === backendKey);
+
+      if (existingIndex >= 0) {
+        const localCustomer = merged[existingIndex] as any;
+        const remoteCustomer = backendCustomer as any;
+
+        merged[existingIndex] = {
+          ...localCustomer,
+          ...remoteCustomer,
+          first_name: remoteCustomer.first_name || localCustomer.first_name || '',
+          last_name: remoteCustomer.last_name || localCustomer.last_name || '',
+          phone: remoteCustomer.phone || localCustomer.phone || '',
+          street: remoteCustomer.street || localCustomer.street || '',
+          zip: remoteCustomer.zip || localCustomer.zip || '',
+          city: remoteCustomer.city || localCustomer.city || '',
+          order_count: Number(remoteCustomer.order_count || localCustomer.order_count || 0),
+          last_order_at: remoteCustomer.last_order_at || localCustomer.last_order_at || null,
+        } as PhoneCustomer;
+      } else {
+        merged.push({
+          ...backendCustomer,
+          order_count: Number((backendCustomer as any).order_count || 0),
+          last_order_at: (backendCustomer as any).last_order_at || null,
+        } as PhoneCustomer);
+      }
+    });
+
+    return merged.sort((a, b) => {
+      const aOrders = Number((a as any).order_count || 0);
+      const bOrders = Number((b as any).order_count || 0);
+      const aDate = (a as any).last_order_at ? new Date((a as any).last_order_at).getTime() : 0;
+      const bDate = (b as any).last_order_at ? new Date((b as any).last_order_at).getTime() : 0;
+
+      if (bDate !== aDate) return bDate - aDate;
+      return bOrders - aOrders;
+    });
+  };
+
   const getCustomerKey = (customer: Partial<PhoneCustomer>) => [
     customer.phone || '',
     customer.first_name || '',
@@ -392,8 +442,29 @@ export default function Settings() {
 
   const loadAddressBook = useCallback(async () => {
     const code = restaurantCode || await AsyncStorage.getItem('restaurant_code') || '';
-    const customers = await loadPhoneCustomers(code);
-    setAddressBookCustomers(customers);
+    const localCustomers = await loadPhoneCustomers(code);
+
+    if (!code) {
+      setAddressBookCustomers(localCustomers);
+      return localCustomers;
+    }
+
+    try {
+      const res = await fetch(`${BACKEND}/posup/customers/${encodeURIComponent(code)}`);
+      const data = await res.json().catch(() => ({}));
+
+      if (res.ok && data.success && Array.isArray(data.customers)) {
+        const mergedCustomers = mergeAddressBookCustomers(localCustomers, data.customers as PhoneCustomer[]);
+        await AsyncStorage.setItem(addressBookStorageKey(code), JSON.stringify(mergedCustomers));
+        setAddressBookCustomers(mergedCustomers);
+        return mergedCustomers;
+      }
+    } catch (e) {
+      console.log('Failed to refresh address book from backend', e);
+    }
+
+    setAddressBookCustomers(localCustomers);
+    return localCustomers;
   }, [restaurantCode]);
 
   useEffect(() => {
@@ -950,7 +1021,6 @@ export default function Settings() {
                   ) : (
                     filteredAddressBookCustomers.map((customer, index) => {
                       const name = formatCustomerName(customer);
-                      const address = formatCustomerAddress(customer);
                       const activeCustomer = editingCustomerKey === getCustomerKey(customer);
                       const orderCount = Number((customer as any).order_count || 0);
 
@@ -980,12 +1050,10 @@ export default function Settings() {
                               ) : null}
                             </View>
 
-                            <Text style={styles.addressBookCustomerPhone} numberOfLines={1}>
-                              {customer.phone || ((t as any).noPhone || 'No phone')}
-                            </Text>
-
-                            <Text style={styles.addressBookCustomerAddress} numberOfLines={1}>
-                              {address || ((t as any).noAddress || (language === 'de' ? 'Keine Adresse' : 'No address'))}
+                            <Text style={styles.addressBookCustomerHint} numberOfLines={1}>
+                              {activeCustomer
+                                ? (isGerman ? 'Geöffnet' : 'Opened')
+                                : (isGerman ? 'Tippen für Details' : 'Tap for details')}
                             </Text>
                           </View>
 
@@ -1004,16 +1072,16 @@ export default function Settings() {
               </View>
 
               <View style={[styles.addressBookRightColumn, isNarrow && styles.addressBookColumnMobile]}>
-                <View style={styles.addressBookInsightsCard}>
+                <View style={styles.addressBookDetailsCard}>
                   <View style={styles.addressBookPanelHeaderNoPadding}>
                     <View style={styles.addressBookInsightTitleWrap}>
                       <Text style={styles.addressBookPanelTitle}>
-                        {selectedCustomer ? formatCustomerName(selectedCustomer) : tr('customerInsights', labels.customerInsights)}
+                        {selectedCustomer ? formatCustomerName(selectedCustomer) : (isGerman ? 'Kundendetails' : 'Customer details')}
                       </Text>
                       <Text style={styles.addressBookPanelSub}>
                         {selectedCustomer
-                          ? `${Number((selectedCustomer as any).order_count || 0)} ${tr('ordersCount', labels.ordersCount).toLowerCase()} · ${tr('lastOrder', labels.lastOrder)} ${formatCustomerDate((selectedCustomer as any).last_order_at)}`
-                          : insight.text}
+                          ? (isGerman ? 'Telefon, Adresse und Bestellhistorie' : 'Phone, address and order history')
+                          : (isGerman ? 'Wähle links einen Kunden aus.' : 'Select a customer from the list.')}
                       </Text>
                     </View>
 
@@ -1022,11 +1090,7 @@ export default function Settings() {
                         <Ionicons name="create-outline" size={17} color={PRIMARY} />
                         <Text style={styles.addressBookMiniBtnText}>{isGerman ? 'Bearbeiten' : 'Edit'}</Text>
                       </TouchableOpacity>
-                    ) : (
-                      <View style={styles.addressBookInsightValueBox}>
-                        <Text style={styles.addressBookInsightValue} numberOfLines={1}>{insight.value}</Text>
-                      </View>
-                    )}
+                    ) : null}
                   </View>
 
                   {selectedCustomer ? (
@@ -1035,12 +1099,58 @@ export default function Settings() {
                         <Ionicons name="call-outline" size={16} color={MUTED} />
                         <Text style={styles.addressBookSelectedLine}>{selectedCustomer.phone || '—'}</Text>
                       </View>
+
                       <View style={styles.addressBookDetailRow}>
                         <Ionicons name="location-outline" size={16} color={MUTED} />
                         <Text style={styles.addressBookSelectedLine}>{formatCustomerAddress(selectedCustomer) || '—'}</Text>
                       </View>
+
+                      <View style={styles.addressBookHistoryBox}>
+                        <View style={styles.addressBookHistoryItem}>
+                          <Text style={styles.addressBookHistoryLabel}>{tr('ordersCount', labels.ordersCount)}</Text>
+                          <Text style={styles.addressBookHistoryValue}>{Number((selectedCustomer as any).order_count || 0)}</Text>
+                        </View>
+
+                        <View style={styles.addressBookHistoryDivider} />
+
+                        <View style={styles.addressBookHistoryItem}>
+                          <Text style={styles.addressBookHistoryLabel}>{tr('lastOrder', labels.lastOrder)}</Text>
+                          <Text style={styles.addressBookHistoryValueSmall}>{formatCustomerDate((selectedCustomer as any).last_order_at)}</Text>
+                        </View>
+                      </View>
+
+                      {Number((selectedCustomer as any).order_count || 0) === 0 ? (
+                        <View style={styles.addressBookHistoryNotice}>
+                          <Ionicons name="information-circle-outline" size={16} color={ORANGE} />
+                          <Text style={styles.addressBookHistoryNoticeText}>
+                            {isGerman
+                              ? 'Noch keine gespeicherte Historie.'
+                              : 'No saved customer history yet.'}
+                          </Text>
+                        </View>
+                      ) : null}
                     </View>
-                  ) : null}
+                  ) : (
+                    <View style={styles.addressBookEmptyDetail}>
+                      <Ionicons name="person-circle-outline" size={42} color="#C7CBD4" />
+                      <Text style={styles.addressBookEmptyText}>
+                        {tr('noCustomerSelected', labels.noCustomerSelected)}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+
+                <View style={styles.addressBookStatsCard}>
+                  <View style={styles.addressBookPanelHeaderNoPadding}>
+                    <View>
+                      <Text style={styles.addressBookPanelTitle}>{tr('customerInsights', labels.customerInsights)}</Text>
+                      <Text style={styles.addressBookPanelSub}>{insight.text}</Text>
+                    </View>
+
+                    <View style={styles.addressBookInsightValueBox}>
+                      <Text style={styles.addressBookInsightValue} numberOfLines={1}>{insight.value}</Text>
+                    </View>
+                  </View>
 
                   <View style={styles.addressBookQuickStatsRow}>
                     {renderAddressBookStatCard('total', tr('totalCustomers', labels.totalCustomers), String(addressBookStats.total), 'people-outline')}
@@ -2452,6 +2562,22 @@ const styles = StyleSheet.create({
     padding: 12,
   },
 
+  addressBookDetailsCard: {
+    backgroundColor: CARD_BG,
+    borderRadius: radii.xl,
+    borderWidth: thinBorder,
+    borderColor: BORDER,
+    padding: 12,
+  },
+
+  addressBookStatsCard: {
+    backgroundColor: CARD_BG,
+    borderRadius: radii.xl,
+    borderWidth: thinBorder,
+    borderColor: BORDER,
+    padding: 12,
+  },
+
   addressBookPanelHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -2614,6 +2740,14 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.mdl,
     fontWeight: fontWeights.black,
     color: TEXT,
+    fontFamily: appFont,
+  },
+
+  addressBookCustomerHint: {
+    marginTop: 2,
+    fontSize: fontSizes.smd,
+    fontWeight: fontWeights.semibold,
+    color: MUTED,
     fontFamily: appFont,
   },
 
@@ -3053,6 +3187,80 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 7,
     paddingVertical: 2,
+  },
+
+  addressBookHistoryBox: {
+    marginTop: 8,
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    borderRadius: radii.lg,
+    backgroundColor: '#FAFAFB',
+    borderWidth: thinBorder,
+    borderColor: BORDER,
+    overflow: 'hidden',
+  },
+
+  addressBookHistoryItem: {
+    flex: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+  },
+
+  addressBookHistoryDivider: {
+    width: thinBorder,
+    backgroundColor: BORDER,
+  },
+
+  addressBookHistoryLabel: {
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.bold,
+    color: MUTED,
+    fontFamily: appFont,
+  },
+
+  addressBookHistoryValue: {
+    marginTop: 2,
+    fontSize: fontSizes.xxl,
+    fontWeight: fontWeights.black,
+    color: PRIMARY,
+    fontFamily: appFont,
+  },
+
+  addressBookHistoryValueSmall: {
+    marginTop: 5,
+    fontSize: fontSizes.mdl,
+    fontWeight: fontWeights.black,
+    color: TEXT,
+    fontFamily: appFont,
+  },
+
+  addressBookHistoryNotice: {
+    marginTop: 8,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 7,
+    backgroundColor: '#FFFBEB',
+    borderWidth: thinBorder,
+    borderColor: '#FDE68A',
+    borderRadius: radii.mdl,
+    paddingHorizontal: 9,
+    paddingVertical: 8,
+  },
+
+  addressBookHistoryNoticeText: {
+    flex: 1,
+    fontSize: fontSizes.smd,
+    fontWeight: fontWeights.semibold,
+    color: '#92400E',
+    lineHeight: 17,
+    fontFamily: appFont,
+  },
+
+  addressBookEmptyDetail: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 22,
+    gap: 7,
   },
 
 });
