@@ -262,6 +262,7 @@ export default function Settings() {
 
   const [addressBookCustomers, setAddressBookCustomers] = useState<PhoneCustomer[]>([]);
   const [addressBookSearch, setAddressBookSearch] = useState('');
+  const [refreshingAddressBook, setRefreshingAddressBook] = useState(false);
   const [customerDraft, setCustomerDraft] = useState<AddressBookDraft>({
     first_name: '',
     last_name: '',
@@ -339,6 +340,9 @@ export default function Settings() {
     ordersCount: isGerman ? 'Bestellungen' : 'Orders',
     customerSavedToast: isGerman ? 'Kunde wurde gespeichert' : 'Customer saved successfully',
     customerSaveFailed: isGerman ? 'Kunde konnte nicht gespeichert werden' : 'Failed to save customer',
+    refresh: isGerman ? 'Aktualisieren' : 'Refresh',
+    addressBookRefreshed: isGerman ? 'Adressbuch aktualisiert' : 'Address book refreshed',
+    addressBookRefreshFailed: isGerman ? 'Adressbuch konnte nicht aktualisiert werden' : 'Failed to refresh address book',
     editCustomerDetails: isGerman ? 'Kundendetails bearbeiten' : 'Edit customer details',
     close: isGerman ? 'Schliessen' : 'Close',
     customersWithAddressesInfo: isGerman ? 'Kunden mit gespeicherter Lieferadresse.' : 'Customers with a saved delivery address.',
@@ -519,6 +523,19 @@ export default function Settings() {
     openCustomerForm();
   };
 
+  const handleRefreshAddressBook = async () => {
+    setRefreshingAddressBook(true);
+
+    try {
+      await loadAddressBook();
+      showCustomerToast('success', tr('addressBookRefreshed', labels.addressBookRefreshed));
+    } catch (e) {
+      showCustomerToast('error', tr('addressBookRefreshFailed', labels.addressBookRefreshFailed));
+    } finally {
+      setRefreshingAddressBook(false);
+    }
+  };
+
   const handleSelectAddressBookCustomer = (customer: PhoneCustomer) => {
     setEditingCustomerKey(getCustomerKey(customer));
   };
@@ -692,7 +709,11 @@ export default function Settings() {
   useFocusEffect(
     useCallback(() => {
       loadData();
-    }, [loadData])
+
+      if (effectiveSection === 'addressBook') {
+        loadAddressBook();
+      }
+    }, [loadData, effectiveSection, loadAddressBook])
   );
 
   const resetPinForm = () => {
@@ -824,9 +845,6 @@ export default function Settings() {
         );
 
       case 'addressBook': {
-        const topCustomerName = addressBookStats.topCustomer
-          ? formatCustomerName(addressBookStats.topCustomer)
-          : '—';
         const maxOrders = topAddressBookCustomers.length > 0
           ? Math.max(...topAddressBookCustomers.map(customer => Number((customer as any).order_count || 0)), 1)
           : 1;
@@ -834,24 +852,38 @@ export default function Settings() {
 
         return (
           <>
-            <View style={[styles.addressBookHeaderRow, isNarrow && styles.addressBookHeaderRowMobile]}>
+            <View style={styles.addressBookHeaderRow}>
               <View style={styles.addressBookHeaderTextWrap}>
                 <Text style={styles.sectionTitle}>{(t as any).addressBook || (isGerman ? 'Adressbuch' : 'Address book')}</Text>
-                <Text style={styles.addressBookHeaderSub}>
-                  {isGerman
-                    ? 'Kunden speichern, Adressen verwalten und Stammkunden erkennen.'
-                    : 'Save customers, manage addresses, and see who your best customers are.'}
+                <Text style={styles.addressBookHeaderSubVisible}>
+                  {isGerman ? 'Kunden, Adressen und Stammkunden' : 'Customers, addresses and regulars'}
                 </Text>
               </View>
 
-              <TouchableOpacity
-                style={styles.addressBookAddBtn}
-                onPress={handleNewAddressBookCustomer}
-                activeOpacity={0.78}
-              >
-                <Ionicons name="add" size={18} color="#fff" />
-                <Text style={styles.addressBookAddBtnText}>{tr('newCustomer', labels.newCustomer)}</Text>
-              </TouchableOpacity>
+              <View style={styles.addressBookHeaderActions}>
+                <TouchableOpacity
+                  style={styles.addressBookRefreshBtn}
+                  onPress={handleRefreshAddressBook}
+                  activeOpacity={0.78}
+                  disabled={refreshingAddressBook}
+                >
+                  {refreshingAddressBook ? (
+                    <ActivityIndicator size="small" color={PRIMARY} />
+                  ) : (
+                    <Ionicons name="refresh-outline" size={18} color={PRIMARY} />
+                  )}
+                  <Text style={styles.addressBookRefreshBtnText}>{tr('refresh', labels.refresh)}</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.addressBookAddBtn}
+                  onPress={handleNewAddressBookCustomer}
+                  activeOpacity={0.78}
+                >
+                  <Ionicons name="add" size={18} color="#fff" />
+                  <Text style={styles.addressBookAddBtnText}>{tr('newCustomer', labels.newCustomer)}</Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
             {customerToast ? (
@@ -867,43 +899,22 @@ export default function Settings() {
               </View>
             ) : null}
 
-            <View style={styles.addressBookStatsGrid}>
-              {renderAddressBookStatCard(
-                'total',
-                tr('totalCustomers', labels.totalCustomers),
-                String(addressBookStats.total),
-                'people-outline'
-              )}
-
-              {renderAddressBookStatCard(
-                'withAddress',
-                tr('withAddress', labels.withAddress),
-                String(addressBookStats.withAddress),
-                'home-outline'
-              )}
-
-              {renderAddressBookStatCard(
-                'repeat',
-                tr('repeatCustomers', labels.repeatCustomers),
-                String(addressBookStats.repeatCustomers),
-                'repeat-outline'
-              )}
-
-              {renderAddressBookStatCard(
-                'top',
-                tr('topCustomer', labels.topCustomer),
-                addressBookStats.topCustomer ? String(Number((addressBookStats.topCustomer as any).order_count || 0)) : '0',
-                'star-outline'
-              )}
-            </View>
-
             <View style={[styles.addressBookLayout, isNarrow && styles.addressBookLayoutMobile]}>
               <View style={[styles.addressBookListCard, isNarrow && styles.addressBookColumnMobile]}>
                 <View style={styles.addressBookPanelHeaderCompact}>
-                  <View>
-                    <Text style={styles.addressBookPanelTitle}>{(t as any).addressBook || (isGerman ? 'Adressbuch' : 'Address book')}</Text>
-                    <Text style={styles.addressBookPanelSub}>{filteredAddressBookCustomers.length} / {addressBookCustomers.length}</Text>
+                  <View style={styles.addressBookHeaderTextWrap}>
+                    <Text style={styles.addressBookPanelTitle}>{isGerman ? 'Kundenliste' : 'Customer list'}</Text>
+                    <Text style={styles.addressBookPanelSub}>{isGerman ? 'Suchen, öffnen, bearbeiten' : 'Search, open, edit'}</Text>
                   </View>
+
+                  <TouchableOpacity
+                    style={[styles.addressBookCountBox, addressBookInfoMode === 'total' && styles.addressBookCountBoxActive]}
+                    onPress={() => setAddressBookInfoMode('total')}
+                    activeOpacity={0.78}
+                  >
+                    <Ionicons name="people-outline" size={18} color={PRIMARY} />
+                    <Text style={styles.addressBookCountBoxText}>{addressBookStats.total}</Text>
+                  </TouchableOpacity>
                 </View>
 
                 <View style={styles.addressBookSearchWrap}>
@@ -928,9 +939,12 @@ export default function Settings() {
                 >
                   {filteredAddressBookCustomers.length === 0 ? (
                     <View style={styles.addressBookEmpty}>
-                      <Ionicons name="person-circle-outline" size={48} color="#C7CBD4" />
+                      <Ionicons name="person-circle-outline" size={46} color="#C7CBD4" />
                       <Text style={styles.addressBookEmptyText}>
                         {(t as any).noSavedCustomers || (language === 'de' ? 'Noch keine Kunden gespeichert' : 'No saved customers yet')}
+                      </Text>
+                      <Text style={styles.addressBookEmptySubText}>
+                        {isGerman ? 'Tippe auf Neuer Kunde oder Aktualisieren.' : 'Tap New customer or Refresh.'}
                       </Text>
                     </View>
                   ) : (
@@ -993,70 +1007,13 @@ export default function Settings() {
                 <View style={styles.addressBookInsightsCard}>
                   <View style={styles.addressBookPanelHeaderNoPadding}>
                     <View style={styles.addressBookInsightTitleWrap}>
-                      <Text style={styles.addressBookPanelTitle}>{insight.title}</Text>
-                      <Text style={styles.addressBookPanelSub}>{insight.text}</Text>
-                    </View>
-
-                    <View style={styles.addressBookInsightValueBox}>
-                      <Text style={styles.addressBookInsightValue} numberOfLines={1}>{insight.value}</Text>
-                    </View>
-                  </View>
-                </View>
-
-                <View style={styles.addressBookInsightsCard}>
-                  <View style={styles.addressBookPanelHeaderNoPadding}>
-                    <View>
-                      <Text style={styles.addressBookPanelTitle}>{tr('bestCustomers', labels.bestCustomers)}</Text>
-                      <Text style={styles.addressBookPanelSub}>
-                        {isGerman ? 'Basierend auf gespeicherten Bestellanzahlen.' : 'Based on saved order counts.'}
-                      </Text>
-                    </View>
-
-                    <View style={styles.addressBookInsightIcon}>
-                      <Ionicons name="bar-chart-outline" size={19} color={PRIMARY} />
-                    </View>
-                  </View>
-
-                  {topAddressBookCustomers.length === 0 ? (
-                    <View style={styles.addressBookEmptyChart}>
-                      <Ionicons name="analytics-outline" size={42} color="#C7CBD4" />
-                      <Text style={styles.addressBookEmptyText}>
-                        {isGerman ? 'Noch keine Bestellhistorie vorhanden' : 'No customer order history yet'}
-                      </Text>
-                    </View>
-                  ) : (
-                    <View style={styles.addressBookChartList}>
-                      {topAddressBookCustomers.map(customer => {
-                        const orderCount = Number((customer as any).order_count || 0);
-                        const width = `${Math.max(8, (orderCount / maxOrders) * 100)}%`;
-
-                        return (
-                          <View key={getCustomerKey(customer)} style={styles.addressBookChartRow}>
-                            <View style={styles.addressBookChartRowTop}>
-                              <Text style={styles.addressBookChartName} numberOfLines={1}>{formatCustomerName(customer)}</Text>
-                              <Text style={styles.addressBookChartCount}>{orderCount}x</Text>
-                            </View>
-
-                            <View style={styles.addressBookChartTrack}>
-                              <View style={[styles.addressBookChartFill, { width: width as any }]} />
-                            </View>
-                          </View>
-                        );
-                      })}
-                    </View>
-                  )}
-                </View>
-
-                <View style={styles.addressBookInsightsCard}>
-                  <View style={styles.addressBookPanelHeaderNoPadding}>
-                    <View>
                       <Text style={styles.addressBookPanelTitle}>
                         {selectedCustomer ? formatCustomerName(selectedCustomer) : tr('customerInsights', labels.customerInsights)}
                       </Text>
                       <Text style={styles.addressBookPanelSub}>
                         {selectedCustomer
                           ? `${Number((selectedCustomer as any).order_count || 0)} ${tr('ordersCount', labels.ordersCount).toLowerCase()} · ${tr('lastOrder', labels.lastOrder)} ${formatCustomerDate((selectedCustomer as any).last_order_at)}`
-                          : tr('noCustomerSelected', labels.noCustomerSelected)}
+                          : insight.text}
                       </Text>
                     </View>
 
@@ -1065,7 +1022,11 @@ export default function Settings() {
                         <Ionicons name="create-outline" size={17} color={PRIMARY} />
                         <Text style={styles.addressBookMiniBtnText}>{isGerman ? 'Bearbeiten' : 'Edit'}</Text>
                       </TouchableOpacity>
-                    ) : null}
+                    ) : (
+                      <View style={styles.addressBookInsightValueBox}>
+                        <Text style={styles.addressBookInsightValue} numberOfLines={1}>{insight.value}</Text>
+                      </View>
+                    )}
                   </View>
 
                   {selectedCustomer ? (
@@ -1080,12 +1041,68 @@ export default function Settings() {
                       </View>
                     </View>
                   ) : null}
+
+                  <View style={styles.addressBookQuickStatsRow}>
+                    {renderAddressBookStatCard('total', tr('totalCustomers', labels.totalCustomers), String(addressBookStats.total), 'people-outline')}
+                    {renderAddressBookStatCard('repeat', tr('repeatCustomers', labels.repeatCustomers), String(addressBookStats.repeatCustomers), 'repeat-outline')}
+                    {renderAddressBookStatCard('top', tr('topCustomer', labels.topCustomer), addressBookStats.topCustomer ? String(Number((addressBookStats.topCustomer as any).order_count || 0)) : '0', 'star-outline')}
+                  </View>
+                </View>
+
+                <View style={styles.addressBookInsightsCard}>
+                  <View style={styles.addressBookPanelHeaderNoPadding}>
+                    <View>
+                      <Text style={styles.addressBookPanelTitle}>{tr('bestCustomers', labels.bestCustomers)}</Text>
+                      <Text style={styles.addressBookPanelSub}>
+                        {isGerman ? 'Kunden mit den meisten Bestellungen' : 'Customers with the most orders'}
+                      </Text>
+                    </View>
+
+                    <View style={styles.addressBookInsightIcon}>
+                      <Ionicons name="bar-chart-outline" size={19} color={PRIMARY} />
+                    </View>
+                  </View>
+
+                  {topAddressBookCustomers.length === 0 ? (
+                    <View style={styles.addressBookEmptyChart}>
+                      <Ionicons name="analytics-outline" size={40} color="#C7CBD4" />
+                      <Text style={styles.addressBookEmptyText}>
+                        {isGerman ? 'Noch keine Bestellhistorie' : 'No customer order history yet'}
+                      </Text>
+                    </View>
+                  ) : (
+                    <View style={styles.addressBookChartList}>
+                      {topAddressBookCustomers.map(customer => {
+                        const orderCount = Number((customer as any).order_count || 0);
+                        const width = `${Math.max(8, (orderCount / maxOrders) * 100)}%`;
+
+                        return (
+                          <TouchableOpacity
+                            key={getCustomerKey(customer)}
+                            style={styles.addressBookChartRow}
+                            onPress={() => handleSelectAddressBookCustomer(customer)}
+                            activeOpacity={0.78}
+                          >
+                            <View style={styles.addressBookChartRowTop}>
+                              <Text style={styles.addressBookChartName} numberOfLines={1}>{formatCustomerName(customer)}</Text>
+                              <Text style={styles.addressBookChartCount}>{orderCount}x</Text>
+                            </View>
+
+                            <View style={styles.addressBookChartTrack}>
+                              <View style={[styles.addressBookChartFill, { width: width as any }]} />
+                            </View>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  )}
                 </View>
               </View>
             </View>
           </>
         );
       }
+
 
       case 'printer':
         return (
@@ -2241,21 +2258,59 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 8,
+    gap: 10,
     marginBottom: 8,
   },
 
   addressBookHeaderRowMobile: {
     flexDirection: 'column',
+    alignItems: 'stretch',
   },
 
   addressBookHeaderSub: {
     display: 'none',
     marginTop: 0,
-    fontSize: fontSizes.xs,
+    fontSize: fontSizes.smd,
     color: MUTED,
     fontWeight: fontWeights.semibold,
-    lineHeight: 14,
+    lineHeight: 16,
+    fontFamily: appFont,
+  },
+
+  addressBookHeaderSubVisible: {
+    marginTop: 1,
+    fontSize: fontSizes.smd,
+    color: MUTED,
+    fontWeight: fontWeights.semibold,
+    lineHeight: 16,
+    fontFamily: appFont,
+  },
+
+  addressBookHeaderActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 8,
+  },
+
+  addressBookRefreshBtn: {
+    minHeight: 36,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: CARD_BG,
+    borderRadius: radii.mdl,
+    borderWidth: thinBorder,
+    borderColor: BORDER,
+    paddingHorizontal: 11,
+    paddingVertical: 7,
+  },
+
+  addressBookRefreshBtnText: {
+    fontSize: fontSizes.smd,
+    fontWeight: fontWeights.extrabold,
+    color: PRIMARY,
     fontFamily: appFont,
   },
 
@@ -2286,16 +2341,21 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
 
+  addressBookQuickStatsRow: {
+    flexDirection: 'row',
+    gap: 7,
+    marginTop: 10,
+  },
+
   addressBookStatCard: {
-    flexGrow: 1,
-    flexBasis: 118,
-    minHeight: 58,
-    backgroundColor: CARD_BG,
+    flex: 1,
+    minHeight: 54,
+    backgroundColor: '#FAFAFB',
     borderRadius: radii.lg,
     borderWidth: thinBorder,
     borderColor: BORDER,
     paddingHorizontal: 9,
-    paddingVertical: 8,
+    paddingVertical: 7,
   },
 
   addressBookStatCardWide: {
@@ -2321,20 +2381,18 @@ const styles = StyleSheet.create({
   },
 
   addressBookStatValue: {
-    fontSize: fontSizes.lg,
+    fontSize: fontSizes.lgl,
     fontWeight: fontWeights.black,
     color: TEXT,
-    lineHeight: 20,
+    lineHeight: 21,
     fontFamily: appFont,
   },
 
   addressBookStatLabel: {
-    marginTop: 2,
-    fontSize: fontSizes.xs,
+    marginTop: 1,
+    fontSize: fontSizes.sm,
     fontWeight: fontWeights.extrabold,
     color: MUTED,
-    textTransform: 'uppercase',
-    letterSpacing: 0.35,
     fontFamily: appFont,
   },
 
@@ -2358,7 +2416,7 @@ const styles = StyleSheet.create({
     width: '100%',
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 8,
+    gap: 10,
   },
 
   addressBookLayoutMobile: {
@@ -2371,8 +2429,8 @@ const styles = StyleSheet.create({
   },
 
   addressBookListCard: {
-    flex: 0.96,
-    minWidth: 280,
+    flex: 1.05,
+    minWidth: 310,
     backgroundColor: CARD_BG,
     borderRadius: radii.xl,
     borderWidth: thinBorder,
@@ -2381,9 +2439,9 @@ const styles = StyleSheet.create({
   },
 
   addressBookRightColumn: {
-    flex: 1.04,
+    flex: 0.95,
     minWidth: 300,
-    gap: 8,
+    gap: 10,
   },
 
   addressBookInsightsCard: {
@@ -2391,7 +2449,7 @@ const styles = StyleSheet.create({
     borderRadius: radii.xl,
     borderWidth: thinBorder,
     borderColor: BORDER,
-    padding: 10,
+    padding: 12,
   },
 
   addressBookPanelHeader: {
@@ -2427,8 +2485,8 @@ const styles = StyleSheet.create({
   },
 
   addressBookPanelSub: {
-    marginTop: 2,
-    fontSize: fontSizes.xs,
+    marginTop: 1,
+    fontSize: fontSizes.smd,
     color: MUTED,
     fontWeight: fontWeights.semibold,
     fontFamily: appFont,
@@ -2460,12 +2518,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#FAFAFB',
     borderRadius: radii.mdl,
     marginHorizontal: 10,
-    marginBottom: 7,
+    marginBottom: 8,
     paddingHorizontal: 10,
     gap: 7,
     borderWidth: thinBorder,
     borderColor: BORDER,
-    height: 38,
+    height: 40,
   },
 
   addressBookSearchInput: {
@@ -2480,7 +2538,7 @@ const styles = StyleSheet.create({
   addressBookListInline: {
     paddingHorizontal: 10,
     paddingBottom: 10,
-    maxHeight: 500,
+    maxHeight: 520,
   },
 
   addressBookEmpty: {
@@ -2491,9 +2549,17 @@ const styles = StyleSheet.create({
   },
 
   addressBookEmptyText: {
-    fontSize: fontSizes.smd,
+    fontSize: fontSizes.mdl,
     color: MUTED,
     fontWeight: fontWeights.bold,
+    fontFamily: appFont,
+    textAlign: 'center',
+  },
+
+  addressBookEmptySubText: {
+    fontSize: fontSizes.smd,
+    color: MUTED,
+    fontWeight: fontWeights.semibold,
     fontFamily: appFont,
     textAlign: 'center',
   },
@@ -2505,9 +2571,9 @@ const styles = StyleSheet.create({
     borderRadius: radii.mdl,
     borderWidth: thinBorder,
     borderColor: BORDER,
-    paddingHorizontal: 8,
-    paddingVertical: 7,
-    marginBottom: 6,
+    paddingHorizontal: 9,
+    paddingVertical: 8,
+    marginBottom: 7,
     gap: 8,
   },
 
@@ -2517,8 +2583,8 @@ const styles = StyleSheet.create({
   },
 
   addressBookAvatar: {
-    width: 32,
-    height: 32,
+    width: 34,
+    height: 34,
     borderRadius: radii.full,
     backgroundColor: PRIMARY_SOFT,
     alignItems: 'center',
@@ -2526,7 +2592,7 @@ const styles = StyleSheet.create({
   },
 
   addressBookAvatarText: {
-    fontSize: fontSizes.md,
+    fontSize: fontSizes.mdl,
     fontWeight: fontWeights.black,
     color: PRIMARY,
     fontFamily: appFont,
@@ -2545,7 +2611,7 @@ const styles = StyleSheet.create({
 
   addressBookCustomerName: {
     flex: 1,
-    fontSize: fontSizes.smd,
+    fontSize: fontSizes.mdl,
     fontWeight: fontWeights.black,
     color: TEXT,
     fontFamily: appFont,
@@ -2569,7 +2635,7 @@ const styles = StyleSheet.create({
 
   addressBookCustomerPhone: {
     marginTop: 1,
-    fontSize: fontSizes.xs,
+    fontSize: fontSizes.smd,
     fontWeight: fontWeights.bold,
     color: '#4B5563',
     fontFamily: appFont,
@@ -2577,7 +2643,7 @@ const styles = StyleSheet.create({
 
   addressBookCustomerAddress: {
     marginTop: 1,
-    fontSize: fontSizes.xs,
+    fontSize: fontSizes.smd,
     fontWeight: fontWeights.medium,
     color: MUTED,
     fontFamily: appFont,
@@ -2612,13 +2678,13 @@ const styles = StyleSheet.create({
   },
 
   addressBookInput: {
-    height: 38,
+    height: 40,
     borderWidth: thinBorder,
     borderColor: BORDER,
     borderRadius: radii.mdl,
     paddingHorizontal: 10,
     paddingVertical: 0,
-    fontSize: fontSizes.smd,
+    fontSize: fontSizes.mdl,
     color: TEXT,
     backgroundColor: '#FAFAFB',
     fontFamily: appFont,
@@ -2676,14 +2742,14 @@ const styles = StyleSheet.create({
 
   addressBookChartName: {
     flex: 1,
-    fontSize: fontSizes.xs,
+    fontSize: fontSizes.smd,
     fontWeight: fontWeights.bold,
     color: TEXT,
     fontFamily: appFont,
   },
 
   addressBookChartCount: {
-    fontSize: fontSizes.xs,
+    fontSize: fontSizes.smd,
     fontWeight: fontWeights.black,
     color: PRIMARY,
     fontFamily: appFont,
@@ -2719,10 +2785,38 @@ const styles = StyleSheet.create({
   },
 
   addressBookSelectedLine: {
+    flex: 1,
     marginTop: 0,
-    fontSize: fontSizes.xs,
+    fontSize: fontSizes.smd,
     fontWeight: fontWeights.semibold,
     color: MUTED,
+    fontFamily: appFont,
+  },
+
+
+  addressBookCountBox: {
+    minWidth: 62,
+    height: 34,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderRadius: radii.mdl,
+    backgroundColor: PRIMARY_SOFT,
+    borderWidth: thinBorder,
+    borderColor: PRIMARY_BORDER,
+    paddingHorizontal: 10,
+  },
+
+  addressBookCountBoxActive: {
+    backgroundColor: PRIMARY_SOFT,
+    borderColor: PRIMARY,
+  },
+
+  addressBookCountBoxText: {
+    fontSize: fontSizes.lgl,
+    color: PRIMARY,
+    fontWeight: fontWeights.black,
     fontFamily: appFont,
   },
 
@@ -2799,7 +2893,7 @@ const styles = StyleSheet.create({
 
   customerToastText: {
     flex: 1,
-    fontSize: fontSizes.xs,
+    fontSize: fontSizes.smd,
     fontWeight: fontWeights.extrabold,
     color: GREEN,
     fontFamily: appFont,
@@ -2840,6 +2934,7 @@ const styles = StyleSheet.create({
   customerFormModalContent: {
     padding: 12,
     gap: 8,
+    paddingBottom: Platform.OS === 'android' ? 34 : 16,
   },
 
   customerFormErrorBox: {
@@ -2909,7 +3004,7 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 10,
     paddingTop: 10,
-    paddingBottom: 7,
+    paddingBottom: 8,
   },
 
   addressBookPanelHeaderNoPadding: {
@@ -2921,7 +3016,7 @@ const styles = StyleSheet.create({
   },
 
   addressBookListScroll: {
-    maxHeight: 520,
+    maxHeight: 540,
   },
 
   addressBookInsightTitleWrap: {
