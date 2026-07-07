@@ -29,6 +29,8 @@ import { publishDisplayState } from '../../lib/customerDisplayStore';
 const PRIMARY = colors.primary;
 const PRIMARY_SOFT = colors.primarySoft;
 
+const BACKEND = 'https://foodup-order-alerts-backend.onrender.com';
+
 const APP_BG = colors.appBg;
 const CARD_BG = colors.cardBg;
 const BORDER = colors.borderStrong;
@@ -129,6 +131,11 @@ type PhoneCustomer = {
   street: string;
   zip: string;
   city: string;
+  id?: string;
+  order_count?: number;
+  last_order_at?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
 };
 
 const emptyPhoneCustomer: PhoneCustomer = {
@@ -389,12 +396,17 @@ export default function NewOrderScreen() {
 
   function cleanPhoneCustomer(customer: PhoneCustomer): PhoneCustomer {
     return {
-      first_name: customer.first_name.trim(),
-      last_name: customer.last_name.trim(),
-      phone: customer.phone.trim(),
-      street: customer.street.trim(),
-      zip: customer.zip.trim(),
-      city: customer.city.trim(),
+      first_name: String(customer.first_name || '').trim(),
+      last_name: String(customer.last_name || '').trim(),
+      phone: String(customer.phone || '').trim(),
+      street: String(customer.street || '').trim(),
+      zip: String(customer.zip || '').trim(),
+      city: String(customer.city || '').trim(),
+      id: customer.id,
+      order_count: customer.order_count,
+      last_order_at: customer.last_order_at,
+      created_at: customer.created_at,
+      updated_at: customer.updated_at,
     };
   }
 
@@ -402,11 +414,88 @@ export default function NewOrderScreen() {
     return String(value || '').replace(/\D/g, '');
   }
 
+  function phoneCustomerKey(customer: PhoneCustomer) {
+    const phone = normalizedPhone(customer.phone);
+
+    if (phone) {
+      return `phone:${phone}`;
+    }
+
+    const nameStreet = normalizeText(
+      `${customer.first_name} ${customer.last_name} ${customer.street}`
+    ).trim();
+
+    return nameStreet ? `name:${nameStreet}` : '';
+  }
+
+  function mergePhoneCustomerData(primary: PhoneCustomer, secondary: PhoneCustomer): PhoneCustomer {
+    return {
+      ...secondary,
+      ...primary,
+      first_name: primary.first_name || secondary.first_name || '',
+      last_name: primary.last_name || secondary.last_name || '',
+      phone: primary.phone || secondary.phone || '',
+      street: primary.street || secondary.street || '',
+      zip: primary.zip || secondary.zip || '',
+      city: primary.city || secondary.city || '',
+      order_count: primary.order_count ?? secondary.order_count,
+      last_order_at: primary.last_order_at || secondary.last_order_at || null,
+      updated_at: primary.updated_at || secondary.updated_at || null,
+      created_at: primary.created_at || secondary.created_at || null,
+    };
+  }
+
+  function mergePhoneCustomers(primary: PhoneCustomer[], secondary: PhoneCustomer[]) {
+    const merged: PhoneCustomer[] = [];
+
+    const upsert = (customer: PhoneCustomer, preferNewCustomer: boolean) => {
+      const cleaned = cleanPhoneCustomer(customer);
+      const key = phoneCustomerKey(cleaned);
+
+      if (!key) {
+        return;
+      }
+
+      const existingIndex = merged.findIndex(c => phoneCustomerKey(c) === key);
+
+      if (existingIndex >= 0) {
+        merged[existingIndex] = preferNewCustomer
+          ? mergePhoneCustomerData(cleaned, merged[existingIndex])
+          : mergePhoneCustomerData(merged[existingIndex], cleaned);
+      } else {
+        merged.push(cleaned);
+      }
+    };
+
+    primary.forEach(customer => upsert(customer, true));
+    secondary.forEach(customer => upsert(customer, false));
+
+    return merged.slice(0, 200);
+  }
+
   async function loadPhoneCustomers(code: string) {
     try {
       const raw = await AsyncStorage.getItem(phoneCustomersStorageKey(code));
       const parsed = raw ? JSON.parse(raw) : [];
-      setPhoneCustomers(Array.isArray(parsed) ? parsed : []);
+      const localCustomers = Array.isArray(parsed) ? parsed : [];
+
+      let backendCustomers: PhoneCustomer[] = [];
+
+      try {
+        const res = await fetch(`${BACKEND}/posup/customers/${code}`);
+        const data = await res.json();
+
+        if (res.ok && data.success && Array.isArray(data.customers)) {
+          backendCustomers = data.customers;
+        }
+      } catch (e) {
+        console.log('Failed to load backend phone customers', e);
+      }
+
+      const merged = mergePhoneCustomers(backendCustomers, localCustomers);
+
+      setPhoneCustomers(merged);
+      await AsyncStorage.setItem(phoneCustomersStorageKey(code), JSON.stringify(merged));
     } catch (e) {
       setPhoneCustomers([]);
     }
@@ -419,32 +508,55 @@ export default function NewOrderScreen() {
       return;
     }
 
-    const customerPhone = normalizedPhone(cleaned.phone);
-    const customerNameStreet = normalizeText(
-      `${cleaned.first_name} ${cleaned.last_name} ${cleaned.street}`
-    ).trim();
+    const updated = mergePhoneCustomers([cleaned], phoneCustomers);
+    setPhoneCustomers(updated);
+    await AsyncStorage.setItem(phoneCustomersStorageKey(restaurantCode), JSON.stringify(updated));
+  }
 
-    const existingIndex = phoneCustomers.findIndex(c => {
-      const savedPhone = normalizedPhone(c.phone);
+  async function savePhoneCustomerOrderHistory(customer: PhoneCustomer) {
+    const cleaned = cleanPhoneCustomer(customer);
 
-      if (customerPhone && savedPhone === customerPhone) {
-        return true;
-      }
-
-      return normalizeText(`${c.first_name} ${c.last_name} ${c.street}`).trim() === customerNameStreet;
-    });
-
-    const updated = [...phoneCustomers];
-
-    if (existingIndex >= 0) {
-      updated[existingIndex] = cleaned;
-    } else {
-      updated.unshift(cleaned);
+    if (!cleaned.phone) {
+      await savePhoneCustomer(cleaned);
+      return;
     }
 
-    const limited = updated.slice(0, 200);
-    setPhoneCustomers(limited);
-    await AsyncStorage.setItem(phoneCustomersStorageKey(restaurantCode), JSON.stringify(limited));
+    try {
+      const res = await fetch(`${BACKEND}/posup/customers/${restaurantCode}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          first_name: cleaned.first_name,
+          last_name: cleaned.last_name,
+          phone: cleaned.phone,
+          street: cleaned.street,
+          zip: cleaned.zip,
+          city: cleaned.city,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success && data.customer) {
+        await savePhoneCustomer({
+          ...cleaned,
+          ...data.customer,
+          first_name: data.customer.first_name || cleaned.first_name,
+          last_name: data.customer.last_name || cleaned.last_name,
+          phone: data.customer.phone || cleaned.phone,
+          street: data.customer.street || cleaned.street,
+          zip: data.customer.zip || cleaned.zip,
+          city: data.customer.city || cleaned.city,
+        });
+        return;
+      }
+
+      console.log('Failed to update customer order history', data?.error || data?.message);
+    } catch (e) {
+      console.log('Failed to update customer order history', e);
+    }
+
+    await savePhoneCustomer(cleaned);
   }
 
   function updatePhoneCustomerField(field: keyof PhoneCustomer, value: string) {
@@ -856,8 +968,6 @@ export default function NewOrderScreen() {
     setPlacingOrder(true);
 
     try {
-      const BACKEND = 'https://foodup-order-alerts-backend.onrender.com';
-
       const order = {
         restaurant_code: restaurantCode,
         table: selectedTable
@@ -940,7 +1050,7 @@ export default function NewOrderScreen() {
         };
 
         if (orderType === 'phone') {
-          await savePhoneCustomer(cleanedPhoneCustomer);
+          await savePhoneCustomerOrderHistory(cleanedPhoneCustomer);
         }
 
         setCart([]);
